@@ -14,9 +14,8 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v37 — All admin actions wired to DB
-   Open slots, block, events, assign presenter,
-   delete (hard av / soft booked), Quick Open to DB
+   BD4U Book v40 — Auto-select clicked slot in booking,
+   clear prospect name placeholder, clear notes field
 ═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1034,7 +1033,7 @@ tr:hover td{background:var(--g50)}
       <div class="sb-bot">
         <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
           <div class="sb-av">AB</div>
-          <div><div class="sb-un">Ambar</div><div class="sb-role" id="book-tz-side">🇮🇩 WIB</div></div>
+          <div><div class="sb-un" id="sb-name-book">—</div><div class="sb-role" id="sb-tz-book">—</div></div>
         </div>
       </div>
     </aside>
@@ -1111,17 +1110,17 @@ tr:hover td{background:var(--g50)}
                 </div>
                 <div class="fg" id="prospect-name-fg">
                   <label class="fl">Prospect name</label>
-                  <input class="fc" type="text" id="prospect-inp" value="Kevin" oninput="updatePreview()">
+                  <input class="fc" type="text" id="prospect-inp" placeholder="e.g. John Smith" oninput="updatePreview()">
                 </div>
                 <div class="fg">
                   <label class="fl">Your name (auto-filled from profile)</label>
-                  <input class="fc" type="text" value="Ambar" readonly>
+                  <input class="fc" type="text" id="book-user-name" value="" readonly>
                 </div>
 
                 <!-- Booking label preview — I10 fix: no monospace -->
                 <div class="bk-prev">
                   <div class="bkp-lbl">Booking label preview</div>
-                  <div class="bkp-val" id="bkp-val">Kevin_Ambar &amp; TBA @ 7:15pm</div>
+                  <div class="bkp-val" id="bkp-val">—</div>
                   <div class="bkp-sub" id="bkp-sub">🇮🇩 7:15pm WIB · 🇲🇾 8:15pm MYT · Presenter: TBA — Renee/Gus will assign after booking</div>
                 </div>
 
@@ -1137,7 +1136,7 @@ tr:hover td{background:var(--g50)}
                 </div>
                 <div class="fg">
                   <label class="fl">Notes <span style="font-weight:400;color:var(--g400)">(optional)</span></label>
-                  <textarea class="fc" rows="2" style="resize:none">New lead from Jakarta</textarea>
+                  <textarea class="fc" rows="2" style="resize:none" placeholder="Optional notes for Renee / Gus"></textarea>
                 </div>
                 <!-- I6 fix: confirm button opens modal, not direct nav -->
                 <div style="display:flex;gap:8px">
@@ -1269,7 +1268,7 @@ tr:hover td{background:var(--g50)}
       <div class="sb-bot">
         <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
           <div class="sb-av">AB</div>
-          <div><div class="sb-un">Ambar</div><div class="sb-role" id="mybk-tz-side">🇮🇩 WIB</div></div>
+          <div><div class="sb-un" id="sb-name-mybk">—</div><div class="sb-role" id="sb-tz-mybk">—</div></div>
         </div>
       </div>
     </aside>
@@ -1552,6 +1551,7 @@ let panelDay       = null;
 let dayWindowStart = 0;
 let selBlock       = null;
 let selSlotType    = 'zoom15';
+let selSlotTime    = null; // pre-selected time when coming from calendar click (user TZ string e.g. "9:00am")
 let blockErrors    = {};
 let blockValues    = {};
 let _lastMob       = false;
@@ -1844,7 +1844,7 @@ async function logout(){
   hideAuthSpinner();
   CURRENT_USER = null;
   isAdmin = false;
-  blockValues = {}; blockErrors = {};
+  blockValues = {}; blockErrors = {}; selSlotTime = null;
   // Clear login fields
   ['user-email','user-pass','admin-email','admin-pass'].forEach(id=>{
     const el=$id(id); if(el) el.value='';
@@ -1898,16 +1898,37 @@ function updateRoleUI(){
     el.onclick = ()=>goScreen('sc-profile');
   });
 
-  // Sidebar labels — use real user name/initials from DB
+  // Update ALL sidebar user displays with real name/TZ
   const userName = CURRENT_USER?.name || '—';
   const userInitials = CURRENT_USER?.initials || (userName!=='—' ? userName.slice(0,2).toUpperCase() : '?');
+  const tzKey = CURRENT_USER?.tz || activeTZ || 'MY';
+  const tz = TZ_DATA[tzKey] || TZ_DATA['MY'];
+  const tzStr = `${tz.f} ${tz.l}`;
+
+  // Calendar sidebar
   setText('sb-role-lbl', isAdmin ? 'Admin' : 'Downline');
   const av=$id('sb-av-cal');
-  if(av){
-    av.textContent = userInitials;
-    av.className = isAdmin ? 'sb-av adm' : 'sb-av';
-  }
+  if(av){ av.textContent=userInitials; av.className=isAdmin?'sb-av adm':'sb-av'; }
   setText('sb-name-cal', userName);
+  setText('sb-tz-cal', tzStr);
+
+  // My Bookings sidebar
+  setText('sb-name-mybk', userName);
+  setText('sb-tz-mybk', tzStr);
+
+  // New Booking sidebar
+  setText('sb-name-book', userName);
+  setText('sb-tz-book', tzStr);
+
+  // Update page subtitles with correct TZ
+  const calPhs=$id('cal-ph-s');
+  if(calPhs) calPhs.textContent=`All times in ${tzStr}`+(isAdmin?' · Admin mode':'');
+  setText('cal-ph-t', isAdmin?'Booking Calendar (Admin)':'Booking Calendar');
+  setText('mybk-ph-s', `Your sessions with Renee & Gus · Times in ${tzStr}`);
+
+  // New Booking form name field
+  const bookNameEl=$id('book-user-name');
+  if(bookNameEl) bookNameEl.value = userName;
 
   // Logout button
   const logoutBtn=$id('logout-btn');
@@ -2212,11 +2233,14 @@ function renderDesktopCal(){
               if(slot.status==='av'){
                 const startH=Math.floor(slot.startMyt/60);
                 const blockKey=`d${slot.dayIdx}_h${startH}`;
-                onclick=`onclick="selBlock='${blockKey}';goScreen('sc-book')"`;
+                // Calculate slot time in user TZ for auto-selection
+                const tzOffsetMins=Math.round((tz.o-8)*60);
+                const uStartMin=((slot.startMyt+tzOffsetMins)%1440+1440)%1440;
+                const slotTimeStr=fmtMinutes(uStartMin);
+                onclick=`onclick="selBlock='${blockKey}';selSlotTime='${slotTimeStr}';goScreen('sc-book')"`;
               }
               if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
             } else {
-              // Past week — mine slots still link to my bookings for reference
               if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
             }
           }
@@ -2471,16 +2495,16 @@ async function unblockSlot(idx){
 // ── Slot picker (replaces text input) ──────────
 function buildSlotPicker(b, tz, selVal, conflictMsg){
   const dur = SLOT_TYPES[selSlotType]?.dur || 15;
-  const step = dur; // slots every dur minutes
   const slots = [];
-  // Build slots from startH:00 to endH - dur
-  for(let m = b.startH*60; m < b.endH*60; m += step){
-    const uM = m2u(0, tz.o) + m; // convert to user TZ
-    const userMin = ((b.startH*60 + (m - b.startH*60)) + Math.round(tz.o*60)) % (24*60);
-    const uStart = m + Math.round(tz.o*60);
+  // MYT is UTC+8. Convert MYT minutes to user TZ minutes:
+  // userMin = mytMin + (tz.o - 8) * 60
+  const tzOffsetMins = Math.round((tz.o - 8) * 60);
+  for(let m = b.startH*60; m < b.endH*60; m += dur){
+    // Convert MYT slot time to user's TZ for display
+    const uStart = ((m + tzOffsetMins) % 1440 + 1440) % 1440;
     const displayStart = fmtMinutes(uStart);
     const displayEnd   = fmtMinutes(uStart + dur);
-    // Check conflict
+    // Conflict check uses MYT minutes (m) directly — SCHEDULE uses MYT
     const conflict = SCHEDULE.some(s =>
       s.dayIdx===b.dayIdx && s.status!=='av' && s.type!=='event' && s.type!=='blocked' &&
       m < s.endMyt && m+dur > s.startMyt
@@ -2726,7 +2750,10 @@ function renderPanel(dayNum){
         clickAttr=`onclick="openSA(${idx})"`;
       } else if(!isAdmin && isAv && !isBlocked){
         const slotBlockKey=`d${slot.dayIdx}_h${Math.floor(slot.startMyt/60)}`;
-        clickAttr=`onclick="selBlock='${slotBlockKey}';closePanel();goScreen('sc-book')"`;
+        const tzOffsetMins=Math.round((tz.o-8)*60);
+        const uStartMin=((slot.startMyt+tzOffsetMins)%1440+1440)%1440;
+        const slotTimeStr=fmtMinutes(uStartMin);
+        clickAttr=`onclick="selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
       }
       const pill=isBlocked?'':typePill(slot.type);
       let badge='';
@@ -2841,6 +2868,12 @@ function renderHourBlocks(){
   }
   // Auto-select first block if selBlock not set
   if(!selBlock||!available.find(b=>b.key===selBlock)) selBlock=available[0].key;
+
+  // If a specific slot time was passed from calendar click, auto-select it
+  if(selSlotTime && selBlock){
+    blockValues[selBlock] = selSlotTime;
+    selSlotTime = null; // clear after use
+  }
   let html=`<p style="font-size:11.5px;color:var(--g400);margin-bottom:12px;line-height:1.6">
     Select a block and type your start time. Presenter assigned after booking.<br>
     ${st.icon} <strong>${st.label}</strong> · ${st.dur} minutes.</p>`;
