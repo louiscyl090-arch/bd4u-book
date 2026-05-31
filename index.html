@@ -14,8 +14,9 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v28 — Supabase bookings wired
-   Real schedule load, new booking save, my bookings
+   BD4U Book v37 — All admin actions wired to DB
+   Open slots, block, events, assign presenter,
+   delete (hard av / soft booked), Quick Open to DB
 ═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -57,7 +58,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 /* ── NAV ── FIX NAV-1: contrast raised, FIX NAV-3: logo white */
-.nav{background:var(--navy);display:flex;align-items:stretch;padding:0 14px;position:sticky;top:0;z-index:300;min-height:52px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:0;box-shadow:0 2px 8px rgba(13,31,51,.3)}
+.nav{background:var(--navy);display:flex;align-items:stretch;padding:0 14px;position:sticky;top:0;z-index:300;min-height:52px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:0;box-shadow:0 2px 8px rgba(13,31,51,.3);overflow-y:visible}
 .nav::-webkit-scrollbar{display:none}
 .nav-logo{font-size:15px;font-weight:800;color:#fff;padding-right:14px;margin-right:6px;border-right:1px solid rgba(255,255,255,.15);flex-shrink:0;white-space:nowrap;letter-spacing:-.3px}
 .nav-logo span{color:#5BC8B0} /* lighter teal — better contrast on navy */
@@ -623,7 +624,64 @@ tr:hover td{background:var(--g50)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--g200);border-radius:2px}
 
-/* ── AUTH LOADING OVERLAY ── */
+/* ── PAST WEEK / EMPTY WEEK BANNERS ── */
+.week-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--r);font-size:12px;font-weight:600;margin-bottom:10px}
+.week-banner-past{background:var(--g100);color:var(--g500);border:1px solid var(--g200)}
+.week-banner-empty{background:var(--tealLt);color:var(--teal);border:1px solid var(--tealB)}
+.week-banner-admin{background:var(--amberLt);color:var(--amber);border:1px solid var(--amberB)}
+.week-banner-icon{font-size:15px;flex-shrink:0}
+
+/* ── BOTTOM SHEET ACTION MENU ── */
+.bsheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.55);z-index:600;backdrop-filter:blur(2px);align-items:flex-end;justify-content:center}
+.bsheet-overlay.on{display:flex;animation:fadeIn .15s ease both}
+@media(min-width:641px){.bsheet-overlay{align-items:center}}
+.bsheet{background:#fff;border-radius:var(--rXl) var(--rXl) 0 0;width:100%;max-width:420px;box-shadow:var(--sh-lg);animation:slideUp .2s ease both;overflow:hidden}
+@media(min-width:641px){.bsheet{border-radius:var(--rXl);animation:fadeUp .2s ease both}}
+.bsheet-hdr{padding:16px 18px 12px;border-bottom:1px solid var(--g100)}
+.bsheet-title{font-size:15px;font-weight:800;color:var(--navy);letter-spacing:-.2px}
+.bsheet-sub{font-size:11.5px;color:var(--g400);margin-top:3px;font-family:var(--mono)}
+.bsheet-item{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .12s;font-size:13.5px;font-weight:600;color:var(--g800);border:none;width:100%;background:#fff;font-family:var(--font);text-align:left}
+.bsheet-item:last-of-type{border-bottom:none}
+.bsheet-item:hover{background:var(--g50)}
+.bsheet-item-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+.bsheet-item-info{display:flex;flex-direction:column}
+.bsheet-item-desc{font-size:11px;color:var(--g400);font-weight:400;margin-top:1px}
+.bsheet-cancel{width:100%;padding:14px;font-size:14px;font-weight:700;color:var(--g500);background:var(--g50);border:none;border-top:1px solid var(--g200);cursor:pointer;font-family:var(--font);transition:background .12s}
+.bsheet-cancel:hover{background:var(--g100)}
+
+/* ── QUICK OPEN PANEL ── */
+.qopen-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.55);z-index:600;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.qopen-overlay.on{display:flex;animation:fadeIn .18s ease both}
+.qopen-panel{background:#fff;border-radius:var(--rXl);width:100%;max-width:480px;box-shadow:var(--sh-lg);animation:fadeUp .2s ease both;overflow:hidden;max-height:90vh;overflow-y:auto}
+.qopen-hdr{padding:18px 20px 14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.qopen-t{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
+.qopen-close{width:30px;height:30px;border-radius:50%;background:var(--g100);border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--g600);font-family:var(--font)}
+.qopen-body{padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+.qopen-sec-lbl{font-size:10px;font-weight:800;color:var(--g400);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.qopen-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qopen-preset{border:2px solid var(--g200);border-radius:var(--r);padding:11px 12px;cursor:pointer;transition:all .13s;background:#fff;font-family:var(--font);text-align:left;width:100%}
+.qopen-preset:hover{border-color:var(--teal);background:var(--tealLt)}
+.qopen-preset.on{border-color:var(--teal);background:var(--tealLt)}
+.qopen-preset-icon{font-size:18px;margin-bottom:4px}
+.qopen-preset-name{font-size:12px;font-weight:700;color:var(--navy);display:block}
+.qopen-preset-time{font-size:10.5px;color:var(--g400);margin-top:1px;display:block;font-family:var(--mono)}
+.qopen-time-row{display:flex;align-items:center;gap:10px}
+.qopen-time-row .fc{flex:1}
+.qopen-time-sep{font-size:13px;color:var(--g400);font-weight:600;flex-shrink:0}
+.qopen-days{display:flex;gap:6px;flex-wrap:wrap}
+.qopen-day{width:40px;height:40px;border-radius:50%;border:2px solid var(--g200);background:#fff;font-size:11px;font-weight:700;color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;font-family:var(--font)}
+.qopen-day:hover{border-color:var(--teal);color:var(--teal)}
+.qopen-day.on{border-color:var(--teal);background:var(--teal);color:#fff}
+.qopen-types{display:flex;gap:8px}
+.qopen-type{flex:1;border:2px solid var(--g200);border-radius:var(--r);padding:9px 10px;cursor:pointer;transition:all .13s;background:#fff;font-family:var(--font);text-align:center;font-size:12px;font-weight:700;color:var(--g600)}
+.qopen-type:hover{border-color:var(--teal)}
+.qopen-type.on-zoom{border-color:var(--zoom);background:var(--zoomLt);color:var(--zoom)}
+.qopen-type.on-private{border-color:var(--meet);background:var(--meetLt);color:var(--meet)}
+.qopen-summary{background:var(--tealLt);border:1.5px solid var(--tealB);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--teal);font-weight:600;min-height:36px;line-height:1.5}
+.qopen-foot{padding:0 20px 18px;display:flex;gap:8px}
+.qopen-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid var(--tealB);background:var(--tealLt);color:var(--teal);transition:all .13s;white-space:nowrap}
+.qopen-btn:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+
 .auth-overlay{position:fixed;inset:0;background:rgba(13,31,51,.72);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .auth-overlay.hidden{display:none}
 .auth-spinner-box{background:#fff;border-radius:var(--rXl);padding:28px 36px;text-align:center;box-shadow:var(--sh-lg);min-width:220px}
@@ -658,14 +716,27 @@ tr:hover td{background:var(--g50)}
   <div class="ntab" data-screen="sc-admin"    onclick="goScreen('sc-admin')">Admin</div>
   <div class="ntab" data-screen="sc-schedule" id="tab-schedule" onclick="goScreen('sc-schedule')" id="tab-schedule">Manage Schedule</div>
   <div class="nav-right">
-  <button type="button" id="logout-btn" onclick="logout()" class="role-toggle" style="display:none">⏏ Logout</button>
+    <button type="button" id="logout-btn" onclick="logout()" class="role-toggle" style="display:none">⏏ Logout</button>
     <button type="button" class="role-toggle" id="role-toggle-btn" onclick="toggleAdminMode()" style="display:none">→ Admin view</button>
+    <!-- Compact TZ pill — shown when logged in -->
+    <div id="tz-nav-pill" style="display:none;position:relative">
+      <button type="button" id="tz-pill-btn" onclick="toggleTZDropdown()"
+        style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap"
+        title="Switch timezone">
+        <span id="tz-pill-flag">🇲🇾</span>
+        <span id="tz-pill-code">MYT</span>
+        <span style="font-size:9px;opacity:.7">▾</span>
+      </button>
+      <div id="tz-dropdown" style="display:none;position:fixed;right:auto;top:auto;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)">
+      </div>
+    </div>
   </div>
 </nav>
-<div class="tz-bar-row" id="tz-bar-row">
+<!-- Old tz-bar-row hidden — TZ switching now in nav pill and Profile -->
+<div class="tz-bar-row hidden" id="tz-bar-row" style="display:none!important">
   <span class="tz-bar-lbl">Viewing in:</span>
   <div class="tz-pills" id="tz-bar-pills"></div>
-  <div class="tz-bar-note"><span id="tz-bar-note-txt">Default: 🇮🇩 WIB</span> · <a onclick="goScreen('sc-profile')">Change in profile</a></div>
+  <div class="tz-bar-note"><span id="tz-bar-note-txt">Default: 🇲🇾 MYT</span> · <a onclick="goScreen('sc-profile')">Change in profile</a></div>
 </div>
 
 <!-- ═══════════════════ LOGIN ═══════════════════ -->
@@ -746,6 +817,7 @@ tr:hover td{background:var(--g50)}
             <span class="cal-mo" id="week-label">19–25 May 2025</span>
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(1)">›</button>
             <button type="button" class="btn btn-ghost btn-sm" onclick="jumpToday()">Today</button>
+            <button type="button" class="qopen-btn" id="qopen-toolbar-btn" style="display:none" onclick="openQuickOpen()">⚡ Quick Open</button>
           </div>
           <div class="legend">
             <div class="leg-i"><div class="leg-d leg-zoom"></div>15-min Zoom</div>
@@ -1080,15 +1152,17 @@ tr:hover td{background:var(--g50)}
           <div>
             <div class="card" style="margin-bottom:12px">
               <div class="card-b">
-                <div style="font-size:10px;font-weight:700;color:var(--g400);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Your timezone</div>
+                <div style="font-size:10px;font-weight:700;color:var(--g600);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Your timezone</div>
                 <div id="book-tz-info"></div>
               </div>
             </div>
             <div class="card">
               <div class="card-b">
-                <div style="font-size:10px;font-weight:700;color:var(--g400);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Profile</div>
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g100);font-size:12.5px"><span style="color:var(--g400)">Name</span><span style="font-weight:700">Ambar</span></div>
-                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px"><span style="color:var(--g400)">Country</span><span style="font-weight:700">🇮🇩 Indonesia</span></div>
+                <div style="font-size:10px;font-weight:700;color:var(--g600);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Profile</div>
+                <div id="book-profile-info">
+                  <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g100);font-size:12.5px"><span style="color:var(--g600)">Name</span><span style="font-weight:700;color:var(--navy)">—</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px"><span style="color:var(--g600)">Country</span><span style="font-weight:700;color:var(--navy)">—</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -1489,7 +1563,8 @@ let addModalType   = 'blocked';
 // ═══════════════════════════════════════════════
 function m2u(h,off){ return ((h-8+off)+24)%24; }
 // Returns slots that belong to the current week (or have no week tag)
-function weekSlots(){ return SCHEDULE.filter(s=>s.week===undefined||s.week===weekOffset); }
+// Returns slots for the current week — DB slots are pre-filtered by date range on load
+function weekSlots(){ return SCHEDULE; }
 function fmtH(h,min=0){
   const p=h>=12?'pm':'am', d=h>12?h-12:h===0?12:h;
   return d+(min>0?':'+(min<10?'0'+min:min):'')+p;
@@ -1519,7 +1594,7 @@ function sanitize(s){
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-// P4 fix: label has NO @time — time shown in row below chip
+// P4 fix: label format = Prospect_Downline & Presenter
 function makeLabel(slot){
   // Returns PLAIN TEXT — never call sanitize inside here. Callers sanitize for HTML.
   if(slot.type==='event')   return slot.label||'Event';
@@ -1527,10 +1602,24 @@ function makeLabel(slot){
   if(slot.type==='private') return slot.label||'Private Meeting';
   if(slot.status==='av')    return 'Available';
   if(slot.status==='full')  return '🚫 Full';
-  const p=slot.prospect||'', u=USERS[slot.user]?.name||slot.user||'';
-  const pres=slot.presenter?USERS[slot.presenter]?.name||'TBA':'TBA';
-  const name=(p&&u)?`${p}_${u}`:(p||u||'—');
-  return `${name} & ${pres}`;
+
+  // Use DB joined names if available, fall back to USERS lookup
+  const prospect  = slot.prospect || '';
+  const downline  = slot._bookerName || USERS[slot.user]?.name || slot.user || '';
+  const presenter = slot._presenterName || (slot.presenter ? (USERS[slot.presenter]?.name || slot.presenter) : 'TBA');
+
+  // Format: Prospect_Downline & Presenter
+  const leftPart = prospect && downline ? `${prospect}_${downline}`
+                 : prospect ? prospect
+                 : downline ? downline
+                 : '—';
+  return `${leftPart} & ${presenter}`;
+}
+
+// Short label for calendar chips (truncated)
+function makeChipLabel(slot){
+  const full = makeLabel(slot);
+  return full.length > 22 ? full.slice(0,20) + '…' : full;
 }
 function typePill(type){
   const t=SLOT_TYPES[type]; if(!t||!t.pillCls) return '';
@@ -1571,8 +1660,10 @@ function getItemsForCell(di,rowStartH,rowEndH){
   return weekSlots().filter(x=>x.dayIdx===di && x.startMyt<e && x.endMyt>s)
     .sort((a,b)=>a.startMyt-b.startMyt);
 }
-// CAL-3 fix: only render rows that have content in any day
+// Admin always sees all 14 hour rows (8am–10pm) regardless of slots
+// Downlines only see rows that have content
 function getActiveRows(){
+  if(isAdmin) return ALL_HOUR_ROWS;
   return ALL_HOUR_ROWS.filter(row=>{
     for(let di=0;di<7;di++){
       if(getItemsForCell(di,row.startH,row.endH).length) return true;
@@ -1613,7 +1704,7 @@ function goScreen(id){
   if(fab) fab.className=(id==='sc-schedule'&&isAdmin)?'fab':'fab hidden';
   if(id==='sc-cal')      renderCalendar();
   if(id==='sc-book')     renderBookForm();
-  if(id==='sc-mybk')     renderMyBookings();
+  if(id==='sc-mybk')     renderMyBookings(); // async — handles its own loading state
   if(id==='sc-admin')    renderAdmin();
   if(id==='sc-schedule') renderSchedule();
   if(id==='sc-profile')  renderProfile();
@@ -1784,44 +1875,51 @@ function updateRoleUI(){
   }
   if(tabSchedule) tabSchedule.className = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
   if(tabAdmin)    tabAdmin.className    = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
-  // Role toggle — only visible if logged-in user is actually admin role
+
+  // Role toggle — ONLY visible if DB role is admin AND logged in
   const btn=$id('role-toggle-btn');
   if(btn){
     const isActualAdmin = CURRENT_USER?.role==='admin';
     btn.style.display = (loggedIn && isActualAdmin) ? 'inline-flex' : 'none';
-    btn.textContent=isAdmin?'→ Downline view':'→ Admin view';
-    btn.className=isAdmin?'role-toggle admin-on':'role-toggle';
+    btn.textContent = isAdmin ? '→ Downline view' : '→ Admin view';
+    btn.className = isAdmin ? 'role-toggle admin-on' : 'role-toggle';
   }
 
-  // Admin badge + new booking
+  // Admin badge + new booking button
   const ab=$id('admin-badge'), nb=$id('new-booking-btn');
-  if(ab) ab.style.display  = isAdmin?'inline-flex':'none';
-  if(nb) nb.style.display  = isAdmin?'none':'inline-flex';
+  if(ab) ab.style.display = isAdmin ? 'inline-flex' : 'none';
+  if(nb) nb.style.display = !loggedIn ? 'none' : isAdmin ? 'none' : 'inline-flex';
 
-  // Sidebar items — FIX UX-5: profile links get onclick
+  // Sidebar items
   ['sb-admin-dash','sb-schedule-link'].forEach(id=>{
-    const el=$id(id); if(el) el.className='sb-i'+(isAdmin?' ':'  hidden');
+    const el=$id(id); if(el) el.style.display = isAdmin ? '' : 'none';
   });
   document.querySelectorAll('.sb-profile-link').forEach(el=>{
     el.onclick = ()=>goScreen('sc-profile');
   });
 
-  // Sidebar labels
-  setText('sb-role-lbl', isAdmin?'Admin':'Downline');
+  // Sidebar labels — use real user name/initials from DB
+  const userName = CURRENT_USER?.name || '—';
+  const userInitials = CURRENT_USER?.initials || (userName!=='—' ? userName.slice(0,2).toUpperCase() : '?');
+  setText('sb-role-lbl', isAdmin ? 'Admin' : 'Downline');
   const av=$id('sb-av-cal');
-  if(av){ av.textContent=isAdmin?'RG':(CURRENT_USER?.initials||'?');
-    av.className=isAdmin?'sb-av adm':'sb-av'; }
-  setText('sb-name-cal', CURRENT_USER?.name||(isAdmin?'Renee & Gus':'—'));
+  if(av){
+    av.textContent = userInitials;
+    av.className = isAdmin ? 'sb-av adm' : 'sb-av';
+  }
+  setText('sb-name-cal', userName);
 
-  // TZ bar note
-  const tz=TZ_DATA[activeTZ];
-  const note=$id('tz-bar-note-txt');
-  if(note) note.textContent=`Default: ${tz.f} ${tz.l}`;
-  const calPhs=$id('cal-ph-s');
-  if(calPhs) calPhs.textContent=`All times in ${tz.f} ${tz.l} · May 2025`
-    +(isAdmin?' · Admin mode':'');
-  setText('cal-ph-t', isAdmin?'Booking Calendar (Admin)':'Booking Calendar');
+  // Logout button
+  const logoutBtn=$id('logout-btn');
+  if(logoutBtn) logoutBtn.style.display = loggedIn ? 'inline-flex' : 'none';
 
+  // TZ nav pill — show when logged in, show active TZ
+  activeTZ = CURRENT_USER?.tz || activeTZ || 'MY';
+  updateTZPill();
+
+  // Quick Open button — admin only
+  const qoBtn=$id('qopen-toolbar-btn');
+  if(qoBtn) qoBtn.style.display = (isAdmin && loggedIn) ? 'inline-flex' : 'none';
 }
 
 // ─── TZ ──────────────────────────────────────
@@ -1847,7 +1945,7 @@ function setActiveTZ(key){
 }
 
 function renderTZBar(){
-  const tz=TZ_DATA[activeTZ];
+  // Legacy — keep tz-bar-pills updated for profile screen compatibility
   setHTML('tz-bar-pills', Object.entries(TZ_DATA).map(([k,t])=>{
     const on=activeTZ===k, isP=CURRENT_USER&&k===CURRENT_USER.tz;
     return `<button type="button" class="tz-pill${on?' on':''}" onclick="setActiveTZ('${k}')">
@@ -1855,18 +1953,66 @@ function renderTZBar(){
       ${isP?'<span class="ptag">default</span>':''}
     </button>`;
   }).join(''));
+  // Update nav pill
+  updateTZPill();
+}
+
+function updateTZPill(){
+  const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const pill=$id('tz-nav-pill');
+  const flag=$id('tz-pill-flag');
+  const code=$id('tz-pill-code');
+  const dd=$id('tz-dropdown');
+  if(!pill) return;
+  // Show pill only when logged in
+  pill.style.display = CURRENT_USER ? 'block' : 'none';
+  if(flag) flag.textContent = tz.f;
+  if(code) code.textContent = tz.l;
+  // Build dropdown items
+  if(dd){
+    dd.innerHTML = Object.entries(TZ_DATA).map(([k,t])=>{
+      const isActive = activeTZ===k;
+      const isHome   = CURRENT_USER?.tz===k;
+      return `<button type="button" onclick="setActiveTZ('${k}');closeTZDropdown()"
+        style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:none;background:${isActive?'var(--tealLt)':'#fff'};cursor:pointer;font-family:var(--font);font-size:12px;font-weight:${isActive?'700':'500'};color:${isActive?'var(--teal)':'var(--g800)'};border-bottom:1px solid var(--g100);text-align:left">
+        <span style="font-size:16px">${sanitize(t.f)}</span>
+        <span>${sanitize(t.l)}</span>
+        ${isHome ? '<span style="margin-left:auto;font-size:9px;background:var(--tealLt);color:var(--teal);border-radius:3px;padding:1px 5px;font-weight:700">home</span>' : ''}
+        ${isActive && !isHome ? '<span style="margin-left:auto;font-size:9px;color:var(--teal)">✓</span>' : ''}
+      </button>`;
+    }).join('');
+  }
+}
+
+function toggleTZDropdown(){
+  const dd=$id('tz-dropdown');
+  const btn=$id('tz-pill-btn');
+  if(!dd||!btn) return;
+  const isOpen=dd.style.display==='block';
+  if(isOpen){ dd.style.display='none'; return; }
+  // Position dropdown below the pill button using fixed coordinates
+  const rect=btn.getBoundingClientRect();
+  dd.style.display='block';
+  dd.style.top=(rect.bottom+6)+'px';
+  // Align right edge to pill right edge, but keep on screen
+  const ddW=Math.max(dd.offsetWidth,180);
+  const rightPos=window.innerWidth-rect.right;
+  dd.style.right=rightPos+'px';
+  dd.style.left='auto';
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click',_tzDDOutside,{once:true}),10);
+}
+function closeTZDropdown(){
+  const dd=$id('tz-dropdown'); if(dd) dd.style.display='none';
+}
+function _tzDDOutside(e){
+  const pill=$id('tz-nav-pill');
+  if(pill&&!pill.contains(e.target)) closeTZDropdown();
 }
 
 function renderNavFlags(){
-  const c=$id('tz-nav-flags'); if(!c) return;
-  c.style.cssText='display:flex;gap:3px;align-items:center';
-  c.innerHTML=Object.entries(TZ_DATA).map(([k,t])=>
-    `<button type="button" class="tz-flag${activeTZ===k?' on':''}"
-      onclick="setActiveTZ('${k}')" title="${sanitize(t.l)}"
-      aria-label="Switch to ${sanitize(t.l)}">${sanitize(t.f)}
-      <span class="tz-flag-label">${sanitize(k)}</span>
-    </button>`
-  ).join('');
+  // Legacy function — now handled by updateTZPill
+  updateTZPill();
 }
 
 // ═══════════════════════════════════════════════
@@ -1906,19 +2052,76 @@ function updateWeekLabel(){
 function renderDesktopCal(){
   const wrap=$id('desktop-cal-wrap'); if(!wrap) return;
   const tz=TZ_DATA[activeTZ];
-  // CAL-3 fix: only rows with content
+
+  // ── Week context checks ──
+  const now = new Date();
+  const currentMonday = new Date(now);
+  const dow = now.getDay();
+  currentMonday.setDate(now.getDate() - (dow===0?6:dow-1));
+  currentMonday.setHours(0,0,0,0);
+  const weekMonday = WEEK_DAYS[0]?.fullDate;
+  const isPastWeek  = weekMonday && weekMonday < currentMonday;
+  const isThisWeek  = weekMonday && weekMonday.toDateString() === currentMonday.toDateString();
+  const isFutureWeek = weekMonday && weekMonday > currentMonday;
+
+  // For downlines: block future weeks with no slots
+  const hasAnySlots = SCHEDULE.some(s => s.week === weekOffset || weekOffset !== 0);
+  const hasDBSlots  = SCHEDULE.length > 0;
+
+  // Banner HTML (injected before grid)
+  let bannerHtml = '';
+  if(isPastWeek){
+    bannerHtml = `<div class="week-banner week-banner-past">
+      <span class="week-banner-icon">🕐</span>
+      <span>Past week — view only. Bookings shown for reference.</span>
+    </div>`;
+  } else if(isFutureWeek && !isAdmin && !hasDBSlots){
+    // Downline on a future week with no slots — show friendly message instead of grid
+    wrap.innerHTML = `<div class="week-banner week-banner-empty" style="padding:28px 20px;flex-direction:column;text-align:center;gap:6px">
+      <span style="font-size:28px">📅</span>
+      <span style="font-size:14px;font-weight:700">No slots available this week</span>
+      <span style="font-size:12px;font-weight:400;color:var(--teal);opacity:.8">Check back soon or contact Renee / Gus directly.</span>
+    </div>`;
+    return;
+  } else if(isFutureWeek && isAdmin && !hasDBSlots){
+    bannerHtml = `<div class="week-banner week-banner-admin">
+      <span class="week-banner-icon">➕</span>
+      <span>No slots this week — click any cell to open hours for booking.</span>
+    </div>`;
+  }
+
+  // getActiveRows handles admin empty week — always returns all rows for admin
   const activeRows=getActiveRows();
-  let html='<div class="blk-grid">';
+  let html = bannerHtml + '<div class="blk-grid">';
 
   // Head
   html+='<div class="blk-head">';
   html+='<div class="blk-head-cell" style="text-align:right;padding-right:8px">MYT</div>';
-  WEEK_DAYS.forEach(d=>{
+  WEEK_DAYS.forEach((d,di)=>{
     html+=`<div class="blk-head-cell" role="columnheader">${sanitize(d.n)}<br>
       <span class="blk-head-num${d.d===TODAY_D?' today':''}">${d.d}</span>
     </div>`;
   });
   html+='</div>';
+
+  // If no active rows — only happens for downline on week with no content
+  if(!activeRows.length){
+    if(isPastWeek){
+      html+=`<div style="text-align:center;padding:36px 20px;color:var(--g400)">
+        <div style="font-size:24px;margin-bottom:8px">📭</div>
+        <div style="font-size:13px;font-weight:600">No bookings recorded this week</div>
+      </div>`;
+    } else {
+      html+=`<div style="text-align:center;padding:36px 20px;color:var(--g400)">
+        <div style="font-size:24px;margin-bottom:8px">📅</div>
+        <div style="font-size:13px;font-weight:600">No slots available this week</div>
+        <div style="font-size:11.5px;margin-top:4px">Check back soon or contact Renee / Gus.</div>
+      </div>`;
+    }
+    html+='</div>';
+    wrap.innerHTML=html;
+    return;
+  }
 
   // Hour rows
   activeRows.forEach(row=>{
@@ -1959,6 +2162,7 @@ function renderDesktopCal(){
           const eT=minToUser(slot.endMyt,tz.o);
           const tRange=`${sanitize(tz.f)} ${sanitize(sT)}–${sanitize(eT)}`;
           const label=makeLabel(slot);
+          const chipLabel=makeChipLabel(slot);
 
           // Event block
           if(slot.type==='event'){
@@ -2003,16 +2207,22 @@ function renderDesktopCal(){
           if(isAdmin){
             onclick=`onclick="openSA(${idx})"`;
           } else {
-            if(slot.status==='av'){
-              const startH=Math.floor(slot.startMyt/60);
-              const blockKey=`d${slot.dayIdx}_h${startH}`;
-              onclick=`onclick="selBlock='${blockKey}';goScreen('sc-book')"`;
+            // Past week = read-only for downlines, no booking clicks
+            if(!isPastWeek){
+              if(slot.status==='av'){
+                const startH=Math.floor(slot.startMyt/60);
+                const blockKey=`d${slot.dayIdx}_h${startH}`;
+                onclick=`onclick="selBlock='${blockKey}';goScreen('sc-book')"`;
+              }
+              if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
+            } else {
+              // Past week — mine slots still link to my bookings for reference
+              if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
             }
-            if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
           }
           html+=`<button type="button" class="${cls}" ${onclick}
             title="${sanitize(label)}" aria-label="${sanitize(label)}">
-            <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(label)}</span>
+            <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(chipLabel)}</span>
             <span class="sc-time">${tRange}</span>
           </button>`;
         });
@@ -2037,8 +2247,13 @@ function renderDesktopCal(){
   wrap.innerHTML=html;
 }
 
-function assignSlot(idx,presenterKey){
-  if(SCHEDULE[idx]) SCHEDULE[idx].presenter=presenterKey;
+async function assignSlot(idx,presenterKey){
+  const slot=SCHEDULE[idx]; if(!slot) return;
+  slot.presenter=presenterKey;
+  if(slot._id){
+    const u=Object.values(USERS).find(u=>u.name?.toLowerCase()===presenterKey||u.id===presenterKey);
+    await sb.from('schedule').update({presenter_id:u?.id||null,status:'booked'}).eq('id',slot._id);
+  }
   renderDesktopCal(); renderSchedule();
 }
 
@@ -2175,38 +2390,82 @@ function saSetAvail(v){
   const el=$id(key); if(el) el.className=cls;
   if(_saIdx!==null) SCHEDULE[_saIdx]._pendingAvail=v;
 }
-function saveSA(){
+async function saveSA(){
   if(_saIdx===null) return;
   const slot=SCHEDULE[_saIdx];
+  const dbId=slot._id;
+  showAuthSpinner('Saving…');
+
   // Apply pending presenter
-  if('_pendingPresenter' in slot){ slot.presenter=slot._pendingPresenter; delete slot._pendingPresenter; }
-  // Apply pending status
+  if('_pendingPresenter' in slot){
+    const pKey=slot._pendingPresenter;
+    slot.presenter=pKey;
+    if(dbId){
+      // Find presenter UUID — look in loaded schedule users or USERS object
+      let presId=null;
+      if(pKey==='renee'||pKey==='gus'||pKey==='both'){
+        // Find admin user by name
+        const match=Object.values(USERS).find(u=>u.name?.toLowerCase()===pKey||(pKey==='both'&&false));
+        presId=match?.id||null;
+        // For 'both' we store first admin found — simplified for now
+        if(pKey==='both'){
+          const admins=Object.values(USERS).filter(u=>u.role==='admin');
+          presId=admins[0]?.id||null;
+        }
+      } else { presId=pKey||null; }
+      await sb.from('schedule').update({presenter_id:presId,status:'booked'}).eq('id',dbId);
+    }
+    delete slot._pendingPresenter;
+  }
+
+  // Apply pending status (confirmed/cancelled)
   if('_pendingStatus' in slot){
-    slot.cancelled=(slot._pendingStatus==='cancelled');
+    const isCancelled=slot._pendingStatus==='cancelled';
+    slot.cancelled=isCancelled;
+    if(dbId){
+      if(isCancelled) await adminSoftDelete(dbId);
+      else await sb.from('schedule').update({cancelled:false,status:'booked'}).eq('id',dbId);
+    }
     delete slot._pendingStatus;
   }
-  // Apply pending availability (av slot → busy = convert to blocked)
+
+  // Apply pending availability (av slot → busy = block it)
   if('_pendingAvail' in slot){
     if(slot._pendingAvail==='busy'){
+      if(dbId) await sb.from('schedule').update({type:'blocked',status:'blocked',reason:'Unavailable'}).eq('id',dbId);
       slot.type='blocked'; slot.status='blocked'; slot.reason='Unavailable';
     }
     delete slot._pendingAvail;
   }
+
+  hideAuthSpinner();
   closeSA(); renderDesktopCal(); renderSchedule();
 }
-function saDeleteSlot(){
+
+async function saDeleteSlot(){
   if(_saIdx===null) return;
   const slot=SCHEDULE[_saIdx];
-  const label=slot.prospect||USERS[slot.user]?.name||'this slot';
-  if(!confirm(`Delete ${label}? This cannot be undone.`)) return;
+  const label=slot.prospect||slot._bookerName||'this slot';
+  if(!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+  showAuthSpinner('Deleting…');
+  if(slot._id){
+    // Hard delete for av/blocked/event, soft delete for booked
+    const isBooked=slot.status==='booked'||slot.status==='mine';
+    if(isBooked) await adminSoftDelete(slot._id);
+    else await adminHardDelete(slot._id);
+  }
   SCHEDULE.splice(_saIdx,1);
+  hideAuthSpinner();
   closeSA(); renderDesktopCal(); renderSchedule();
 }
-function unblockSlot(idx){
-  if(SCHEDULE[idx]&&SCHEDULE[idx].type==='blocked'){
-    SCHEDULE.splice(idx,1);
-    renderDesktopCal(); renderSchedule();
-  }
+
+async function unblockSlot(idx){
+  const slot=SCHEDULE[idx]; if(!slot||slot.type!=='blocked') return;
+  showAuthSpinner('Unblocking…');
+  if(slot._id) await adminHardDelete(slot._id);
+  SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
+  renderDesktopCal(); renderSchedule();
 }
 
 // ── Slot picker (replaces text input) ──────────
@@ -2340,35 +2599,38 @@ function closePanel(){
   const cp=$id('cal-prompt'); if(cp)cp.style.display='block';
 }
 // ── Admin panel helpers ──────────────────────────
-function panelToggleHour(di, startH){
-  // Toggle av slots for this hour on this day
+async function panelToggleHour(di, startH){
   const existing=weekSlots().filter(s=>s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===startH);
   if(existing.length){
-    // Remove av slots for this hour
-    existing.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+    showAuthSpinner('Removing slots…');
+    for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
+    await reloadWeekSchedule(); hideAuthSpinner();
   } else {
-    // Add four 15-min av slots
-    [0,15,30,45].forEach(min=>{
-      const startMyt=startH*60+min;
-      SCHEDULE.push({type:'zoom15',status:'av',dayIdx:di,startMyt,endMyt:startMyt+15,
-        prospect:'',user:'',presenter:null,week:weekOffset});
-    });
+    const slots=[0,15,30,45].map(min=>({type:'zoom15',status:'av',dayIdx:di,startMyt:startH*60+min,endMyt:startH*60+min+15,user_id:null,presenter_id:null}));
+    await adminInsertAndReload(slots);
   }
-  renderPanel(panelDay); renderDayStrip(); renderDesktopCal();
+  renderPanel(panelDay); renderDayStrip();
 }
-function panelBlockDay(di){
+async function panelBlockDay(di){
   if(!confirm(`Block all of ${WEEK_DAYS[di]?.n||'this day'}?\nAll open slots will be hidden from downlines.`)) return;
-  // Remove av slots for this day
-  for(let i=SCHEDULE.length-1;i>=0;i--){
-    if(SCHEDULE[i].dayIdx===di&&SCHEDULE[i].status==='av'&&SCHEDULE[i].week===weekOffset)
-      SCHEDULE.splice(i,1);
-  }
-  // Add full-day block if not already fully blocked
+  showAuthSpinner('Blocking day…');
+  // Hard delete all av slots for this day
+  const avSlots=SCHEDULE.filter(s=>s.dayIdx===di&&s.status==='av');
+  for(const s of avSlots){ if(s._id) await adminHardDelete(s._id); }
+  // Add full-day block if not already
   const alreadyBlocked=weekSlots().some(s=>s.type==='blocked'&&s.dayIdx===di&&s.startMyt<=480&&s.endMyt>=1320);
   if(!alreadyBlocked){
-    SCHEDULE.push({type:'blocked',status:'blocked',dayIdx:di,startMyt:480,endMyt:1320,
-      reason:'Unavailable',prospect:'',user:'',presenter:null,week:weekOffset});
+    await adminInsertSlots([{type:'blocked',status:'blocked',dayIdx:di,startMyt:480,endMyt:1320,reason:'Unavailable',user_id:null,presenter_id:null}]);
   }
+  await reloadWeekSchedule(); hideAuthSpinner();
+  renderPanel(panelDay); renderDayStrip();
+}
+async function unblockSlotByRef(idx){
+  const slot=SCHEDULE[idx]; if(!slot) return;
+  showAuthSpinner('Unblocking…');
+  if(slot._id) await adminHardDelete(slot._id);
+  SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
   renderPanel(panelDay); renderDayStrip(); renderDesktopCal();
 }
 function panelAddEvent(di){
@@ -2376,10 +2638,6 @@ function panelAddEvent(di){
   addModalType='event'; renderAddModal();
   const dayEl=$id('add-day'); if(dayEl) dayEl.value=String(di);
   const mo=$id('add-modal'); if(mo) mo.classList.add('on');
-}
-function unblockSlotByRef(idx){
-  if(SCHEDULE[idx]) SCHEDULE.splice(idx,1);
-  renderPanel(panelDay); renderDayStrip(); renderDesktopCal();
 }
 function renderPanel(dayNum){
   const tz=TZ_DATA[activeTZ];
@@ -2415,32 +2673,26 @@ function renderPanel(dayNum){
 
   // ── Admin: hour chip selector ──
   if(isAdmin){
+    const homeTZ = TZ_DATA[CURRENT_USER?.tz||'MY'];
     html+=`<div class="panel-admin-bar">
-      <div class="panel-admin-lbl">Tap hour to toggle open / close</div>
+      <div class="panel-admin-lbl">Tap hour to open / manage</div>
       <div class="panel-hour-grid">`;
     ALL_HOUR_ROWS.forEach(row=>{
       const hourItems=weekSlots().filter(s=>s.dayIdx===di&&s.startMyt<row.endH*60&&s.endMyt>row.startH*60);
       const isBlocked=hourItems.some(s=>s.type==='blocked');
       const avSlots=hourItems.filter(s=>s.status==='av');
       const bkSlots=hourItems.filter(s=>s.status==='booked'||s.status==='mine');
-      const uH=m2u(row.startH,tz.o);
-      const chipLabel=fmtH(row.startH);
-      const userLabel=fmtH(uH);
-      let cls='panel-hchip', onclick='';
-      if(isBlocked){
-        cls+=' blocked';
-      } else if(bkSlots.length&&!avSlots.length){
-        cls+=' has-booking';
-        onclick=`onclick="panelToggleHour(${di},${row.startH})"`;
-      } else if(avSlots.length){
-        cls+=' open';
-        onclick=`onclick="panelToggleHour(${di},${row.startH})"`;
-      } else {
-        onclick=`onclick="panelToggleHour(${di},${row.startH})"`;
-      }
-      html+=`<div class="${cls}" ${onclick}>
+      // Show in user's HOME TZ
+      const uH=m2u(row.startH,homeTZ.o);
+      const chipLabel=fmtH(uH);
+      const mytLabel=fmtH(row.startH);
+      let cls='panel-hchip';
+      if(isBlocked)            cls+=' blocked';
+      else if(bkSlots.length&&!avSlots.length) cls+=' has-booking';
+      else if(avSlots.length)  cls+=' open';
+      html+=`<div class="${cls}" onclick="openBSheet(${di},${row.startH},event)">
         ${chipLabel}
-        <span class="panel-hchip-sub">${userLabel}${tz.l}</span>
+        <span class="panel-hchip-sub">${mytLabel}MYT</span>
       </div>`;
     });
     html+=`</div></div>`;
@@ -2545,6 +2797,17 @@ function getAvailableBlocks(){
 }
 
 function renderBookForm(){
+  // Guard — if not logged in, show message
+  if(!CURRENT_USER){
+    setHTML('slot-type-selector','');
+    setHTML('hour-blocks-list',`<div style="text-align:center;padding:32px 20px;color:var(--g600)">
+      <div style="font-size:28px;margin-bottom:10px">🔒</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)">Please sign in first</div>
+      <div style="font-size:12px;color:var(--g500);margin-top:6px">Log in to view available booking slots.</div>
+      <button type="button" class="btn btn-primary btn-sm" style="margin-top:14px" onclick="goScreen('sc-login')">Go to login →</button>
+    </div>`);
+    return;
+  }
   renderSlotTypeSelector(); renderHourBlocks();
   updateSummary(); renderPeers(); updatePreview(); renderBookTZInfo();
 }
@@ -2671,6 +2934,7 @@ function onTimeInput(inp,key){
 }
 // E7 fix: summary card colour by slot type
 function updateSummary(){
+  if(!CURRENT_USER) return; // prevent ghost rendering
   const tz=TZ_DATA[activeTZ];
   const blk=getAvailableBlocks().find(b=>b.key===selBlock)||getAvailableBlocks()[0];
   if(!blk) return;
@@ -2729,18 +2993,33 @@ function renderPeers(){
 }
 function renderBookTZInfo(){
   const tz=TZ_DATA[activeTZ];
+  const homeTZKey=CURRENT_USER?.tz||'MY';
+  const homeTZ=TZ_DATA[homeTZKey];
   setHTML('book-tz-info',`
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g100);font-size:12.5px">
       <span style="color:var(--teal);font-weight:600">Active TZ</span>
       <span style="color:var(--teal);font-weight:700">${sanitize(tz.f)} ${sanitize(tz.l)} (UTC+${tz.o})</span>
     </div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px">
-      <span style="color:var(--g400)">Profile default</span>
-      <span style="font-weight:700">${sanitize(TZ_DATA[CURRENT_USER?.tz||'ID'].f)} ${sanitize(TZ_DATA[CURRENT_USER?.tz||'ID'].l)}</span>
+      <span style="color:var(--g600)">Home TZ</span>
+      <span style="font-weight:700;color:var(--navy)">${sanitize(homeTZ.f)} ${sanitize(homeTZ.l)}</span>
     </div>
     <div style="padding-top:8px;text-align:right">
       <a style="font-size:11px;color:var(--teal);cursor:pointer;font-weight:600" onclick="goScreen('sc-profile')">Edit in profile →</a>
     </div>`);
+  // Update profile panel dynamically
+  const u=CURRENT_USER;
+  if(u){
+    setHTML('book-profile-info',`
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g100);font-size:12.5px">
+        <span style="color:var(--g600)">Name</span>
+        <span style="font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px">
+        <span style="color:var(--g600)">Country</span>
+        <span style="font-weight:700;color:var(--navy)">${sanitize(u.country||'—')}</span>
+      </div>`);
+  }
 }
 // BOOK-2 fix: prospect field properly shown/hidden
 function selectSType(type){
@@ -2842,87 +3121,147 @@ async function confirmBooking(){
 }
 
 // ═══════════════════════════════════════════════
-//  MY BOOKINGS — derived from SCHEDULE (DATA-1 fix)
+//  MY BOOKINGS — from Supabase DB directly
 // ═══════════════════════════════════════════════
-function rescheduleBooking(idx){
-  const slot=SCHEDULE[idx]; if(!slot) return;
-  // Pre-select the matching block and go to booking form
-  const startH=Math.floor(slot.startMyt/60);
-  selBlock=`d${slot.dayIdx}_h${startH}`;
-  // Remove the old booking so the slot opens up
-  SCHEDULE.splice(idx,1);
-  goScreen('sc-book');
-}
-async function cancelMyBooking(idx){
-  const slot=SCHEDULE[idx]; if(!slot) return;
-  const label=slot.prospect||makeLabel(slot);
-  if(!confirm(`Cancel your booking for "${label}"? This cannot be undone.`)) return;
-  showAuthSpinner('Cancelling…');
-  if(slot._id){
-    const ok = await cancelBookingInDB(slot._id);
-    if(!ok){ hideAuthSpinner(); alert('Could not cancel. Please try again.'); return; }
-  }
-  SCHEDULE.splice(idx,1);
-  hideAuthSpinner();
-  renderMyBookings(); renderCalendar();
-}
-function renderMyBookings(){
-  const tz=TZ_DATA[activeTZ];
-  const userId=CURRENT_USER?.id||'';
-  // My bookings = status 'mine' OR user matches current user id
-  const upcoming=SCHEDULE.filter(s=>
-    (s.status==='mine'||s.user===userId)&&
-    s.type!=='blocked'&&s.type!=='event'
-  ).sort((a,b)=>a.dayIdx!==b.dayIdx?a.dayIdx-b.dayIdx:a.startMyt-b.startMyt);
-  // Past = hardcoded demo (DATA-2: would come from DB in real app)
-  const past=[
-    {type:'zoom15',dayIdx:-1,day:12,startMyt:1200,endMyt:1215,prospect:'Prospect X',user:'downlineA',presenter:'gus'},
-  ];
-  function makeCard(s,faded,isHardcoded=false){
-    const sT=minToUser(s.startMyt,tz.o), eT=minToUser(s.endMyt,tz.o);
-    const st=SLOT_TYPES[s.type]||SLOT_TYPES.zoom15;
-    const label=makeLabel(s);
-    const mytST=mytTimeStr(s.startMyt), mytET=mytTimeStr(s.endMyt);
-    const day=isHardcoded?s.day:(WEEK_DAYS[s.dayIdx]?.d||'?');
-    const bgCls=faded?'gray':s.type==='private'?'navy':'';
-    return`<div class="bk-card" style="opacity:${faded?'0.65':'1'}">
+async function renderMyBookings(){
+  const tz = TZ_DATA[activeTZ];
+
+  // Show loading state
+  const upEl = $id('mybk-upcoming'), ppEl = $id('mybk-past');
+  const ulEl = $id('mybk-upcoming-label');
+  if(upEl) upEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--g400);font-size:13px">Loading bookings…</div>`;
+  if(ppEl) ppEl.innerHTML = '';
+
+  const { upcoming, past } = await loadMyBookingsFromDB();
+
+  function makeCard(r, isPast){
+    const sT  = minToUser(r.start_myt, tz.o);
+    const eT  = minToUser(r.end_myt,   tz.o);
+    const mST = mytTimeStr(r.start_myt);
+    const mET = mytTimeStr(r.end_myt);
+    const st  = SLOT_TYPES[r.type] || SLOT_TYPES.zoom15;
+    const presenterName = r.presenter_user?.name || null;
+    const isCancelled   = r.status === 'cancelled';
+
+    // Date display
+    const d = new Date(r.day_date + 'T00:00:00');
+    const dayNum   = d.getDate();
+    const monShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    const bgCls    = isPast ? 'gray' : r.type === 'private' ? 'navy' : '';
+
+    // Status badge
+    const statusBdg = isCancelled
+      ? `<span class="bdg bdg-gray">✕ Cancelled</span>`
+      : presenterName
+        ? `<span class="bdg bdg-green">✓ Confirmed</span>`
+        : `<span class="bdg bdg-amber">Pending assign</span>`;
+
+    // Presenter badge
+    const presBdg = presenterName
+      ? `<span class="bdg" style="background:var(--reneeLt);color:var(--renee)">${sanitize(presenterName)}</span>`
+      : `<span class="bdg bdg-amber">TBA</span>`;
+
+    // Label
+    const prospect = r.prospect || '';
+    const label    = r.type === 'private'
+      ? (r.label || 'Private Meeting')
+      : prospect
+        ? `${prospect} · ${CURRENT_USER?.name || ''} & ${presenterName || 'TBA'}`
+        : `${CURRENT_USER?.name || ''} & ${presenterName || 'TBA'}`;
+
+    // Action buttons — only on upcoming, non-cancelled
+    const actions = (!isPast && !isCancelled)
+      ? `<button type="button" class="btn btn-outline btn-xs"
+           onclick="rescheduleBookingDB('${r.id}','${r.type}')">Reschedule</button>
+         <button type="button" class="btn btn-danger btn-xs"
+           onclick="cancelBookingFromMyBk('${r.id}')">Cancel</button>`
+      : '';
+
+    return `<div class="bk-card" style="opacity:${isPast?'0.65':'1'}">
       <div class="bk-dt${bgCls?' '+bgCls:''}">
-        <div class="bk-day">${day}</div><div class="bk-mon">MAY</div>
+        <div class="bk-day">${dayNum}</div>
+        <div class="bk-mon">${monShort.toUpperCase()}</div>
       </div>
       <div class="bk-info">
         <div class="bk-title">${sanitize(st.icon)} ${sanitize(st.label)}</div>
         <div class="bk-lbl">${sanitize(label)}</div>
-        <div class="bk-tz"><strong>${sanitize(tz.f)} ${sanitize(sT)}–${sanitize(eT)} ${sanitize(tz.l)}</strong> · 🇲🇾 ${sanitize(mytST)}–${sanitize(mytET)}</div>
+        <div class="bk-tz">
+          <strong>${sanitize(tz.f)} ${sanitize(sT)}–${sanitize(eT)} ${sanitize(tz.l)}</strong>
+          · 🇲🇾 ${sanitize(mST)}–${sanitize(mET)}
+        </div>
         <div class="bk-acts">
-          ${presenterBadge(s.presenter)}
-          <span class="bdg ${s.presenter?'bdg-green':'bdg-amber'}">${s.presenter?'Confirmed':'Pending'}</span>
-          ${!faded?`<button type="button" class="btn btn-outline btn-xs" onclick="rescheduleBooking(${SCHEDULE.indexOf(s)})">Reschedule</button><button type="button" class="btn btn-danger btn-xs" onclick="cancelMyBooking(${SCHEDULE.indexOf(s)})">Cancel</button>`:''}
+          ${presBdg}${statusBdg}${actions}
         </div>
       </div>
     </div>`;
   }
-  const up=$id('mybk-upcoming'), ul=$id('mybk-upcoming-label');
-  if(up){
+
+  // Upcoming
+  if(upEl){
     if(!upcoming.length){
-      if(ul) ul.style.display='none';
-      up.innerHTML=`<div class="bk-empty"><div style="font-size:32px;margin-bottom:10px">📭</div>
+      if(ulEl) ulEl.style.display = 'none';
+      upEl.innerHTML = `<div class="bk-empty">
+        <div style="font-size:32px;margin-bottom:10px">📭</div>
         <div style="font-size:14px;font-weight:700;color:var(--g600)">No upcoming bookings</div>
-        <div style="font-size:12px;color:var(--g400);margin-top:4px">Tap "+ New Booking" to book a session with Renee or Gus.</div>
+        <div style="font-size:12px;color:var(--g400);margin-top:4px">
+          Tap "+ New Booking" to book a session with Renee or Gus.
+        </div>
       </div>`;
     } else {
-      if(ul) ul.style.display='block';
-      up.innerHTML=upcoming.map(s=>makeCard(s,false)).join('');
+      if(ulEl) ulEl.style.display = 'block';
+      upEl.innerHTML = upcoming.map(r => makeCard(r, false)).join('');
     }
   }
-  const pp=$id('mybk-past');
-  if(pp) pp.innerHTML=past.map(s=>makeCard(s,true,true)).join('');
+
+  // Past
+  if(ppEl){
+    if(!past.length){
+      ppEl.innerHTML = `<div style="text-align:center;padding:16px;color:var(--g400);font-size:12px">No past bookings in the last 3 months.</div>`;
+    } else {
+      // Sort past descending (most recent first)
+      const sortedPast = [...past].sort((a,b) =>
+        b.day_date.localeCompare(a.day_date) || b.start_myt - a.start_myt
+      );
+      ppEl.innerHTML = sortedPast.map(r => makeCard(r, true)).join('');
+    }
+  }
+}
+
+// Cancel from My Bookings screen
+async function cancelBookingFromMyBk(dbId){
+  if(!confirm('Cancel this booking? This cannot be undone.')) return;
+  showAuthSpinner('Cancelling…');
+  const ok = await cancelBookingInDB(dbId);
+  if(!ok){ hideAuthSpinner(); alert('Could not cancel. Please try again.'); return; }
+  // Remove from local SCHEDULE too
+  const idx = SCHEDULE.findIndex(s => s._id === dbId);
+  if(idx >= 0) SCHEDULE.splice(idx, 1);
+  hideAuthSpinner();
+  renderMyBookings();
+  renderCalendar();
 }
 
 // ═══════════════════════════════════════════════
 //  PROFILE SCREEN
 // ═══════════════════════════════════════════════
 function renderProfile(){
-  const u=CURRENT_USER||USERS.downlineA;
+  const u=CURRENT_USER;
+  if(!u){
+    // Not logged in — show fallback
+    setHTML('profile-hero-content',`
+      <div style="text-align:center;padding:20px;width:100%">
+        <div style="font-size:32px;margin-bottom:10px">🔒</div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy)">Please sign in first</div>
+        <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px" onclick="goScreen('sc-login')">Go to login →</button>
+      </div>`);
+    setHTML('profile-tz-cards','');
+    setHTML('profile-details-form','');
+    const adminsSection=$id('profile-admins-section');
+    if(adminsSection) adminsSection.style.display='none';
+    const teamSection=$id('profile-team-section');
+    if(teamSection) teamSection.style.display='none';
+    return;
+  }
   const isAdminUser=u.role==='admin';
   const tz=TZ_DATA[u.tz||activeTZ];
   const avatarBg=isAdminUser?'linear-gradient(135deg,var(--renee),var(--gus))':'var(--teal)';
@@ -3105,7 +3444,19 @@ function makeAssignBtns(slot){
     ${p?`<button type="button" class="assign-pill" style="opacity:0.5" onclick="assignRow(${idx},null)">✕</button>`:''}
   </div>`;
 }
-function assignRow(idx,key){ if(SCHEDULE[idx]) SCHEDULE[idx].presenter=key||null; renderAdmin(); renderCalendar(); }
+async function assignRow(idx,key){
+  const slot=SCHEDULE[idx]; if(!slot) return;
+  slot.presenter=key||null;
+  if(slot._id){
+    const admins=Object.values(USERS).filter(u=>u.role==='admin');
+    let presId=null;
+    if(key==='renee') presId=Object.values(USERS).find(u=>u.name==='Renee')?.id||null;
+    else if(key==='gus') presId=Object.values(USERS).find(u=>u.name==='Gus')?.id||null;
+    else if(key==='both') presId=admins[0]?.id||null;
+    await sb.from('schedule').update({presenter_id:presId,status:'booked'}).eq('id',slot._id);
+  }
+  renderAdmin(); renderCalendar();
+}
 function filterRows(q){
   const uplineFilter=($id('admin-filter-upline')?.value||'').toLowerCase();
   return weekSlots().filter(s=>{
@@ -3177,11 +3528,18 @@ function renderAdminTable(q=''){
     </div>`;
   }).join(''));
 }
-function adminDeleteRow(idx){
+async function adminDeleteRow(idx){
   const slot=SCHEDULE[idx]; if(!slot) return;
-  const label=slot.prospect||USERS[slot.user]?.name||'this booking';
+  const label=slot.prospect||slot._bookerName||'this booking';
   if(!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+  showAuthSpinner('Deleting…');
+  if(slot._id){
+    const isBooked=slot.status==='booked'||slot.status==='mine';
+    if(isBooked) await adminSoftDelete(slot._id);
+    else await adminHardDelete(slot._id);
+  }
   SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
   renderAdmin(); renderCalendar();
 }
 function renderUpcomingList(){
@@ -3264,8 +3622,18 @@ function renderSchedule(){
   setHTML('sch-list',html);
 }
 function setSchDay(v){ schDayFilter=v; renderSchedule(); }
-function deleteSlot(idx){
-  if(confirm('Remove this item from the schedule?')){ SCHEDULE.splice(idx,1); renderSchedule(); renderCalendar(); }
+async function deleteSlot(idx){
+  const slot=SCHEDULE[idx]; if(!slot) return;
+  if(!confirm('Remove this item from the schedule?')) return;
+  showAuthSpinner('Removing…');
+  if(slot._id){
+    const isBooked=slot.status==='booked'||slot.status==='mine';
+    if(isBooked) await adminSoftDelete(slot._id);
+    else await adminHardDelete(slot._id);
+  }
+  SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
+  renderSchedule(); renderCalendar();
 }
 function openAddModal(type){
   addModalType=type||'blocked'; renderAddModal();
@@ -3302,13 +3670,9 @@ function openAddModalForCell(dayIdx, startH, event){
     pop.style.left=Math.min(x, window.innerWidth-pw-8)+'px';
     pop.style.top=Math.min(y+4, window.innerHeight-ph-8)+'px';
   }
-  // Close on outside click
-  setTimeout(()=>document.addEventListener('click',_cellPopOutside,{once:true}),10);
+  // No outside-click close — only X button closes the popover
 }
-function _cellPopOutside(e){
-  const pop=$id('cell-pop');
-  if(pop&&!pop.contains(e.target)) closeCellPop();
-}
+function _cellPopOutside(e){ /* disabled — X only */ }
 function closeCellPop(){
   const pop=$id('cell-pop');
   if(pop) pop.style.display='none';
@@ -3327,39 +3691,46 @@ function cellQuickBlock(dayIdx, startH, event){
     reason:'Unavailable',prospect:'',user:'',presenter:null,week:weekOffset});
   renderCalendar(); renderSchedule();
 }
-function cellPopOpenForBooking(){
-  const di=_cellPopDayIdx, sh=_cellPopStartH;
-  closeCellPop(); if(di===null||sh===null) return;
-  // Toggle: if av slots already exist for this hour, remove them; else add 4 standard slots
-  const existing=SCHEDULE.filter(s=>s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
+async function cellPopOpenForBooking(){
+  const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
+  if(di===null||sh===null) return;
+  // Toggle: remove existing av slots for this hour, or add 4 x 15-min slots
+  const existing=SCHEDULE.filter(s=>s.status==='av'&&s.type==='zoom15'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
   if(existing.length){
-    existing.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+    // Remove — hard delete from DB
+    showAuthSpinner('Removing slots…');
+    for(const s of existing){
+      if(s._id) await adminHardDelete(s._id);
+    }
+    await reloadWeekSchedule(); hideAuthSpinner();
   } else {
-    // Add four 15-min av slots: :00, :15, :30, :45
-    [0,15,30,45].forEach(min=>{
-      const startMyt=sh*60+min;
-      SCHEDULE.push({type:'zoom15',status:'av',dayIdx:di,startMyt,endMyt:startMyt+15,
-        prospect:'',user:'',presenter:null,week:weekOffset});
-    });
+    // Add 4 x 15-min av zoom slots
+    const slots=[0,15,30,45].map(min=>({
+      type:'zoom15',status:'av',dayIdx:di,
+      startMyt:sh*60+min,endMyt:sh*60+min+15,
+      prospect:'',user_id:null,presenter_id:null,week:weekOffset
+    }));
+    await adminInsertAndReload(slots);
   }
-  renderCalendar(); renderSchedule();
+  renderSchedule();
 }
-function cellPopOpenForPrivate(){
-  const di=_cellPopDayIdx, sh=_cellPopStartH;
-  closeCellPop(); if(di===null||sh===null) return;
-  // Toggle: remove existing private av slots for this hour, or add 3 x 20-min slots
+async function cellPopOpenForPrivate(){
+  const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
+  if(di===null||sh===null) return;
   const existing=SCHEDULE.filter(s=>s.type==='private'&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
   if(existing.length){
-    existing.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+    showAuthSpinner('Removing slots…');
+    for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
+    await reloadWeekSchedule(); hideAuthSpinner();
   } else {
-    // Add three 20-min private av slots: :00, :20, :40
-    [0,20,40].forEach(min=>{
-      const startMyt=sh*60+min;
-      SCHEDULE.push({type:'private',status:'av',dayIdx:di,startMyt,endMyt:startMyt+20,
-        prospect:'',user:'',presenter:null,label:'Private Meeting',week:weekOffset});
-    });
+    const slots=[0,20,40].map(min=>({
+      type:'private',status:'av',dayIdx:di,
+      startMyt:sh*60+min,endMyt:sh*60+min+20,
+      label:'Private Meeting',user_id:null,presenter_id:null,week:weekOffset
+    }));
+    await adminInsertAndReload(slots);
   }
-  renderCalendar(); renderSchedule();
+  renderSchedule();
 }
 function cellPopBlock(){
   const di=_cellPopDayIdx, sh=_cellPopStartH;
@@ -3405,11 +3776,14 @@ function showSettingsToast(){
 function closeAddModal(){ const mo=$id('add-modal'); if(mo) mo.classList.remove('on'); }
 function setAddType(type){
   addModalType=type;
-  ['blocked','event','private'].forEach(t=>{
+  ['zoom15','blocked','event','private'].forEach(t=>{
     const card=$id('add-type-'+t);
-    if(card) card.className=`type-sel-card${type===t?' on-'+t:''}`;
+    const onCls=t==='zoom15'?'on-zoom':t==='blocked'?'on-block':t==='event'?'on-event':'on-private';
+    if(card) card.className=`type-sel-card${type===t?' '+onCls:''}`;
   });
   const evtF=$id('add-event-fields'), blkF=$id('add-block-fields'), prvF=$id('add-private-fields');
+  const zomF=$id('add-zoom-fields');
+  if(zomF) zomF.style.display=type==='zoom15'?'block':'none';
   if(evtF) evtF.style.display=type==='event'?'block':'none';
   if(blkF) blkF.style.display=type==='blocked'?'block':'none';
   if(prvF) prvF.style.display=type==='private'?'block':'none';
@@ -3417,6 +3791,8 @@ function setAddType(type){
 function renderAddModal(){
   const t=addModalType;
   setHTML('add-modal-type-cards',`<div class="type-sel-row">
+    <div class="type-sel-card${t==='zoom15'?' on-zoom':''}" id="add-type-zoom15" onclick="setAddType('zoom15')">
+      <div class="type-sel-icon">🔵</div><div class="type-sel-name">Zoom Slot</div></div>
     <div class="type-sel-card${t==='blocked'?' on-block':''}" id="add-type-blocked" onclick="setAddType('blocked')">
       <div class="type-sel-icon">🔒</div><div class="type-sel-name">Block time</div></div>
     <div class="type-sel-card${t==='event'?' on-event':''}" id="add-type-event" onclick="setAddType('event')">
@@ -3426,7 +3802,7 @@ function renderAddModal(){
   </div>`);
   setAddType(t);
 }
-function confirmAdd(){
+async function confirmAdd(){
   const dayEl=$id('add-day'), startEl=$id('add-start'), endEl=$id('add-end');
   if(!dayEl||!startEl||!endEl) return;
   const di=parseInt(dayEl.value);
@@ -3434,21 +3810,27 @@ function confirmAdd(){
   if(!startP||!endP){ alert('Please enter valid start and end times (e.g. 6:00pm)'); return; }
   const sMin=startP.h*60+startP.min, eMin=endP.h*60+endP.min;
   if(eMin<=sMin){ alert('End time must be after start time'); return; }
-  const newSlot={ dayIdx:di, startMyt:sMin, endMyt:eMin, prospect:'', user:'', presenter:null };
-  if(addModalType==='blocked'){
+
+  let slots=[];
+  if(addModalType==='zoom15'){
+    for(let m=sMin;m<eMin;m+=15)
+      slots.push({type:'zoom15',status:'av',dayIdx:di,startMyt:m,endMyt:m+15,user_id:null,presenter_id:null});
+  } else if(addModalType==='blocked'){
     const rEl=$id('add-block-reason');
-    Object.assign(newSlot,{type:'blocked',status:'blocked',reason:rEl?rEl.value:'Unavailable'});
+    slots.push({type:'blocked',status:'blocked',dayIdx:di,startMyt:sMin,endMyt:eMin,
+      reason:rEl?rEl.value||'Unavailable':'Unavailable',user_id:null,presenter_id:null});
   } else if(addModalType==='event'){
     const nEl=$id('add-event-name');
-    Object.assign(newSlot,{type:'event',status:'event',label:nEl?nEl.value||'Business Event':'Business Event'});
+    slots.push({type:'event',status:'event',dayIdx:di,startMyt:sMin,endMyt:eMin,
+      label:nEl?nEl.value||'Business Event':'Business Event',user_id:null,presenter_id:null});
   } else if(addModalType==='private'){
-    const dEl=$id('add-private-downline'), lEl=$id('add-private-label');
-    Object.assign(newSlot,{type:'private',status:'booked',
-      user:dEl?dEl.value.toLowerCase().replace(/\s+/g,''):'',
-      label:lEl?lEl.value||'Private Meeting':'Private Meeting'});
+    const lEl=$id('add-private-label');
+    slots.push({type:'private',status:'booked',dayIdx:di,startMyt:sMin,endMyt:eMin,
+      label:lEl?lEl.value||'Private Meeting':'Private Meeting',user_id:null,presenter_id:null});
   }
-  SCHEDULE.push(newSlot);
-  closeAddModal(); renderSchedule(); renderCalendar();
+  closeAddModal();
+  await adminInsertAndReload(slots);
+  renderSchedule();
 }
 
 // ═══════════════════════════════════════════════
@@ -3530,13 +3912,312 @@ async function cancelBookingInDB(dbId){
   return true;
 }
 
-// Reload schedule when week changes
+// ── ADMIN DB OPERATIONS ────────────────────────
+
+// Insert one or more slots (av zoom/private, event, blocked)
+async function adminInsertSlots(slots){
+  // slots = array of schedule rows ready for DB insert
+  if(!slots.length) return [];
+  const rows = slots.map(s=>({
+    type:         s.type,
+    status:       s.status || 'av',
+    day_date:     WEEK_DAYS[s.dayIdx]?.iso,
+    start_myt:    s.startMyt,
+    end_myt:      s.endMyt,
+    prospect:     s.prospect || null,
+    user_id:      s.user_id || null,
+    presenter_id: s.presenter_id || null,
+    label:        s.label || null,
+    reason:       s.reason || null,
+    cancelled:    false,
+  })).filter(r=>r.day_date); // skip slots with no valid date
+  const { data, error } = await sb.from('schedule').insert(rows).select();
+  if(error){ console.error('adminInsertSlots error:', error); return null; }
+  return data;
+}
+
+// Hard delete a slot from DB (for av/blocked/event slots)
+async function adminHardDelete(dbId){
+  const { error } = await sb.from('schedule').delete().eq('id', dbId);
+  if(error){ console.error('adminHardDelete error:', error); return false; }
+  return true;
+}
+
+// Soft delete a booked slot (mark cancelled=true)
+async function adminSoftDelete(dbId){
+  const { error } = await sb.from('schedule')
+    .update({ cancelled: true, status: 'cancelled' })
+    .eq('id', dbId);
+  if(error){ console.error('adminSoftDelete error:', error); return false; }
+  return true;
+}
+
+// Update presenter assignment
+async function adminAssignPresenter(dbId, presenterKey){
+  // presenterKey = uuid of presenter user, or null to unassign
+  // Look up presenter uuid from USERS or DB
+  let presId = null;
+  if(presenterKey && presenterKey !== 'both'){
+    // Find from loaded schedule or USERS
+    const u = Object.values(USERS).find(u=>u.id===presenterKey||u.name?.toLowerCase()===presenterKey);
+    presId = u?.id || presenterKey;
+  }
+  const { error } = await sb.from('schedule')
+    .update({ presenter_id: presId, status: 'booked' })
+    .eq('id', dbId);
+  if(error){ console.error('adminAssignPresenter error:', error); return false; }
+  return true;
+}
+
+// Batch insert slots then reload — used by Quick Open and cell actions
+async function adminInsertAndReload(slots){
+  showAuthSpinner('Saving slots…');
+  const saved = await adminInsertSlots(slots);
+  if(!saved){ hideAuthSpinner(); alert('Could not save slots. Please try again.'); return false; }
+  await reloadWeekSchedule();
+  hideAuthSpinner();
+  return true;
+}
+
+// Load MY bookings from Supabase — all future + today + last 3 months
+async function loadMyBookingsFromDB(){
+  if(!CURRENT_USER) return { upcoming:[], past:[] };
+  try {
+    const now = new Date();
+    // Today's date in YYYY-MM-DD
+    const todayISO = now.toISOString().slice(0,10);
+    // 3 months ago
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const pastISO = threeMonthsAgo.toISOString().slice(0,10);
+
+    const { data, error } = await sb
+      .from('schedule')
+      .select('*, presenter_user:presenter_id(id,name,initials)')
+      .eq('user_id', CURRENT_USER.id)
+      .gte('day_date', pastISO)
+      .neq('type','blocked')
+      .neq('type','event')
+      .order('day_date', { ascending: true })
+      .order('start_myt', { ascending: true });
+
+    if(error){ console.error('loadMyBookingsFromDB error:', error); return { upcoming:[], past:[] }; }
+    if(!data) return { upcoming:[], past:[] };
+
+    const upcoming = data.filter(r => r.day_date >= todayISO && r.status !== 'cancelled');
+    const past     = data.filter(r => r.day_date < todayISO || r.status === 'cancelled');
+
+    return { upcoming, past };
+  } catch(e){
+    console.error('loadMyBookingsFromDB exception:', e);
+    return { upcoming:[], past:[] };
+  }
+}
+
+// Reschedule: cancel existing DB booking, open booking form
+async function rescheduleBookingDB(dbId, slotType){
+  if(!confirm('Cancel this booking and open the reschedule form?')) return;
+  showAuthSpinner('Rescheduling…');
+  if(dbId){
+    const ok = await cancelBookingInDB(dbId);
+    if(!ok){ hideAuthSpinner(); alert('Could not reschedule. Please try again.'); return; }
+  }
+  // Remove from local SCHEDULE
+  const idx = SCHEDULE.findIndex(s => s._id === dbId);
+  if(idx >= 0) SCHEDULE.splice(idx, 1);
+  hideAuthSpinner();
+  // Pre-select slot type and go to booking form
+  selSlotType = slotType || 'zoom15';
+  goScreen('sc-book');
+}
+
 async function reloadWeekSchedule(){
   showAuthSpinner('Loading week…');
   WEEK_DAYS = buildWeekDays(weekOffset);
   await loadScheduleFromDB();
   hideAuthSpinner();
   renderCalendar();
+}
+
+// ═══════════════════════════════════════════════
+//  BOTTOM SHEET ACTION MENU
+// ═══════════════════════════════════════════════
+let _bsDayIdx=null, _bsStartH=null;
+
+function openBSheet(dayIdx, startH, event){
+  if(event) event.stopPropagation();
+  _bsDayIdx=dayIdx; _bsStartH=startH;
+  const tz=TZ_DATA[activeTZ];
+  const homeTZ=TZ_DATA[CURRENT_USER?.tz||'MY'];
+  const d=WEEK_DAYS[dayIdx]||{n:'?',d:'?',m:''};
+  const uH=m2u(startH,homeTZ.o);
+  const mytLabel=fmtH(startH);
+  const homeLabel=fmtH(uH);
+  setText('bsheet-title',`${d.n}, ${d.d} ${d.m||''} · ${mytLabel} MYT`);
+  // Show converted times for all TZs
+  const tzList=Object.values(TZ_DATA).map(t=>`${t.f} ${fmtH(m2u(startH,t.o))}${t.l}`).join(' · ');
+  setText('bsheet-sub',tzList);
+  const ov=$id('bsheet-overlay');
+  if(ov) ov.classList.add('on');
+}
+function closeBSheet(){
+  const ov=$id('bsheet-overlay');
+  if(ov) ov.classList.remove('on');
+  _bsDayIdx=null; _bsStartH=null;
+}
+async function bsheetZoom(){
+  const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
+  if(di===null||sh===null) return;
+  const existing=SCHEDULE.filter(s=>s.status==='av'&&s.type==='zoom15'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
+  if(existing.length){
+    showAuthSpinner('Removing slots…');
+    for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
+    await reloadWeekSchedule(); hideAuthSpinner();
+  } else {
+    const slots=[0,15,30,45].map(min=>({type:'zoom15',status:'av',dayIdx:di,startMyt:sh*60+min,endMyt:sh*60+min+15,user_id:null,presenter_id:null}));
+    await adminInsertAndReload(slots);
+  }
+  if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
+}
+async function bsheetPrivate(){
+  const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
+  if(di===null||sh===null) return;
+  const existing=SCHEDULE.filter(s=>s.type==='private'&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
+  if(existing.length){
+    showAuthSpinner('Removing slots…');
+    for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
+    await reloadWeekSchedule(); hideAuthSpinner();
+  } else {
+    const slots=[0,20,40].map(min=>({type:'private',status:'av',dayIdx:di,startMyt:sh*60+min,endMyt:sh*60+min+20,label:'Private Meeting',user_id:null,presenter_id:null}));
+    await adminInsertAndReload(slots);
+  }
+  if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
+}
+async function bsheetBlock(){
+  const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
+  if(di===null||sh===null) return;
+  const avSlots=SCHEDULE.filter(s=>s.dayIdx===di&&Math.floor(s.startMyt/60)===sh&&s.status==='av');
+  showAuthSpinner('Blocking…');
+  for(const s of avSlots){ if(s._id) await adminHardDelete(s._id); }
+  await adminInsertSlots([{type:'blocked',status:'blocked',dayIdx:di,startMyt:sh*60,endMyt:(sh+1)*60,reason:'Unavailable',user_id:null,presenter_id:null}]);
+  await reloadWeekSchedule(); hideAuthSpinner();
+  if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
+}
+function bsheetEvent(){
+  const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
+  if(di===null||sh===null) return;
+  addModalType='event'; renderAddModal();
+  const dayEl=$id('add-day'),startEl=$id('add-start'),endEl=$id('add-end');
+  if(dayEl) dayEl.value=String(di);
+  if(startEl) startEl.value=fmtH(sh);
+  if(endEl) endEl.value=fmtH(sh+2);
+  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+}
+
+// ═══════════════════════════════════════════════
+//  QUICK OPEN PANEL
+//  NOTE: UI-only for now — wire to DB in v35
+// ═══════════════════════════════════════════════
+let _qoSelectedDays = new Set();
+let _qoSlotType = 'zoom15';
+const QOPEN_PRESETS = {
+  morning:   { start:'8am',  end:'12pm' },
+  afternoon: { start:'12pm', end:'6pm'  },
+  evening:   { start:'6pm',  end:'10pm' },
+  fullday:   { start:'8am',  end:'10pm' },
+};
+
+function openQuickOpen(){
+  _qoSelectedDays = new Set();
+  _qoSlotType = 'zoom15';
+  // Reset UI
+  ['morning','afternoon','evening','fullday'].forEach(p=>{
+    const el=$id('qp-'+p); if(el) el.classList.remove('on');
+  });
+  [0,1,2,3,4,5,6].forEach(i=>{
+    const el=$id('qd-'+i); if(el) el.classList.remove('on');
+  });
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  if(si) si.value=''; if(ei) ei.value='';
+  const zt=$id('qt-zoom'), pt=$id('qt-private');
+  if(zt) zt.className='qopen-type on-zoom';
+  if(pt) pt.className='qopen-type';
+  updateQOpenSummary();
+  const ov=$id('qopen-overlay'); if(ov) ov.classList.add('on');
+}
+function closeQuickOpen(){
+  const ov=$id('qopen-overlay'); if(ov) ov.classList.remove('on');
+}
+function applyPreset(name){
+  const p=QOPEN_PRESETS[name]; if(!p) return;
+  // Clear other presets
+  ['morning','afternoon','evening','fullday'].forEach(k=>{
+    const el=$id('qp-'+k); if(el) el.classList.toggle('on',k===name);
+  });
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  if(si) si.value=p.start; if(ei) ei.value=p.end;
+  updateQOpenSummary();
+}
+function toggleQDay(idx){
+  if(_qoSelectedDays.has(idx)) _qoSelectedDays.delete(idx);
+  else _qoSelectedDays.add(idx);
+  const el=$id('qd-'+idx);
+  if(el) el.classList.toggle('on', _qoSelectedDays.has(idx));
+  updateQOpenSummary();
+}
+function setQType(type){
+  _qoSlotType=type;
+  const zt=$id('qt-zoom'), pt=$id('qt-private');
+  if(zt) zt.className='qopen-type'+(type==='zoom15'?' on-zoom':'');
+  if(pt) pt.className='qopen-type'+(type==='private'?' on-private':'');
+  updateQOpenSummary();
+}
+function updateQOpenSummary(){
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  const start=(si?.value||'').trim(), end=(ei?.value||'').trim();
+  const sum=$id('qopen-summary'); if(!sum) return;
+  const sp=parseT(start), ep=parseT(end);
+  const days=[..._qoSelectedDays].sort();
+  const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  if(!sp||!ep||!days.length){
+    sum.textContent='Select a preset or enter a time range and pick days to continue.'; return;
+  }
+  const sMin=sp.h*60+sp.min, eMin=ep.h*60+ep.min;
+  if(eMin<=sMin){ sum.textContent='⚠ End time must be after start time.'; return; }
+  const dur=_qoSlotType==='zoom15'?15:20;
+  const slots=Math.floor((eMin-sMin)/dur);
+  const typeLabel=_qoSlotType==='zoom15'?'15-min Zoom':'20-min Private';
+  const dayStr=days.map(i=>dayNames[i]).join(', ');
+  sum.textContent=`Will open ${slots} ${typeLabel} slots × ${days.length} day${days.length>1?'s':''} (${dayStr}) · ${start}–${end} MYT`;
+}
+async function confirmQuickOpen(){
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  const start=(si?.value||'').trim(), end=(ei?.value||'').trim();
+  const sp=parseT(start), ep=parseT(end);
+  if(!sp||!ep){ alert('Please enter valid start and end times (e.g. 10am, 6pm)'); return; }
+  const sMin=sp.h*60+sp.min, eMin=ep.h*60+ep.min;
+  if(eMin<=sMin){ alert('End time must be after start time.'); return; }
+  if(!_qoSelectedDays.size){ alert('Please select at least one day.'); return; }
+  const dur=_qoSlotType==='zoom15'?15:20;
+  const slots=[];
+  _qoSelectedDays.forEach(di=>{
+    for(let m=sMin;m<eMin;m+=dur){
+      // Skip if already a slot here
+      const exists=SCHEDULE.some(s=>s.dayIdx===di&&s.startMyt===m&&s.type===_qoSlotType&&s.status==='av');
+      if(!exists){
+        slots.push({
+          type:_qoSlotType, status:'av', dayIdx:di,
+          startMyt:m, endMyt:m+dur,
+          label:_qoSlotType==='private'?'Private Meeting':null,
+          user_id:null, presenter_id:null,
+        });
+      }
+    }
+  });
+  if(!slots.length){ alert('No new slots to open — all selected hours already have slots.'); return; }
+  closeQuickOpen();
+  await adminInsertAndReload(slots);
+  renderSchedule();
 }
 
 // ═══════════════════════════════════════════════
@@ -3593,5 +4274,106 @@ window.addEventListener('resize',()=>{
 
 
 </script>
+<!-- ═══ BOTTOM SHEET ACTION MENU (admin hour chip) ═══ -->
+<div class="bsheet-overlay" id="bsheet-overlay" onclick="if(event.target===this)closeBSheet()">
+  <div class="bsheet" id="bsheet">
+    <div class="bsheet-hdr">
+      <div class="bsheet-title" id="bsheet-title">Tue, 26 May · 2pm</div>
+      <div class="bsheet-sub" id="bsheet-sub">8pm WIB · 8pm SGT</div>
+    </div>
+    <button type="button" class="bsheet-item" onclick="bsheetZoom()">
+      <span class="bsheet-item-icon">🔵</span>
+      <div class="bsheet-item-info"><span>Open for 15-min Zoom</span><span class="bsheet-item-desc">4 slots · :00 :15 :30 :45</span></div>
+    </button>
+    <button type="button" class="bsheet-item" onclick="bsheetPrivate()">
+      <span class="bsheet-item-icon">🟣</span>
+      <div class="bsheet-item-info"><span>Open for Private Meeting</span><span class="bsheet-item-desc">3 slots · :00 :20 :40</span></div>
+    </button>
+    <button type="button" class="bsheet-item" onclick="bsheetBlock()">
+      <span class="bsheet-item-icon">🔒</span>
+      <div class="bsheet-item-info"><span>Block this hour</span><span class="bsheet-item-desc">Hide from downlines</span></div>
+    </button>
+    <button type="button" class="bsheet-item" onclick="bsheetEvent()">
+      <span class="bsheet-item-icon">🔴</span>
+      <div class="bsheet-item-info"><span>Add Event here</span><span class="bsheet-item-desc">Business event or announcement</span></div>
+    </button>
+    <button type="button" class="bsheet-cancel" onclick="closeBSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ QUICK OPEN PANEL ═══ -->
+<div class="qopen-overlay" id="qopen-overlay" onclick="if(event.target===this)closeQuickOpen()">
+  <div class="qopen-panel">
+    <div class="qopen-hdr">
+      <div class="qopen-t">⚡ Quick Open</div>
+      <button type="button" class="qopen-close" onclick="closeQuickOpen()">✕</button>
+    </div>
+    <div class="qopen-body">
+      <!-- Presets -->
+      <div>
+        <div class="qopen-sec-lbl">Quick presets</div>
+        <div class="qopen-presets">
+          <button type="button" class="qopen-preset" id="qp-morning" onclick="applyPreset('morning')">
+            <div class="qopen-preset-icon">🌅</div>
+            <span class="qopen-preset-name">Morning</span>
+            <span class="qopen-preset-time">8am – 12pm</span>
+          </button>
+          <button type="button" class="qopen-preset" id="qp-afternoon" onclick="applyPreset('afternoon')">
+            <div class="qopen-preset-icon">☀️</div>
+            <span class="qopen-preset-name">Afternoon</span>
+            <span class="qopen-preset-time">12pm – 6pm</span>
+          </button>
+          <button type="button" class="qopen-preset" id="qp-evening" onclick="applyPreset('evening')">
+            <div class="qopen-preset-icon">🌙</div>
+            <span class="qopen-preset-name">Evening</span>
+            <span class="qopen-preset-time">6pm – 10pm</span>
+          </button>
+          <button type="button" class="qopen-preset" id="qp-fullday" onclick="applyPreset('fullday')">
+            <div class="qopen-preset-icon">📅</div>
+            <span class="qopen-preset-name">Full Day</span>
+            <span class="qopen-preset-time">8am – 10pm</span>
+          </button>
+        </div>
+      </div>
+      <!-- Custom time range -->
+      <div>
+        <div class="qopen-sec-lbl">Custom time range (MYT)</div>
+        <div class="qopen-time-row">
+          <input type="text" class="fc" id="qopen-start" placeholder="e.g. 10am" oninput="updateQOpenSummary()">
+          <span class="qopen-time-sep">to</span>
+          <input type="text" class="fc" id="qopen-end" placeholder="e.g. 6pm" oninput="updateQOpenSummary()">
+        </div>
+      </div>
+      <!-- Day picker -->
+      <div>
+        <div class="qopen-sec-lbl">Select days</div>
+        <div class="qopen-days">
+          <button type="button" class="qopen-day" id="qd-0" onclick="toggleQDay(0)">Mon</button>
+          <button type="button" class="qopen-day" id="qd-1" onclick="toggleQDay(1)">Tue</button>
+          <button type="button" class="qopen-day" id="qd-2" onclick="toggleQDay(2)">Wed</button>
+          <button type="button" class="qopen-day" id="qd-3" onclick="toggleQDay(3)">Thu</button>
+          <button type="button" class="qopen-day" id="qd-4" onclick="toggleQDay(4)">Fri</button>
+          <button type="button" class="qopen-day" id="qd-5" onclick="toggleQDay(5)">Sat</button>
+          <button type="button" class="qopen-day" id="qd-6" onclick="toggleQDay(6)">Sun</button>
+        </div>
+      </div>
+      <!-- Slot type -->
+      <div>
+        <div class="qopen-sec-lbl">Slot type</div>
+        <div class="qopen-types">
+          <button type="button" class="qopen-type on-zoom" id="qt-zoom" onclick="setQType('zoom15')">🔵 15-min Zoom</button>
+          <button type="button" class="qopen-type" id="qt-private" onclick="setQType('private')">🟣 Private Meet</button>
+        </div>
+      </div>
+      <!-- Summary -->
+      <div class="qopen-summary" id="qopen-summary">Select a preset or enter a time range and pick days to continue.</div>
+    </div>
+    <div class="qopen-foot">
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeQuickOpen()">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="confirmQuickOpen()">Open slots ✓</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
