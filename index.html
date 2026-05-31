@@ -14,8 +14,10 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v40 — Auto-select clicked slot in booking,
-   clear prospect name placeholder, clear notes field
+   BD4U Book v41 — Full audit & cleanup
+   Remove Manage Schedule, add Settings screen,
+   fix Add to schedule modal, fix all hardcoded data,
+   Add button in toolbar, full page cleanup
 ═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -625,6 +627,42 @@ tr:hover td{background:var(--g50)}
 
 /* ── PAST WEEK / EMPTY WEEK BANNERS ── */
 .week-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--r);font-size:12px;font-weight:600;margin-bottom:10px}
+
+/* ── MINI CALENDAR PICKER ── */
+.mcal-wrap{position:relative;display:inline-block;width:100%}
+.mcal-input{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border:1.5px solid var(--g200);border-radius:var(--r);cursor:pointer;background:#fff;font-size:13px;font-weight:600;color:var(--navy);transition:border-color .13s;user-select:none}
+.mcal-input:hover{border-color:var(--teal)}
+.mcal-input.on{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,140,.12)}
+.mcal-input-val{flex:1}
+.mcal-input-ico{font-size:15px;color:var(--g400)}
+.mcal-popup{display:none;position:fixed;z-index:9999;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);border:1px solid var(--g200);min-width:260px;overflow:hidden}
+.mcal-popup.on{display:block;animation:fadeUp .15s ease both}
+.mcal-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--g100);background:var(--navy)}
+.mcal-hdr-lbl{font-size:13px;font-weight:700;color:#fff}
+.mcal-hdr-btn{background:none;border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;padding:2px 8px;border-radius:4px;font-family:var(--font);transition:color .1s}
+.mcal-hdr-btn:hover{color:#fff}
+.mcal-dow{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 8px 0}
+.mcal-dow-lbl{text-align:center;font-size:10px;font-weight:700;color:var(--g400);padding:3px 0}
+.mcal-days{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 8px 10px;gap:2px}
+.mcal-day{text-align:center;padding:6px 4px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--g700);transition:all .1s;border:none;background:none;font-family:var(--font)}
+.mcal-day:hover:not(.mcal-day-past):not(.mcal-day-empty){background:var(--tealLt);color:var(--teal)}
+.mcal-day.mcal-day-today{background:var(--g100);color:var(--navy);font-weight:800}
+.mcal-day.mcal-day-sel{background:var(--teal)!important;color:#fff!important;font-weight:700}
+.mcal-day.mcal-day-past{color:var(--g300);cursor:not-allowed}
+.mcal-day.mcal-day-empty{cursor:default}
+
+/* ── SETTINGS SCREEN ── */
+.settings-section{margin-bottom:24px}
+.settings-section-title{font-size:11px;font-weight:800;color:var(--g500);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--g100)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--g100)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-lbl{font-size:13px;font-weight:600;color:var(--navy)}
+.settings-row-sub{font-size:11px;color:var(--g400);margin-top:2px}
+.settings-toggle{width:44px;height:24px;border-radius:12px;background:var(--g200);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.settings-toggle.on{background:var(--teal)}
+.settings-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.settings-toggle.on::after{transform:translateX(20px)}
+
 .week-banner-past{background:var(--g100);color:var(--g500);border:1px solid var(--g200)}
 .week-banner-empty{background:var(--tealLt);color:var(--teal);border:1px solid var(--tealB)}
 .week-banner-admin{background:var(--amberLt);color:var(--amber);border:1px solid var(--amberB)}
@@ -712,8 +750,8 @@ tr:hover td{background:var(--g50)}
   <div class="ntab" data-screen="sc-cal" onclick="goScreen('sc-cal')">Calendar</div>
   <div class="ntab" data-screen="sc-book" onclick="goScreen('sc-book')">New Booking</div>
   <div class="ntab" data-screen="sc-mybk" onclick="goScreen('sc-mybk')">My Bookings</div>
-  <div class="ntab" data-screen="sc-admin"    onclick="goScreen('sc-admin')">Admin</div>
-  <div class="ntab" data-screen="sc-schedule" id="tab-schedule" onclick="goScreen('sc-schedule')" id="tab-schedule">Manage Schedule</div>
+  <div class="ntab hidden" data-screen="sc-admin" id="tab-admin" onclick="goScreen('sc-admin')">Dashboard</div>
+  <div class="ntab hidden" data-screen="sc-settings" id="tab-settings" onclick="goScreen('sc-settings')">Settings</div>
   <div class="nav-right">
     <button type="button" id="logout-btn" onclick="logout()" class="role-toggle" style="display:none">⏏ Logout</button>
     <button type="button" class="role-toggle" id="role-toggle-btn" onclick="toggleAdminMode()" style="display:none">→ Admin view</button>
@@ -785,7 +823,7 @@ tr:hover td{background:var(--g50)}
       <div class="sb-i on" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
       <div class="sb-i" id="sb-mybk" onclick="goScreen('sc-mybk')"><span class="sb-ico">📋</span>My Bookings</div>
       <div class="sb-i" id="sb-admin-dash"     style="display:none" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i" id="sb-schedule-link" style="display:none" onclick="goScreen('sc-schedule')"><span class="sb-ico">🗓️</span>Manage Schedule</div>
+      <div class="sb-i" id="sb-schedule-link" style="display:none" onclick="goScreen('sc-settings')"><span class="sb-ico">🗓️</span>Settings</div>
       <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👤</span>My Profile</div>
       <div class="sb-bot">
         <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
@@ -817,6 +855,7 @@ tr:hover td{background:var(--g50)}
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(1)">›</button>
             <button type="button" class="btn btn-ghost btn-sm" onclick="jumpToday()">Today</button>
             <button type="button" class="qopen-btn" id="qopen-toolbar-btn" style="display:none" onclick="openQuickOpen()">⚡ Quick Open</button>
+            <button type="button" class="qopen-btn" id="add-toolbar-btn" style="display:none;background:var(--navyLt,#e8edf5);border-color:var(--navy);color:var(--navy)" onclick="openAddModal('zoom15')">+ Add</button>
           </div>
           <div class="legend">
             <div class="leg-i"><div class="leg-d leg-zoom"></div>15-min Zoom</div>
@@ -863,7 +902,7 @@ tr:hover td{background:var(--g50)}
       <div class="sb-i" onclick="goScreen('sc-mybk')"><span class="sb-ico">📋</span>My Bookings</div>
       <div class="sb-i on sb-profile-link"><span class="sb-ico">👤</span>My Profile</div>
       <div class="sb-i hidden" id="sb-admin-dash-prof" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i hidden" id="sb-schedule-link-prof" onclick="goScreen('sc-schedule')"><span class="sb-ico">🗓️</span>Manage Schedule</div>
+      <div class="sb-i hidden" id="sb-schedule-link-prof" onclick="goScreen('sc-settings')"><span class="sb-ico">🗓️</span>Settings</div>
       <div class="sb-bot">
         <div class="sb-user sb-profile-link">
           <div class="sb-av" id="sb-av-prof">DA</div>
@@ -958,58 +997,73 @@ tr:hover td{background:var(--g50)}
         <label class="fl">What are you adding?</label>
         <div id="add-modal-type-cards"></div>
       </div>
-      <!-- Day -->
+      <!-- Day — mini calendar picker -->
       <div class="fg" style="margin-bottom:0">
-        <label class="fl" for="add-day">Day</label>
-        <select class="fc" id="add-day">
-          <option value="0">Monday 19 May</option>
-          <option value="1">Tuesday 20 May</option>
-          <option value="2">Wednesday 21 May</option>
-          <option value="3">Thursday 22 May</option>
-          <option value="4">Friday 23 May</option>
-          <option value="5">Saturday 24 May</option>
-          <option value="6">Sunday 25 May</option>
-        </select>
+        <label class="fl">Day</label>
+        <div class="mcal-wrap">
+          <div class="mcal-input" id="mcal-input" onclick="toggleMCal()">
+            <span class="mcal-input-val" id="mcal-display">Select a date</span>
+            <span class="mcal-input-ico">📅</span>
+          </div>
+          <div class="mcal-popup" id="mcal-popup">
+            <div class="mcal-hdr">
+              <button type="button" class="mcal-hdr-btn" onclick="shiftMCal(-1,event)">‹</button>
+              <span class="mcal-hdr-lbl" id="mcal-hdr-lbl">June 2026</span>
+              <button type="button" class="mcal-hdr-btn" onclick="shiftMCal(1,event)">›</button>
+            </div>
+            <div class="mcal-dow">
+              <div class="mcal-dow-lbl">Mo</div><div class="mcal-dow-lbl">Tu</div>
+              <div class="mcal-dow-lbl">We</div><div class="mcal-dow-lbl">Th</div>
+              <div class="mcal-dow-lbl">Fr</div><div class="mcal-dow-lbl">Sa</div>
+              <div class="mcal-dow-lbl">Su</div>
+            </div>
+            <div class="mcal-days" id="mcal-days"></div>
+          </div>
+        </div>
+        <!-- Hidden value store -->
+        <input type="hidden" id="add-day-iso" value="">
+        <input type="hidden" id="add-day" value="0">
       </div>
       <!-- Time range -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl" for="add-start">Start time (MYT)</label>
-          <input type="text" class="fc" id="add-start" placeholder="e.g. 6:00pm">
+          <label class="fl">Start time (MYT)</label>
+          <input type="text" class="fc" id="add-start" placeholder="e.g. 6:00pm" oninput="validateAddTimes()">
         </div>
         <div class="fg" style="margin-bottom:0">
-          <label class="fl" for="add-end">End time (MYT)</label>
-          <input type="text" class="fc" id="add-end" placeholder="e.g. 8:00pm">
+          <label class="fl">End time (MYT)</label>
+          <input type="text" class="fc" id="add-end" placeholder="e.g. 8:00pm" oninput="validateAddTimes()">
         </div>
       </div>
+      <div class="login-err" id="add-time-err" style="margin-top:6px"></div>
       <!-- Block fields -->
       <div id="add-block-fields">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl" for="add-block-reason">Reason shown to downlines</label>
-          <select class="fc" id="add-block-reason">
-            <option>Renee busy</option>
-            <option>Gus busy</option>
-            <option>Both busy</option>
-            <option>Public holiday</option>
-            <option>Unavailable</option>
-          </select>
+          <label class="fl">Reason shown to downlines</label>
+          <input type="text" class="fc" id="add-block-reason" placeholder="e.g. Renee busy, Public holiday...">
         </div>
       </div>
       <!-- Event fields -->
       <div id="add-event-fields" style="display:none">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl" for="add-event-name">Event name</label>
+          <label class="fl">Event name</label>
           <input type="text" class="fc" id="add-event-name" placeholder="e.g. BD4U Nite 🌟">
+        </div>
+      </div>
+      <!-- Zoom fields -->
+      <div id="add-zoom-fields" style="display:none">
+        <div style="padding:9px 12px;background:var(--tealLt);border-radius:var(--r);font-size:12px;color:var(--teal);font-weight:600">
+          Will open 15-min Zoom slots for the selected time range.
         </div>
       </div>
       <!-- Private meeting fields -->
       <div id="add-private-fields" style="display:none">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl" for="add-private-downline">Downline name</label>
+          <label class="fl">Downline name</label>
           <input type="text" class="fc" id="add-private-downline" placeholder="e.g. Louis">
         </div>
         <div class="fg" style="margin-bottom:0;margin-top:10px">
-          <label class="fl" for="add-private-label">Meeting label</label>
+          <label class="fl">Meeting label</label>
           <input type="text" class="fc" id="add-private-label" placeholder="e.g. Leadership check-in">
         </div>
       </div>
@@ -1173,18 +1227,18 @@ tr:hover td{background:var(--g50)}
 
 
 
-<!-- ════════ ADMIN MANAGE SCHEDULE ════════ -->
-<div id="sc-schedule" class="screen">
+<!-- ════════ SETTINGS SCREEN ════════ -->
+<div id="sc-settings" class="screen">
   <div class="shell">
     <aside class="sidebar">
-      <div class="sb-lbl">Admin</div>
+      <div class="sb-lbl" id="sb-settings-role-lbl">Admin</div>
       <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
       <div class="sb-i" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i on"><span class="sb-ico">🗓️</span>Manage Schedule</div>
+      <div class="sb-i on"><span class="sb-ico">⚙️</span>Settings</div>
       <div class="sb-bot">
         <div class="sb-user">
-          <div class="sb-av adm">RG</div>
-          <div><div class="sb-un">Renee &amp; Gus</div><div class="sb-role">Admin</div></div>
+          <div class="sb-av adm" id="sb-av-settings">?</div>
+          <div><div class="sb-un" id="sb-name-settings">—</div><div class="sb-role" id="sb-tz-settings">—</div></div>
         </div>
       </div>
     </aside>
@@ -1192,28 +1246,94 @@ tr:hover td{background:var(--g50)}
       <div class="schedule-wrap">
         <div class="ph">
           <div>
-            <div class="ph-t">Manage Schedule</div>
-            <div class="ph-s">Block times, add events, create private meetings · All times shown in MYT</div>
-          </div>
-          <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal('blocked')">+ Add item</button>
-        </div>
-
-        <!-- How it works explainer -->
-        <div class="explainer" style="margin-bottom:16px">
-          <div class="exp-t">💡 How the schedule works</div>
-          <div class="exp-steps">
-            <div class="exp-step"><div class="exp-num">1</div><div class="exp-txt"><strong>All hours open</strong>The calendar is open by default. Downlines can book any time.</div></div>
-            <div class="exp-step"><div class="exp-num">2</div><div class="exp-txt"><strong>🔒 Block times</strong>Add a blocked period (e.g. 1pm–5pm "Renee busy") — shown greyed-out to downlines.</div></div>
-            <div class="exp-step"><div class="exp-num">3</div><div class="exp-txt"><strong>🔴 Add Events</strong>Business events (e.g. BD4U Nite 6–8pm) fill those rows on the calendar. Downlines see the event name.</div></div>
-            <div class="exp-step"><div class="exp-num">4</div><div class="exp-txt"><strong>🟣 Private Meetings</strong>Create a 20-min private meeting for a specific downline — or approve one they requested.</div></div>
+            <div class="ph-t">Settings</div>
+            <div class="ph-s">Account preferences and notification settings</div>
           </div>
         </div>
 
-        <!-- Day filter -->
-        <div id="sch-day-filter"></div>
+        <!-- Change password -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">🔒 Change Password</div>
+            <div class="fg" style="margin-bottom:10px">
+              <label class="fl">New password</label>
+              <input class="fc" type="password" id="settings-new-pass" placeholder="Enter new password" autocomplete="new-password">
+            </div>
+            <div class="fg" style="margin-bottom:14px">
+              <label class="fl">Confirm new password</label>
+              <input class="fc" type="password" id="settings-confirm-pass" placeholder="Confirm new password" autocomplete="new-password">
+            </div>
+            <div class="login-err" id="settings-pass-err"></div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="changePassword()">Update password</button>
+          </div>
+        </div>
 
-        <!-- Schedule list -->
-        <div id="sch-list"></div>
+        <!-- Notification preferences -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">🔔 Notification Preferences</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">New booking notification</div>
+                <div class="settings-row-sub">Get notified when a downline makes a booking</div>
+              </div>
+              <button type="button" class="settings-toggle on" id="notif-new-booking" onclick="toggleSetting(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Booking cancellation</div>
+                <div class="settings-row-sub">Get notified when a downline cancels</div>
+              </div>
+              <button type="button" class="settings-toggle on" id="notif-cancel" onclick="toggleSetting(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Booking reminder</div>
+                <div class="settings-row-sub">Reminder 1 hour before each session</div>
+              </div>
+              <button type="button" class="settings-toggle" id="notif-reminder" onclick="toggleSetting(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Weekly summary</div>
+                <div class="settings-row-sub">Summary of all bookings every Monday morning</div>
+              </div>
+              <button type="button" class="settings-toggle" id="notif-weekly" onclick="toggleSetting(this)"></button>
+            </div>
+            <div style="margin-top:14px;padding:10px 12px;background:var(--amberLt);border-radius:var(--r);border:1px solid var(--amberB)">
+              <div style="font-size:11.5px;color:var(--amber);font-weight:600">⚠️ Email notifications coming soon — preferences saved locally for now.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account info -->
+        <div class="card">
+          <div class="card-b">
+            <div class="settings-section-title">👤 Account</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Email address</div>
+                <div class="settings-row-sub" id="settings-email">—</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Role</div>
+                <div class="settings-row-sub" id="settings-role">—</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-lbl">Version</div>
+                <div class="settings-row-sub">BD4U Book v41</div>
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <button type="button" class="btn btn-danger btn-sm" onclick="logout()">Sign out</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -1296,11 +1416,11 @@ tr:hover td{background:var(--g50)}
       <div class="sb-i on"><span class="sb-ico">📊</span>Dashboard</div>
       <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
       <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👥</span>Users</div>
-      <div class="sb-i" onclick="showSettingsToast()"><span class="sb-ico">⚙️</span>Settings</div>
+      <div class="sb-i" onclick="goScreen('sc-settings')"><span class="sb-ico">⚙️</span>Settings</div>
       <div class="sb-bot">
         <div class="sb-user">
-          <div class="sb-av adm">LO</div>
-          <div><div class="sb-un">Louis</div><div class="sb-role">Admin · 🇲🇾 MYT</div></div>
+          <div class="sb-av adm" id="sb-av-admin">?</div>
+          <div><div class="sb-un" id="sb-name-admin">—</div><div class="sb-role" id="sb-tz-admin">—</div></div>
         </div>
       </div>
     </aside>
@@ -1701,12 +1821,12 @@ function goScreen(id){
   window.scrollTo(0,0);
   // FAB only on schedule screen for admin
   const fab=$id('fab-add');
-  if(fab) fab.className=(id==='sc-schedule'&&isAdmin)?'fab':'fab hidden';
+  if(fab) fab.className='fab hidden'; // FAB removed — using toolbar button instead
   if(id==='sc-cal')      renderCalendar();
   if(id==='sc-book')     renderBookForm();
-  if(id==='sc-mybk')     renderMyBookings(); // async — handles its own loading state
+  if(id==='sc-mybk')     renderMyBookings();
   if(id==='sc-admin')    renderAdmin();
-  if(id==='sc-schedule') renderSchedule();
+  if(id==='sc-settings') renderSettings();
   if(id==='sc-profile')  renderProfile();
 }
 
@@ -1866,15 +1986,14 @@ function updateRoleUI(){
 
   // Nav tabs — FIX UX-1: schedule tab hidden for downlines
   const tabLogin    = document.querySelector('.ntab[data-screen="sc-login"]');
-  const tabSchedule = document.querySelector('.ntab[data-screen="sc-schedule"]');
-  const tabAdmin    = document.querySelector('.ntab[data-screen="sc-admin"]');
-  // FIX UX-4: Login tab becomes Logout after login
-  if(tabLogin){
-    tabLogin.textContent = loggedIn ? 'Logout' : 'Login';
-    tabLogin.onclick     = loggedIn ? logout : ()=>goScreen('sc-login');
-  }
-  if(tabSchedule) tabSchedule.className = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
+  const tabAdmin    = $id('tab-admin');
+  const tabSettings = $id('tab-settings');
   if(tabAdmin)    tabAdmin.className    = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
+  if(tabSettings) tabSettings.className = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
+
+  // + Add button — admin only
+  const addBtn=$id('add-toolbar-btn');
+  if(addBtn) addBtn.style.display=(isAdmin&&loggedIn)?'inline-flex':'none';
 
   // Role toggle — ONLY visible if DB role is admin AND logged in
   const btn=$id('role-toggle-btn');
@@ -1919,6 +2038,12 @@ function updateRoleUI(){
   // New Booking sidebar
   setText('sb-name-book', userName);
   setText('sb-tz-book', tzStr);
+
+  // Admin Dashboard sidebar
+  const avAdmin=$id('sb-av-admin');
+  if(avAdmin){ avAdmin.textContent=userInitials; avAdmin.className='sb-av adm'; }
+  setText('sb-name-admin', userName);
+  setText('sb-tz-admin', `Admin · ${tzStr}`);
 
   // Update page subtitles with correct TZ
   const calPhs=$id('cal-ph-s');
@@ -2278,7 +2403,7 @@ async function assignSlot(idx,presenterKey){
     const u=Object.values(USERS).find(u=>u.name?.toLowerCase()===presenterKey||u.id===presenterKey);
     await sb.from('schedule').update({presenter_id:u?.id||null,status:'booked'}).eq('id',slot._id);
   }
-  renderDesktopCal(); renderSchedule();
+  renderDesktopCal(); renderCalendar();
 }
 
 // ═══════════════════════════════════════════════
@@ -2463,7 +2588,7 @@ async function saveSA(){
   }
 
   hideAuthSpinner();
-  closeSA(); renderDesktopCal(); renderSchedule();
+  closeSA(); renderDesktopCal(); renderCalendar();
 }
 
 async function saDeleteSlot(){
@@ -2480,7 +2605,7 @@ async function saDeleteSlot(){
   }
   SCHEDULE.splice(_saIdx,1);
   hideAuthSpinner();
-  closeSA(); renderDesktopCal(); renderSchedule();
+  closeSA(); renderDesktopCal(); renderCalendar();
 }
 
 async function unblockSlot(idx){
@@ -2489,7 +2614,7 @@ async function unblockSlot(idx){
   if(slot._id) await adminHardDelete(slot._id);
   SCHEDULE.splice(idx,1);
   hideAuthSpinner();
-  renderDesktopCal(); renderSchedule();
+  renderDesktopCal(); renderCalendar();
 }
 
 // ── Slot picker (replaces text input) ──────────
@@ -2683,7 +2808,7 @@ function renderPanel(dayNum){
       foot.innerHTML=`<div style="display:flex;gap:8px">
         <button type="button" class="btn btn-ghost btn-sm" style="flex:1" onclick="panelBlockDay(${di})">🔒 Block day</button>
         <button type="button" class="btn btn-outline btn-sm" style="flex:1" onclick="panelAddEvent(${di})">🔴 Add event</button>
-        <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="closePanel();goScreen('sc-schedule')">📋 Schedule</button>
+        <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="closePanel();goScreen('sc-settings')">⚙️ Settings</button>
       </div>`;
     } else {
       foot.innerHTML=`<button type="button" class="btn btn-primary btn-full" onclick="closePanel();goScreen('sc-book')">+ Book a slot for this day</button>`;
@@ -3593,7 +3718,7 @@ function renderUpcomingList(){
 // ═══════════════════════════════════════════════
 //  MANAGE SCHEDULE
 // ═══════════════════════════════════════════════
-function renderSchedule(){
+function renderCalendar(){
   const all=[...weekSlots()].sort((a,b)=>a.dayIdx!==b.dayIdx?a.dayIdx-b.dayIdx:a.startMyt-b.startMyt);
   const filtered=schDayFilter==='all'?all:all.filter(s=>s.dayIdx===parseInt(schDayFilter));
   setHTML('sch-day-filter',`<div class="day-filter-row">
@@ -3654,7 +3779,7 @@ function renderSchedule(){
   });
   setHTML('sch-list',html);
 }
-function setSchDay(v){ schDayFilter=v; renderSchedule(); }
+function setSchDay(v){ schDayFilter=v; renderCalendar(); }
 async function deleteSlot(idx){
   const slot=SCHEDULE[idx]; if(!slot) return;
   if(!confirm('Remove this item from the schedule?')) return;
@@ -3666,10 +3791,11 @@ async function deleteSlot(idx){
   }
   SCHEDULE.splice(idx,1);
   hideAuthSpinner();
-  renderSchedule(); renderCalendar();
+  renderCalendar(); renderCalendar();
 }
 function openAddModal(type){
-  addModalType=type||'blocked'; renderAddModal();
+  addModalType=type||'zoom15'; renderAddModal();
+  initMCal(); // initialize mini calendar picker
   const mo=$id('add-modal'); if(mo) mo.classList.add('on');
 }
 // ═══════════════════════════════════════════════
@@ -3722,7 +3848,7 @@ function cellQuickBlock(dayIdx, startH, event){
   SCHEDULE.push({type:'blocked',status:'blocked',dayIdx,
     startMyt:startH*60,endMyt:(startH+1)*60,
     reason:'Unavailable',prospect:'',user:'',presenter:null,week:weekOffset});
-  renderCalendar(); renderSchedule();
+  renderCalendar(); renderCalendar();
 }
 async function cellPopOpenForBooking(){
   const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
@@ -3745,7 +3871,7 @@ async function cellPopOpenForBooking(){
     }));
     await adminInsertAndReload(slots);
   }
-  renderSchedule();
+  renderCalendar();
 }
 async function cellPopOpenForPrivate(){
   const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
@@ -3763,7 +3889,7 @@ async function cellPopOpenForPrivate(){
     }));
     await adminInsertAndReload(slots);
   }
-  renderSchedule();
+  renderCalendar();
 }
 function cellPopBlock(){
   const di=_cellPopDayIdx, sh=_cellPopStartH;
@@ -3836,34 +3962,37 @@ function renderAddModal(){
   setAddType(t);
 }
 async function confirmAdd(){
-  const dayEl=$id('add-day'), startEl=$id('add-start'), endEl=$id('add-end');
-  if(!dayEl||!startEl||!endEl) return;
-  const di=parseInt(dayEl.value);
-  const startP=parseT(startEl.value), endP=parseT(endEl.value);
+  const isoEl=$id('add-day-iso'), startEl=$id('add-start'), endEl=$id('add-end');
+  const iso=(isoEl?.value||'').trim();
+  if(!iso){ alert('Please select a date from the calendar.'); return; }
+  const startP=parseT(startEl?.value||''), endP=parseT(endEl?.value||'');
   if(!startP||!endP){ alert('Please enter valid start and end times (e.g. 6:00pm)'); return; }
   const sMin=startP.h*60+startP.min, eMin=endP.h*60+endP.min;
-  if(eMin<=sMin){ alert('End time must be after start time'); return; }
-
-  let slots=[];
+  if(eMin<=sMin){ alert('End time must be after start time.'); return; }
+  const weekDayIdx=WEEK_DAYS.findIndex(d=>d.iso===iso);
+  let rows=[];
   if(addModalType==='zoom15'){
     for(let m=sMin;m<eMin;m+=15)
-      slots.push({type:'zoom15',status:'av',dayIdx:di,startMyt:m,endMyt:m+15,user_id:null,presenter_id:null});
+      rows.push({type:'zoom15',status:'av',day_date:iso,start_myt:m,end_myt:m+15,user_id:null,presenter_id:null,cancelled:false});
   } else if(addModalType==='blocked'){
     const rEl=$id('add-block-reason');
-    slots.push({type:'blocked',status:'blocked',dayIdx:di,startMyt:sMin,endMyt:eMin,
-      reason:rEl?rEl.value||'Unavailable':'Unavailable',user_id:null,presenter_id:null});
+    rows.push({type:'blocked',status:'blocked',day_date:iso,start_myt:sMin,end_myt:eMin,
+      reason:rEl?rEl.value||'Unavailable':'Unavailable',user_id:null,presenter_id:null,cancelled:false});
   } else if(addModalType==='event'){
     const nEl=$id('add-event-name');
-    slots.push({type:'event',status:'event',dayIdx:di,startMyt:sMin,endMyt:eMin,
-      label:nEl?nEl.value||'Business Event':'Business Event',user_id:null,presenter_id:null});
+    rows.push({type:'event',status:'event',day_date:iso,start_myt:sMin,end_myt:eMin,
+      label:nEl?nEl.value||'Business Event':'Business Event',user_id:null,presenter_id:null,cancelled:false});
   } else if(addModalType==='private'){
     const lEl=$id('add-private-label');
-    slots.push({type:'private',status:'booked',dayIdx:di,startMyt:sMin,endMyt:eMin,
-      label:lEl?lEl.value||'Private Meeting':'Private Meeting',user_id:null,presenter_id:null});
+    rows.push({type:'private',status:'booked',day_date:iso,start_myt:sMin,end_myt:eMin,
+      label:lEl?lEl.value||'Private Meeting':'Private Meeting',user_id:null,presenter_id:null,cancelled:false});
   }
   closeAddModal();
-  await adminInsertAndReload(slots);
-  renderSchedule();
+  showAuthSpinner('Saving…');
+  const { error } = await sb.from('schedule').insert(rows);
+  if(error){ hideAuthSpinner(); alert('Could not save. Please try again.\n'+error.message); return; }
+  if(weekDayIdx>=0) await reloadWeekSchedule();
+  else { hideAuthSpinner(); renderCalendar(); }
 }
 
 // ═══════════════════════════════════════════════
@@ -4250,7 +4379,178 @@ async function confirmQuickOpen(){
   if(!slots.length){ alert('No new slots to open — all selected hours already have slots.'); return; }
   closeQuickOpen();
   await adminInsertAndReload(slots);
-  renderSchedule();
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════════
+//  MINI CALENDAR PICKER (Add to schedule modal)
+// ═══════════════════════════════════════════════
+let _mcalYear=null, _mcalMonth=null, _mcalSelDate=null;
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_SHORT=['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+function initMCal(){
+  const now=new Date();
+  _mcalYear=now.getFullYear();
+  _mcalMonth=now.getMonth();
+  _mcalSelDate=null;
+  renderMCalGrid();
+}
+function toggleMCal(){
+  const popup=$id('mcal-popup'); if(!popup) return;
+  const inp=$id('mcal-input');
+  const isOpen=popup.classList.contains('on');
+  if(isOpen){ closeMCal(); return; }
+  // Position popup
+  const rect=inp.getBoundingClientRect();
+  popup.style.top=(rect.bottom+4)+'px';
+  const left=Math.min(rect.left, window.innerWidth-270);
+  popup.style.left=left+'px';
+  popup.style.right='auto';
+  inp.classList.add('on');
+  popup.classList.add('on');
+  renderMCalGrid();
+  setTimeout(()=>document.addEventListener('click',_mcalOutside,{once:true}),10);
+}
+function closeMCal(){
+  const popup=$id('mcal-popup'); if(popup) popup.classList.remove('on');
+  const inp=$id('mcal-input'); if(inp) inp.classList.remove('on');
+}
+function _mcalOutside(e){
+  const wrap=document.querySelector('.mcal-wrap');
+  if(wrap&&!wrap.contains(e.target)) closeMCal();
+}
+function shiftMCal(delta,e){
+  if(e) e.stopPropagation();
+  _mcalMonth+=delta;
+  if(_mcalMonth>11){_mcalMonth=0;_mcalYear++;}
+  if(_mcalMonth<0){_mcalMonth=11;_mcalYear--;}
+  renderMCalGrid();
+}
+function renderMCalGrid(){
+  const lbl=$id('mcal-hdr-lbl');
+  if(lbl) lbl.textContent=`${MONTHS[_mcalMonth]} ${_mcalYear}`;
+  const container=$id('mcal-days'); if(!container) return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const firstDay=new Date(_mcalYear,_mcalMonth,1);
+  // Monday=0 offset
+  let startOffset=firstDay.getDay()-1; if(startOffset<0) startOffset=6;
+  const daysInMonth=new Date(_mcalYear,_mcalMonth+1,0).getDate();
+  let html='';
+  for(let i=0;i<startOffset;i++) html+=`<div class="mcal-day mcal-day-empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(_mcalYear,_mcalMonth,d);
+    date.setHours(0,0,0,0);
+    const isPast=date<today;
+    const isToday=date.getTime()===today.getTime();
+    const isSel=_mcalSelDate&&date.toDateString()===_mcalSelDate.toDateString();
+    let cls='mcal-day';
+    if(isPast) cls+=' mcal-day-past';
+    else if(isSel) cls+=' mcal-day-sel';
+    else if(isToday) cls+=' mcal-day-today';
+    const disabled=isPast?'disabled':'';
+    const iso=`${_mcalYear}-${String(_mcalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    html+=`<button type="button" class="${cls}" ${disabled} onclick="selectMCalDay('${iso}',event)">${d}</button>`;
+  }
+  container.innerHTML=html;
+}
+function selectMCalDay(iso,e){
+  if(e) e.stopPropagation();
+  const date=new Date(iso+'T00:00:00');
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(date<today) return; // past date — ignore
+  _mcalSelDate=date;
+  // Find which day of current week this is (0=Mon...6=Sun), or -1 if outside current week
+  const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const weekDayIdx=WEEK_DAYS.findIndex(d=>d.iso===iso);
+  // Update hidden inputs
+  const isoEl=$id('add-day-iso'); if(isoEl) isoEl.value=iso;
+  const dayEl=$id('add-day'); if(dayEl) dayEl.value=weekDayIdx>=0?weekDayIdx:iso;
+  // Update display
+  const dayName=dayNames[date.getDay()===0?6:date.getDay()-1];
+  const monName=MONTHS[date.getMonth()].slice(0,3);
+  const display=$id('mcal-display');
+  if(display) display.textContent=`${dayName}, ${date.getDate()} ${monName} ${date.getFullYear()}`;
+  renderMCalGrid();
+  closeMCal();
+}
+
+// ── Time validation for Add modal ──
+function validateAddTimes(){
+  const s=$id('add-start')?.value.trim(), e=$id('add-end')?.value.trim();
+  const err=$id('add-time-err'); if(!err) return;
+  if(!s||!e){ err.textContent=''; err.classList.remove('on'); return; }
+  const sp=parseT(s), ep=parseT(e);
+  if(!sp){ err.textContent='Start time not recognized — try "10am" or "2:30pm"'; err.classList.add('on'); return; }
+  if(!ep){ err.textContent='End time not recognized — try "11am" or "4:00pm"'; err.classList.add('on'); return; }
+  const sMin=sp.h*60+sp.min, eMin=ep.h*60+ep.min;
+  if(eMin<=sMin){ err.textContent='End time must be after start time.'; err.classList.add('on'); return; }
+  err.textContent=''; err.classList.remove('on');
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS SCREEN
+// ═══════════════════════════════════════════════
+function renderSettings(){
+  if(!CURRENT_USER) return;
+  const u=CURRENT_USER;
+  const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
+  const tzStr=`${tz.f} ${tz.l}`;
+  // Update sidebar
+  setText('sb-name-settings', u.name||'—');
+  setText('sb-tz-settings', tzStr);
+  const av=$id('sb-av-settings');
+  if(av){ av.textContent=u.initials||u.name?.slice(0,2)||'?'; av.className='sb-av adm'; }
+  // Update account info
+  setText('settings-email', u.email||'—');
+  setText('settings-role', u.role==='admin'?'Admin':'Downline');
+  // Clear password fields
+  const np=$id('settings-new-pass'), cp=$id('settings-confirm-pass');
+  if(np) np.value=''; if(cp) cp.value='';
+  setLoginError('settings-pass', '');
+}
+
+function setSettingsError(msg){
+  const el=$id('settings-pass-err'); if(!el) return;
+  if(msg){ el.textContent=msg; el.classList.add('on'); }
+  else { el.textContent=''; el.classList.remove('on'); }
+}
+
+async function changePassword(){
+  const np=($id('settings-new-pass')?.value||'').trim();
+  const cp=($id('settings-confirm-pass')?.value||'').trim();
+  setSettingsError('');
+  if(!np){ setSettingsError('Please enter a new password.'); return; }
+  if(np.length<6){ setSettingsError('Password must be at least 6 characters.'); return; }
+  if(np!==cp){ setSettingsError('Passwords do not match.'); return; }
+  showAuthSpinner('Updating password…');
+  const { error } = await sb.auth.updateUser({ password: np });
+  hideAuthSpinner();
+  if(error){ setSettingsError('Error: '+error.message); return; }
+  setSettingsError('');
+  const np2=$id('settings-new-pass'), cp2=$id('settings-confirm-pass');
+  if(np2) np2.value=''; if(cp2) cp2.value='';
+  // Show success
+  const btn=document.querySelector('button[onclick="changePassword()"]');
+  if(btn){ const orig=btn.textContent; btn.textContent='✅ Password updated!'; btn.style.background='var(--teal)'; setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; },2500); }
+}
+
+function toggleSetting(btn){
+  btn.classList.toggle('on');
+  // Save to localStorage (will wire to DB later)
+  const id=btn.id, val=btn.classList.contains('on');
+  try{ localStorage.setItem('bd4u_notif_'+id, val); } catch(e){}
+}
+
+function loadSettingsPrefs(){
+  // Load saved notification prefs from localStorage
+  ['notif-new-booking','notif-cancel','notif-reminder','notif-weekly'].forEach(id=>{
+    const btn=$id(id); if(!btn) return;
+    try{
+      const saved=localStorage.getItem('bd4u_notif_'+id);
+      if(saved!==null) btn.classList.toggle('on', saved==='true');
+    } catch(e){}
+  });
 }
 
 // ═══════════════════════════════════════════════
@@ -4295,6 +4595,7 @@ window.addEventListener('load', async ()=>{
 
   renderTZBar(); renderNavFlags();
   updateRoleUI();
+  loadSettingsPrefs();
   if(CURRENT_USER){ goScreen('sc-cal'); }
   else { goScreen('sc-login'); }
   updateNavBtns();
