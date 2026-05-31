@@ -5,10 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>BD4U Book</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Supabase SDK v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://qwfpfoebbwqmsmoqiyet.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_-InlAaMifk-2AyS1EEOzuQ_u_ZKwcra';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v13 — Final CSS
-   Single :root, no duplicates, all dead code removed
+   BD4U Book v28 — Supabase bookings wired
+   Real schedule load, new booking save, my bookings
 ═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -616,12 +623,29 @@ tr:hover td{background:var(--g50)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--g200);border-radius:2px}
 
+/* ── AUTH LOADING OVERLAY ── */
+.auth-overlay{position:fixed;inset:0;background:rgba(13,31,51,.72);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.auth-overlay.hidden{display:none}
+.auth-spinner-box{background:#fff;border-radius:var(--rXl);padding:28px 36px;text-align:center;box-shadow:var(--sh-lg);min-width:220px}
+.auth-spinner{width:36px;height:36px;border:3px solid var(--g200);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-spinner-txt{font-size:13px;font-weight:600;color:var(--g600)}
+/* ── LOGIN ERROR ── */
+.login-err{display:none;background:var(--redLt);border:1px solid var(--redB);border-radius:var(--r);padding:9px 13px;font-size:12px;font-weight:600;color:var(--red);margin-bottom:12px;line-height:1.5}
+.login-err.on{display:block}
+/* ── LOGIN BUTTON LOADING STATE ── */
+.btn-loading{opacity:.7;pointer-events:none}
 </style>
 </head>
 <body>
 
-
-
+<!-- ═══ AUTH LOADING OVERLAY ═══ -->
+<div class="auth-overlay hidden" id="auth-overlay">
+  <div class="auth-spinner-box">
+    <div class="auth-spinner"></div>
+    <div class="auth-spinner-txt" id="auth-spinner-txt">Signing in…</div>
+  </div>
+</div>
 
 
 <!-- ═══════════════════ NAV ═══════════════════ -->
@@ -664,19 +688,19 @@ tr:hover td{background:var(--g50)}
           <div class="role-tab" onclick="switchLoginRole('admin',this)">Admin</div>
         </div>
         <div id="login-user" class="role-form on">
-          <div class="fg"><label class="fl">Email address</label><input class="fc" type="email" value="downlineA@bd4u.com"></div>
-          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" value="••••••••"></div>
-          <div style="text-align:right;margin-bottom:14px"><a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600">Forgot password?</a></div>
-          <button type="button" class="btn btn-primary btn-full" onclick="loginAs('user')">Sign in →</button>
+          <div class="login-err" id="login-user-err"></div>
+          <div class="fg"><label class="fl">Email address</label><input class="fc" type="email" id="user-email" placeholder="your@email.com" autocomplete="email"></div>
+          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
+          <div style="text-align:right;margin-bottom:14px"><a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600" onclick="forgotPassword()">Forgot password?</a></div>
+          <button type="button" class="btn btn-primary btn-full" id="user-login-btn" onclick="loginAs('user')">Sign in →</button>
           <div class="divider"><div class="divl"></div><div class="divt">or</div><div class="divl"></div></div>
-          <button type="button" class="btn btn-outline btn-full">Create an account</button>
+          <button type="button" class="btn btn-outline btn-full" onclick="alert('Contact Renee or Gus to get your account created.')">Request an account</button>
         </div>
         <div id="login-admin" class="role-form">
-
-          <div class="fg"><label class="fl">Admin username</label><input class="fc" type="text" value="renee_admin"></div>
-          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" value="••••••••"></div>
-          <div class="fg"><label class="fl">2FA Code <span style="font-weight:400;color:var(--g400)">(optional but recommended)</span></label><input class="fc" type="text" placeholder="6-digit code" maxlength="6"></div>
-          <button type="button" class="btn btn-navy btn-full" onclick="loginAs('admin')">Sign in as Admin →</button>
+          <div class="login-err" id="login-admin-err"></div>
+          <div class="fg"><label class="fl">Admin email</label><input class="fc" type="email" id="admin-email" placeholder="admin@bd4u.com" autocomplete="email"></div>
+          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" id="admin-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('admin')"></div>
+          <button type="button" class="btn btn-navy btn-full" id="admin-login-btn" onclick="loginAs('admin')">Sign in as Admin →</button>
         </div>
       </div>
     </div>
@@ -1602,28 +1626,139 @@ function switchLoginRole(role,el){
   const fm=$id('login-'+role); if(fm) fm.classList.add('on');
 }
 
-// FIX LOGIN-2: admin username = renee_admin
-function loginAs(role){
-  if(role==='admin'){
-    CURRENT_USER = {...USERS.renee, id:'renee'}; // default shared admin (Renee) - can switch
-    isAdmin = true;
-    activeTZ = CURRENT_USER.tz;
-  } else {
-    CURRENT_USER = USERS.downlineA; // demo downline
-    isAdmin = false;
-    activeTZ = CURRENT_USER.tz;
+// ═══════════════════════════════════════════════
+//  AUTH HELPERS
+// ═══════════════════════════════════════════════
+function showAuthSpinner(msg){
+  const ov=$id('auth-overlay'), txt=$id('auth-spinner-txt');
+  if(ov) ov.classList.remove('hidden');
+  if(txt) txt.textContent=msg||'Signing in…';
+}
+function hideAuthSpinner(){
+  const ov=$id('auth-overlay');
+  if(ov) ov.classList.add('hidden');
+}
+function setLoginError(role, msg){
+  const id = role==='admin' ? 'login-admin-err' : 'login-user-err';
+  const el=$id(id);
+  if(!el) return;
+  if(msg){ el.textContent=msg; el.classList.add('on'); }
+  else { el.textContent=''; el.classList.remove('on'); }
+}
+function setLoginBtnLoading(role, loading){
+  const id = role==='admin' ? 'admin-login-btn' : 'user-login-btn';
+  const btn=$id(id); if(!btn) return;
+  if(loading){ btn.classList.add('btn-loading'); btn.textContent='Signing in…'; }
+  else {
+    btn.classList.remove('btn-loading');
+    btn.textContent = role==='admin' ? 'Sign in as Admin →' : 'Sign in →';
   }
-  updateRoleUI();
-  renderTZBar();
-  renderNavFlags();
-  goScreen('sc-cal');
 }
 
-// FIX UX-3: logout properly shown/hidden
-function logout(){
+// FIX LOGIN-2: real Supabase auth
+async function loginAs(role){
+  const emailId = role==='admin' ? 'admin-email' : 'user-email';
+  const passId  = role==='admin' ? 'admin-pass'  : 'user-pass';
+  const email = ($id(emailId)?.value||'').trim();
+  const pass  = ($id(passId)?.value||'').trim();
+  setLoginError(role, '');
+  if(!email){ setLoginError(role,'Please enter your email address.'); return; }
+  if(!pass){  setLoginError(role,'Please enter your password.');       return; }
+
+  setLoginBtnLoading(role, true);
+  showAuthSpinner('Signing in…');
+
+  try {
+    // 1. Sign in with Supabase Auth
+    const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(authError){
+      hideAuthSpinner(); setLoginBtnLoading(role, false);
+      const msg = authError.message.includes('Invalid login')
+        ? 'Incorrect email or password. Please try again.'
+        : authError.message;
+      setLoginError(role, msg); return;
+    }
+
+    // 2. Fetch profile from users table
+    const { data: profile, error: profileError } = await sb
+      .from('users').select('*').eq('id', authData.user.id).single();
+
+    if(profileError || !profile){
+      hideAuthSpinner(); setLoginBtnLoading(role, false);
+      await sb.auth.signOut();
+      setLoginError(role,'Account profile not found. Contact Renee or Gus.'); return;
+    }
+
+    if(profile.suspended){
+      hideAuthSpinner(); setLoginBtnLoading(role, false);
+      await sb.auth.signOut();
+      setLoginError(role,'Your account has been suspended. Contact Renee or Gus.'); return;
+    }
+
+    // 3. Role check — admin tab should only work for admins
+    if(role==='admin' && profile.role!=='admin'){
+      hideAuthSpinner(); setLoginBtnLoading(role, false);
+      await sb.auth.signOut();
+      setLoginError(role,'This account does not have admin access. Use the User tab.'); return;
+    }
+
+    // 4. Set app state
+    CURRENT_USER = {
+      id:        profile.id,
+      name:      profile.name,
+      email:     profile.email,
+      role:      profile.role,
+      tz:        profile.timezone || 'MY',
+      country:   profile.country || '',
+      initials:  profile.initials || profile.name.slice(0,2).toUpperCase(),
+      sessionsBooked: profile.sessions_booked || 0,
+      sessionsHosted: profile.sessions_hosted || 0,
+      color: profile.role==='admin' ? 'var(--renee)' : 'var(--teal)',
+      bg:    profile.role==='admin' ? 'var(--reneeLt)' : 'var(--tealLt)',
+    };
+    isAdmin  = profile.role === 'admin';
+    activeTZ = CURRENT_USER.tz;
+
+    // 5. Load real schedule from DB
+    setText('auth-spinner-txt', 'Loading calendar…');
+    await loadScheduleFromDB();
+
+    hideAuthSpinner(); setLoginBtnLoading(role, false);
+    updateRoleUI(); renderTZBar(); renderNavFlags();
+    goScreen('sc-cal');
+
+  } catch(e){
+    hideAuthSpinner(); setLoginBtnLoading(role, false);
+    setLoginError(role,'Connection error. Please check your internet and try again.');
+  }
+}
+
+async function forgotPassword(){
+  const emailEl=$id('user-email');
+  const email=(emailEl?.value||'').trim();
+  if(!email){ setLoginError('user','Enter your email above first, then click Forgot password.'); return; }
+  showAuthSpinner('Sending reset email…');
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  hideAuthSpinner();
+  if(error){ setLoginError('user','Could not send reset email: '+error.message); }
+  else { setLoginError('user',''); alert('✅ Password reset email sent to '+email+'. Check your inbox.'); }
+}
+
+// FIX UX-3: logout with real Supabase signout
+async function logout(){
+  showAuthSpinner('Signing out…');
+  await sb.auth.signOut();
+  hideAuthSpinner();
   CURRENT_USER = null;
   isAdmin = false;
   blockValues = {}; blockErrors = {};
+  // Clear login fields
+  ['user-email','user-pass','admin-email','admin-pass'].forEach(id=>{
+    const el=$id(id); if(el) el.value='';
+  });
+  setLoginError('user',''); setLoginError('admin','');
   updateRoleUI();
   goScreen('sc-login');
 }
@@ -1739,21 +1874,20 @@ function renderNavFlags(){
 // ═══════════════════════════════════════════════
 function shiftWeek(delta){
   weekOffset+=delta;
-  WEEK_DAYS=buildWeekDays(weekOffset);
   dayWindowStart=0;
-  renderCalendar();
-  renderSchedule();
+  reloadWeekSchedule();
 }
 function jumpToday(){
   weekOffset=0;
-  WEEK_DAYS=buildWeekDays(0);
   dayWindowStart=0;
-  const todayIdx=WEEK_DAYS.findIndex(d=>{
-    const t=new Date(); return d.d===t.getDate()&&d.fullDate.getMonth()===t.getMonth();
+  reloadWeekSchedule().then(()=>{
+    WEEK_DAYS=buildWeekDays(0);
+    const todayIdx=WEEK_DAYS.findIndex(d=>{
+      const t=new Date(); return d.d===t.getDate()&&d.fullDate.getMonth()===t.getMonth();
+    });
+    if(todayIdx>=0) dayWindowStart=Math.min(todayIdx,WEEK_DAYS.length-3);
+    renderCalendar();
   });
-  if(todayIdx>=0) dayWindowStart=Math.min(todayIdx,WEEK_DAYS.length-3);
-  renderCalendar();
-  renderSchedule();
 }
 function renderCalendar(){
   updateWeekLabel(); renderDesktopCal(); renderDayStrip(); updateNavBtns();
@@ -2657,8 +2791,8 @@ function openConfirmModal(){
   const mo=$id('confirm-modal'); if(mo) mo.classList.add('on');
 }
 function closeConfirmModal(){ const mo=$id('confirm-modal'); if(mo) mo.classList.remove('on'); }
-// D4 fix: actually push to SCHEDULE
-function confirmBooking(){
+// D4 fix: save to Supabase DB
+async function confirmBooking(){
   closeConfirmModal();
   const tz=TZ_DATA[activeTZ];
   const blk=getAvailableBlocks().find(b=>b.key===selBlock)||getAvailableBlocks()[0];
@@ -2668,13 +2802,41 @@ function confirmBooking(){
   const prospectEl=$id('prospect-inp'), prospect=prospectShown&&selSlotType!=='private'?(prospectEl?.value||'Prospect'):'';
   const sMin=p?p.h*60+p.min:blk.startH*60+15;
   const eMin=sMin+st.dur;
-  SCHEDULE.push({
-    type:selSlotType, status:'mine', dayIdx:blk.dayIdx,
-    startMyt:sMin, endMyt:eMin,
-    prospect:prospect, user:CURRENT_USER?.id||'downlineA',
-    presenter:null,
-    label:selSlotType==='private'?`Private Meeting · ${CURRENT_USER?.name||''}`:undefined,
+  const dayDate=WEEK_DAYS[blk.dayIdx]?.iso;
+  if(!dayDate){ alert('Could not determine booking date. Please try again.'); return; }
+
+  showAuthSpinner('Saving booking…');
+  const saved = await saveBookingToDB({
+    type:     selSlotType,
+    dayDate:  dayDate,
+    startMyt: sMin,
+    endMyt:   eMin,
+    prospect: prospect,
+    label:    selSlotType==='private'?`Private Meeting · ${CURRENT_USER?.name||''}`:undefined,
   });
+
+  if(!saved){
+    hideAuthSpinner();
+    alert('Booking failed. The slot may already be taken. Please try another time.');
+    return;
+  }
+
+  // Add to local SCHEDULE immediately so UI updates instantly
+  SCHEDULE.push({
+    _id:      saved.id,
+    type:     selSlotType,
+    status:   'mine',
+    dayIdx:   blk.dayIdx,
+    startMyt: sMin,
+    endMyt:   eMin,
+    prospect: prospect,
+    user:     CURRENT_USER.id,
+    presenter:null,
+    label:    selSlotType==='private'?`Private Meeting · ${CURRENT_USER?.name||''}`:undefined,
+    week:     weekOffset,
+  });
+
+  hideAuthSpinner();
   blockValues={}; blockErrors={};
   goScreen('sc-mybk');
 }
@@ -2691,20 +2853,26 @@ function rescheduleBooking(idx){
   SCHEDULE.splice(idx,1);
   goScreen('sc-book');
 }
-function cancelMyBooking(idx){
+async function cancelMyBooking(idx){
   const slot=SCHEDULE[idx]; if(!slot) return;
   const label=slot.prospect||makeLabel(slot);
   if(!confirm(`Cancel your booking for "${label}"? This cannot be undone.`)) return;
+  showAuthSpinner('Cancelling…');
+  if(slot._id){
+    const ok = await cancelBookingInDB(slot._id);
+    if(!ok){ hideAuthSpinner(); alert('Could not cancel. Please try again.'); return; }
+  }
   SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
   renderMyBookings(); renderCalendar();
 }
 function renderMyBookings(){
   const tz=TZ_DATA[activeTZ];
-  const userId=CURRENT_USER?.id||'downlineA';
-  // Derive from SCHEDULE (single source of truth)
+  const userId=CURRENT_USER?.id||'';
+  // My bookings = status 'mine' OR user matches current user id
   const upcoming=SCHEDULE.filter(s=>
-    (s.user===userId||s.status==='mine')&&
-    s.type!=='blocked'&&s.type!=='event'&&s.dayIdx>=1 // today onwards
+    (s.status==='mine'||s.user===userId)&&
+    s.type!=='blocked'&&s.type!=='event'
   ).sort((a,b)=>a.dayIdx!==b.dayIdx?a.dayIdx-b.dayIdx:a.startMyt-b.startMyt);
   // Past = hardcoded demo (DATA-2: would come from DB in real app)
   const past=[
@@ -3284,18 +3452,137 @@ function confirmAdd(){
 }
 
 // ═══════════════════════════════════════════════
+//  SUPABASE DB — SCHEDULE
+// ═══════════════════════════════════════════════
+
+// Load schedule for current week from Supabase
+async function loadScheduleFromDB(){
+  try {
+    const start = WEEK_DAYS[0]?.iso;
+    const end   = WEEK_DAYS[6]?.iso;
+    if(!start||!end) return;
+
+    const { data, error } = await sb
+      .from('schedule')
+      .select('*, booker:user_id(id,name,initials,timezone), presenter_user:presenter_id(id,name,initials)')
+      .gte('day_date', start)
+      .lte('day_date', end);
+
+    if(error){ console.error('loadScheduleFromDB error:', error); return; }
+    if(!data||!data.length){ SCHEDULE = []; return; }
+
+    // Map DB rows to in-memory SCHEDULE format
+    SCHEDULE = data.map(row=>{
+      // Map day_date to dayIdx (0=Mon...6=Sun)
+      const rowDate = new Date(row.day_date + 'T00:00:00');
+      const dayIdx  = WEEK_DAYS.findIndex(d => d.iso === row.day_date);
+      if(dayIdx === -1) return null;
+
+      // Determine status from logged-in user's perspective
+      let status = row.status;
+      if(row.status === 'booked' && row.user_id === CURRENT_USER?.id) status = 'mine';
+
+      return {
+        _id:        row.id,          // DB uuid — needed for updates/deletes
+        type:       row.type,
+        status:     status,
+        dayIdx:     dayIdx,
+        startMyt:   row.start_myt,
+        endMyt:     row.end_myt,
+        prospect:   row.prospect || '',
+        user:       row.user_id   || '',
+        presenter:  row.presenter_id || null,
+        label:      row.label     || '',
+        reason:     row.reason    || '',
+        cancelled:  row.status === 'cancelled',
+        // Friendly names from joins
+        _bookerName:    row.booker?.name    || '',
+        _bookerInitials:row.booker?.initials|| '',
+        _presenterName: row.presenter_user?.name || '',
+        week: weekOffset,
+      };
+    }).filter(Boolean);
+
+  } catch(e){ console.error('loadScheduleFromDB exception:', e); }
+}
+
+// Save a new booking to Supabase
+async function saveBookingToDB(slotData){
+  const { data, error } = await sb.from('schedule').insert({
+    type:         slotData.type,
+    status:       'booked',
+    day_date:     slotData.dayDate,
+    start_myt:    slotData.startMyt,
+    end_myt:      slotData.endMyt,
+    prospect:     slotData.prospect || '',
+    user_id:      CURRENT_USER.id,
+    presenter_id: null,
+    label:        slotData.label || null,
+  }).select().single();
+  if(error){ console.error('saveBookingToDB error:', error); return null; }
+  return data;
+}
+
+// Cancel a booking in Supabase
+async function cancelBookingInDB(dbId){
+  const { error } = await sb.from('schedule').delete().eq('id', dbId);
+  if(error){ console.error('cancelBookingInDB error:', error); return false; }
+  return true;
+}
+
+// Reload schedule when week changes
+async function reloadWeekSchedule(){
+  showAuthSpinner('Loading week…');
+  WEEK_DAYS = buildWeekDays(weekOffset);
+  await loadScheduleFromDB();
+  hideAuthSpinner();
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
-window.addEventListener('load',()=>{
+window.addEventListener('load', async ()=>{
   _lastMob=isMob();
   // Safety alias for backward compat with any slots using presenter:'admin'
   USERS.admin = USERS.renee;
   // Set CURRENT_USER id on objects for easier referencing
   Object.entries(USERS).forEach(([k,u])=>u.id=k);
+
+  // Check if user already has an active Supabase session (e.g. after page refresh)
+  showAuthSpinner('Loading…');
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){
+      const { data: profile } = await sb.from('users').select('*').eq('id', session.user.id).single();
+      if(profile && !profile.suspended){
+        CURRENT_USER = {
+          id:        profile.id,
+          name:      profile.name,
+          email:     profile.email,
+          role:      profile.role,
+          tz:        profile.timezone || 'MY',
+          country:   profile.country || '',
+          initials:  profile.initials || profile.name.slice(0,2).toUpperCase(),
+          sessionsBooked: profile.sessions_booked || 0,
+          sessionsHosted: profile.sessions_hosted || 0,
+          color: profile.role==='admin' ? 'var(--renee)' : 'var(--teal)',
+          bg:    profile.role==='admin' ? 'var(--reneeLt)' : 'var(--tealLt)',
+        };
+        isAdmin  = profile.role === 'admin';
+        activeTZ = CURRENT_USER.tz;
+        // Load schedule for restored session
+        setText('auth-spinner-txt', 'Loading calendar…');
+        await loadScheduleFromDB();
+      }
+    }
+  } catch(e){ /* session check failed — show login */ }
+  hideAuthSpinner();
+
   renderTZBar(); renderNavFlags();
-  // Start on login screen, everything hidden
   updateRoleUI();
-  goScreen('sc-login');
+  if(CURRENT_USER){ goScreen('sc-cal'); }
+  else { goScreen('sc-login'); }
   updateNavBtns();
   const searchEl=$id('admin-search');
   if(searchEl) searchEl.addEventListener('input',e=>renderAdminTable(e.target.value.toLowerCase()));
@@ -3303,6 +3590,7 @@ window.addEventListener('load',()=>{
 window.addEventListener('resize',()=>{
   const mob=isMob(); if(mob!==_lastMob){_lastMob=mob; renderCalendar();}
 });
+
 
 </script>
 </body>
