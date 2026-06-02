@@ -1,4 +1,4 @@
-<!DOCTYPE html>5
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -14,7 +14,7 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v50 — New nav, username login, dev console, no sidebar, logo B
+   BD4U Book v51 — New nav, username login, dev console, no sidebar, logo B
    Remove Manage Schedule, add Settings screen,
    fix Add to schedule modal, fix all hardcoded data,
    Add button in toolbar, full page cleanup
@@ -209,6 +209,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 #cal-date-hdr{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));min-width:660px;position:sticky;top:52px;z-index:25;border-radius:var(--rLg) var(--rLg) 0 0;overflow:hidden;box-shadow:var(--sh-sm);background:var(--navy)}
 .cal-dhdr-tc{padding:10px 4px;text-align:right;padding-right:8px;font-size:10px;font-weight:700;color:rgba(255,255,255,.6)}
 .cal-dhdr-cell{padding:10px 4px;text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.3px}
+.cal-dhdr-month{font-size:9px;font-weight:600;opacity:.9}
 .cal-dhdr-cell.today-col .blk-head-num{background:var(--teal);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
 /* ── NOTIFICATION BELL ── */
 #notif-bell-wrap{position:relative}
@@ -796,18 +797,6 @@ tr:hover td{background:var(--g50)}
       </button>
       <div id="tz-dropdown" style="display:none;position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)"></div>
     </div>
-    <div id="notif-bell-wrap" style="display:none">
-      <button type="button" class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifBell()" title="Notifications">
-        🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span>
-      </button>
-      <div class="notif-drop" id="notif-drop" style="display:none">
-        <div class="notif-drop-hdr">
-          <span style="font-size:13px;font-weight:700;color:var(--navy)">Notifications</span>
-          <button type="button" onclick="markAllNotifRead()" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;font-weight:600">Mark all read</button>
-        </div>
-        <div id="notif-list"><div class="notif-empty">No notifications</div></div>
-      </div>
-    </div>
     <div id="profile-nav-wrap" style="display:none;position:relative">
       <button type="button" id="profile-nav-btn" onclick="toggleProfileDropdown()" style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap">
         <div id="profile-nav-av" style="width:22px;height:22px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0">?</div>
@@ -818,11 +807,23 @@ tr:hover td{background:var(--g50)}
           <div style="font-size:13px;font-weight:700;color:var(--navy)" id="pd-name">—</div>
           <div style="font-size:11px;color:var(--g400);margin-top:2px" id="pd-role">—</div>
         </div>
-        <button type="button" onclick="goScreen('sc-profile');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left" onmouseover="this.style.background='var(--g50)'" onmouseout="this.style.background='#fff'">👤 My Profile</button>
+        <button type="button" onclick="goScreen('sc-profile');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left" onmouseover="this.style.background='var(--g50)'" onmouseout="this.style.background='#fff'"><span style="display:inline-block;width:20px;text-align:center">👤</span> My Profile</button>
         <button type="button" onclick="goScreen('sc-settings');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left;transition:background .12s" onmouseover="this.style.background='#f6f8fb'" onmouseout="this.style.background='#fff'">
-          <span style="font-size:15px">⚙️</span><span>Settings</span>
+          <span style="font-size:15px;display:inline-block;width:20px;text-align:center">⚙️</span><span>Settings</span>
         </button>
         <button type="button" onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--red);text-align:left" onmouseover="this.style.background='var(--redLt)'" onmouseout="this.style.background='#fff'">⏏ Sign out</button>
+      </div>
+    </div>
+    <div id="notif-bell-wrap" style="display:none">
+      <button type="button" class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifBell()" title="Notifications">
+        🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <div class="notif-drop" id="notif-drop" style="display:none">
+        <div class="notif-drop-hdr">
+          <span style="font-size:13px;font-weight:700;color:var(--navy)">Notifications</span>
+          <button type="button" onclick="markAllNotifRead()" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;font-weight:600">Mark all read</button>
+        </div>
+        <div id="notif-list"><div class="notif-empty">No notifications</div></div>
       </div>
     </div>
     <button type="button" class="role-toggle" id="role-toggle-btn" onclick="toggleAdminMode()" style="display:none">→ Downline view</button>
@@ -1378,7 +1379,7 @@ tr:hover td{background:var(--g50)}
             <div class="settings-row">
               <div>
                 <div class="settings-row-lbl">Version</div>
-                <div class="settings-row-sub">BD4U Book v50</div>
+                <div class="settings-row-sub">BD4U Book v51</div>
               </div>
             </div>
             <div style="margin-top:14px">
@@ -1488,7 +1489,7 @@ tr:hover td{background:var(--g50)}
           <!-- Desktop: table -->
           <div class="tbl-wrap desktop-cal">
             <table>
-              <thead><tr><th>Booking label</th><th>MYT</th><th>User TZ</th><th>Upline</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Booking label</th><th>MYT</th><th>User TZ</th><th>Admin In-charge</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="admin-tbl-body"></tbody>
             </table>
           </div>
@@ -1827,9 +1828,13 @@ function goScreen(id){
 
 function switchLoginRole(role,el){
   document.querySelectorAll('.role-tab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.role-form').forEach(f=>f.classList.remove('on'));
+  document.querySelectorAll('.role-form').forEach(f=>{
+    f.classList.remove('on');
+    f.style.display=''; // clear inline override so CSS .role-form{display:none} applies
+  });
   el.classList.add('on');
-  const fm=$id('login-'+role); if(fm) fm.classList.add('on');
+  const fm=$id('login-'+role);
+  if(fm){ fm.classList.add('on'); fm.style.display=''; }
 }
 
 // ═══════════════════════════════════════════════
@@ -2026,7 +2031,7 @@ function updateRoleUI(){
 
   // Profile dropdown button
   const profWrap=$id('profile-nav-wrap');
-  if(profWrap) profWrap.style.display=loggedIn?'block':'none';
+  if(profWrap) profWrap.style.display=(loggedIn&&!isMob())?'block':'none';
   const profAv=$id('profile-nav-av');
   if(profAv){
     profAv.textContent=nameInitials;
@@ -2280,7 +2285,7 @@ function renderDesktopCal(){
     const isTodayCol = d.iso === todayStr;
     hdrHtml+=`<div class="cal-dhdr-cell${isTodayCol?' today-col':''}">
       ${sanitize(d.n)}<br>
-      <span class="blk-head-num${isTodayCol?' today':''}">${d.d} ${sanitize(d.m)}</span>
+      <span class="blk-head-num${isTodayCol?' today':''}">${d.d}</span> <span class="cal-dhdr-month">${sanitize(d.m)}</span>
     </div>`;
   });
   const hdrEl=$id('cal-date-hdr');
@@ -2635,7 +2640,8 @@ async function saveSA(){
   }
 
   hideAuthSpinner();
-  closeSA(); renderDesktopCal(); renderCalendar();
+  closeSA(); renderCalendar();
+  if(panelOpen && panelDay!==null) renderPanel(panelDay);
 }
 
 async function saDeleteSlot(){
@@ -3530,10 +3536,10 @@ function renderProfile(){
           `<option${c===u.country?' selected':''}>${c}</option>`).join('')}
       </select></div>
     <button type="button" class="btn btn-primary" onclick="saveProfile()">Save changes</button>`);
-  // Admin-only: Admin managers section
+  // Admin managers + team management moved to Settings — hide in profile
   const adminsSection=$id('profile-admins-section');
-  if(adminsSection) adminsSection.style.display = isAdminUser ? 'block' : 'none';
-  if(isAdminUser){
+  if(adminsSection) adminsSection.style.display='none';
+  if(false&&isAdminUser){ // disabled — now in Settings
     const admins=Object.entries(USERS).filter(([,v])=>v.role==='admin');
     setHTML('profile-admins-list', `
       ${admins.map(([key,au])=>`
@@ -3548,7 +3554,7 @@ function renderProfile(){
       <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="toggleInviteForm()">+ Add new manager</button>`);
   }
   const teamSection=$id('profile-team-section');
-  if(teamSection) teamSection.style.display = isAdminUser ? 'block' : 'none';
+  if(teamSection) teamSection.style.display='none'; // moved to Settings // was: isAdminUser ? 'block' : 'none';
   if(isAdminUser){
     // Fetch downlines live from Supabase (USERS{} is empty — data comes from DB)
     sb.from('users').select('id,name,initials,timezone,suspended').eq('role','downline').order('name')
@@ -3578,9 +3584,22 @@ function profileNameChange(val){
   // Update sidebar name live
   setText('sb-name-cal', CURRENT_USER?.name||'—');
 }
-function saveProfile(){
+async function saveProfile(){
   const nameEl=$id('pf-name');
-  if(nameEl&&CURRENT_USER) CURRENT_USER.name=nameEl.value;
+  const country=$id('pf-country')?.value||CURRENT_USER?.country||'';
+  if(nameEl&&CURRENT_USER){
+    CURRENT_USER.name=nameEl.value;
+    CURRENT_USER.tz=activeTZ;
+    if(CURRENT_USER.country!==undefined) CURRENT_USER.country=country;
+    // Save name, timezone and country to Supabase
+    try{
+      await sb.from('users').update({
+        name:CURRENT_USER.name,
+        timezone:activeTZ,
+        country:country
+      }).eq('id',CURRENT_USER.id);
+    }catch(e){ console.warn('saveProfile DB error:', e); }
+  }
   setText('sb-name-cal', CURRENT_USER?.name||'—');
   const btn=document.querySelector('#sc-profile .btn-primary');
   if(btn){ btn.textContent='✓ Saved'; btn.style.background='var(--green)';
@@ -3677,11 +3696,15 @@ async function assignRow(idx,key){
   const slot=SCHEDULE[idx]; if(!slot) return;
   slot.presenter=key||null;
   if(slot._id){
-    const admins=Object.values(USERS).filter(u=>u.role==='admin');
     let presId=null;
-    if(key==='renee') presId=Object.values(USERS).find(u=>u.name==='Renee')?.id||null;
-    else if(key==='gus') presId=Object.values(USERS).find(u=>u.name==='Gus')?.id||null;
-    else if(key==='both') presId=admins[0]?.id||null;
+    if(key==='renee'||key==='gus'||key==='both'){
+      // Look up admin IDs directly from Supabase (USERS{} is empty client-side)
+      const {data:admins}=await sb.from('users').select('id,name').eq('role','admin');
+      const find=n=>admins?.find(u=>(u.name||'').toLowerCase()===n)?.id||null;
+      if(key==='renee') presId=find('renee');
+      else if(key==='gus') presId=find('gus');
+      else if(key==='both') presId=admins?.[0]?.id||null;
+    }
     await sb.from('schedule').update({presenter_id:presId,status:'booked'}).eq('id',slot._id);
   }
   renderAdmin(); renderCalendar();
@@ -4800,7 +4823,7 @@ async function settingsCreateDownline(){
       const {data:su}=await sb.auth.signUp({email,password:defaultPass,options:{data:{name}}});
       if(su?.user) userId=su.user.id;
     }
-    if(!userId){ hideAuthSpinner(); setText('settings-dl-err','Could not create auth account. Check Supabase settings.'); return; }
+    if(!userId){ hideAuthSpinner(); setText('settings-dl-err','Could not create auth account. Disable email confirmation in Supabase Auth settings, then try again.'); return; }
     const ini=(name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))||'??';
     await sb.from('users').insert({id:userId,name,email,role:'downline',timezone:tz,country,initials:ini,suspended:false});
     hideAuthSpinner();
@@ -4840,15 +4863,7 @@ function updatePastSlots(){
       el.classList.remove('sc-past','sc-past-admin');
     }
   });
-  // Grey time-label cells for fully-past rows
-  document.querySelectorAll('[data-row-end-h]').forEach(el=>{
-    const endH=parseInt(el.dataset.rowEndH||el.dataset['rowEndH']||0);
-    // Use data-row-end-h attribute
-    const endMins=endH*60;
-    // Need to know which day — not in blk-tc data, but if it's past week the whole row is past
-    const isPastRow = isPastWeekGlobal || (endMins<=nowMins);
-    el.classList.toggle('tc-past', isPastRow);
-  });
+  // Note: time labels (blk-tc) are intentionally NOT greyed — only slot chips grey
 }
 // Track isPastWeek globally so updatePastSlots can use it
 let isPastWeekGlobal=false;
@@ -4923,6 +4938,29 @@ function markAllNotifRead(){
 }
 
 // ═══════════════════════════════════════════════
+//  CLEAR AVAILABLE SLOTS (admin mobile action)
+// ═══════════════════════════════════════════════
+async function bsheetClearAvailable(){
+  if(_bsDayIdx===undefined||_bsDayIdx===null||_bsStartH===undefined) return;
+  const day=WEEK_DAYS[_bsDayIdx]; if(!day) return;
+  const iso=day.iso, h=_bsStartH;
+  const toDelete=SCHEDULE.filter(s=>
+    s.day_date===iso && s.startMyt>=h*60 && s.startMyt<(h+1)*60 && s.status==='av'
+  );
+  if(!toDelete.length){ alert('No available slots to clear for this hour.'); return; }
+  if(!confirm(`Clear ${toDelete.length} available slot(s) at ${fmtH(h)} on ${iso}?`)) return;
+  showAuthSpinner('Clearing…');
+  for(const s of toDelete){
+    if(s._id) await adminHardDelete(s._id);
+  }
+  // Remove from local SCHEDULE
+  toDelete.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+  hideAuthSpinner();
+  renderCalendar();
+  if(panelOpen&&panelDay!==null) renderPanel(panelDay);
+}
+
+// ═══════════════════════════════════════════════
 //  MOBILE MENU
 // ═══════════════════════════════════════════════
 function renderMobMenu(){
@@ -4936,11 +4974,11 @@ function renderMobMenu(){
     items.push({label:'My Bookings', icon:'📋', action:"goScreen('sc-mybk');closeMobMenu()"});
     if(isAdmin) items.push({label:'Dashboard', icon:'📊', action:"goScreen('sc-admin');closeMobMenu()"});
     if(isDev)   items.push({label:'Dev Console', icon:'🛠', action:"goScreen('sc-dev');closeMobMenu()"});
-    // TZ switcher
-    const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
-    items.push({label:`Timezone: ${tz.f} ${tz.l}`, icon:'🌐', action:"toggleMobTZPicker()"});
     items.push({label:'My Profile', icon:'👤', action:"goScreen('sc-profile');closeMobMenu()"});
     items.push({label:'Settings', icon:'⚙️', action:"goScreen('sc-settings');closeMobMenu()"});
+    // TZ switcher — moved to just before Sign out
+    const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
+    items.push({label:`Timezone: ${tz.f} ${tz.l}`, icon:'🌐', action:"toggleMobTZPicker()"});
     if(CURRENT_USER?.role==='admin')
       items.push({label:isAdmin?'Downline view':'Admin view', icon:'🔄', action:"toggleAdminMode();closeMobMenu()"});
     items.push({label:'Sign out', icon:'⏏', action:"logout()", danger:true});
@@ -5231,7 +5269,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v50 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v51 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -5312,7 +5350,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
               <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v50</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v51</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
@@ -5352,6 +5390,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
     <button type="button" class="bsheet-item" onclick="bsheetEvent()">
       <span class="bsheet-item-icon">🔴</span>
       <div class="bsheet-item-info"><span>Add Event here</span><span class="bsheet-item-desc">Business event or announcement</span></div>
+    </button>
+    <button type="button" class="bsheet-item" onclick="closeBSheet();bsheetClearAvailable()" style="color:var(--red)">
+      <span class="bsheet-item-icon">🗑️</span>
+      <div class="bsheet-item-info"><span style="color:var(--red)">Clear available slots</span><span class="bsheet-item-desc">Remove all unbooked slots this hour</span></div>
     </button>
     <button type="button" class="bsheet-cancel" onclick="closeBSheet()">Cancel</button>
   </div>
