@@ -14,7 +14,7 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v51 — New nav, username login, dev console, no sidebar, logo B
+   BD4U Book v52 — New nav, username login, dev console, no sidebar, logo B
    Remove Manage Schedule, add Settings screen,
    fix Add to schedule modal, fix all hardcoded data,
    Add button in toolbar, full page cleanup
@@ -40,6 +40,7 @@
   --zoom:#1E6FCC;--zoomLt:#E8F1FC;--zoomB:rgba(30,111,204,.2);
   --meet:#5E35B1;--meetLt:#EDE7F6;--meetB:rgba(94,53,177,.2);
   --evt:#C62828;--evtLt:#FFEBEE;--evtB:rgba(198,40,40,.2);
+  --indigo:#4F46E5;--indigoLt:#EEF2FF;--indigoB:rgba(79,70,229,.22);
   /* Shadows */
   --sh-xs:0 1px 4px rgba(13,31,51,.06);
   --sh-sm:0 2px 8px rgba(13,31,51,.08),0 1px 2px rgba(13,31,51,.04);
@@ -182,7 +183,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .blk-head{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));background:var(--navy)}
 .blk-head-cell{padding:10px 4px;text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.05em}
 .blk-head-cell:first-child{border-right:1px solid rgba(255,255,255,.08);padding:10px 8px;text-align:right}
-.blk-head-num{font-size:15px;font-weight:800;color:#fff;display:block;margin-top:1px}
+.blk-head-num{font-size:15px;font-weight:800;color:#fff;display:inline-block;margin-top:1px}
 .blk-head-num.today{background:#5BC8B0;color:var(--navy);width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:2px auto 0}
 .blk-row{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));border-top:1px solid var(--g100)}
 .blk-tc{padding:8px;border-right:1px solid var(--g200);background:var(--g50);display:flex;flex-direction:column;position:sticky;left:0;z-index:10;align-items:flex-end;gap:2px;min-height:60px}
@@ -229,7 +230,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-mine-zoom{background:#C0D9F5;border:1.5px solid var(--zoom);color:#0D4F9E}
 .sc-mine-meet{background:#CEBEF0;border:1.5px solid var(--meet);color:#3A1E7A}
 .sc-full{background:var(--fullLt);border:1.5px solid var(--fullB);color:var(--full);cursor:not-allowed}
-.sc-private{background:#EDE7F6;border:1.5px solid #B39DDB;color:#4527A0;border-radius:5px;padding:4px 6px;font-size:10px;font-weight:600;width:100%;text-align:left;display:flex;flex-direction:column;gap:1px;cursor:pointer;font-family:var(--font);min-width:0;overflow:hidden}
+.sc-private{background:var(--indigoLt);border:1.5px solid var(--indigoB);color:var(--indigo);border-radius:5px;padding:4px 6px;font-size:10px;font-weight:600;width:100%;text-align:left;display:flex;flex-direction:column;gap:1px;cursor:pointer;font-family:var(--font);min-width:0;overflow:hidden}
 .sc-private-mine{background:#D1C4E9;border-color:#7E57C2;color:#311B92}
 .sc-label{font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
 .sc-time{font-size:8.5px;font-family:var(--mono);opacity:.8;display:block;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -811,7 +812,7 @@ tr:hover td{background:var(--g50)}
         <button type="button" onclick="goScreen('sc-settings');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left;transition:background .12s" onmouseover="this.style.background='#f6f8fb'" onmouseout="this.style.background='#fff'">
           <span style="font-size:15px;display:inline-block;width:20px;text-align:center">⚙️</span><span>Settings</span>
         </button>
-        <button type="button" onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--red);text-align:left" onmouseover="this.style.background='var(--redLt)'" onmouseout="this.style.background='#fff'">⏏ Sign out</button>
+        <button type="button" onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--red);text-align:left" onmouseover="this.style.background='var(--redLt)'" onmouseout="this.style.background='#fff'"><span style="display:inline-block;width:20px;text-align:center">⏏</span> Sign out</button>
       </div>
     </div>
     <div id="notif-bell-wrap" style="display:none">
@@ -998,7 +999,7 @@ tr:hover td{background:var(--g50)}
         </div>
         <!-- Logout -->
         <div style="padding-top:8px;border-top:1px solid var(--g200);margin-top:4px">
-          <button type="button" class="btn btn-danger btn-sm" onclick="logout()">⏏ Sign out</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="logout()"><span style="display:inline-block;width:20px;text-align:center">⏏</span> Sign out</button>
         </div>
         <!-- Admin-only: Admin managers section -->
         <div id="profile-admins-section" style="display:none;margin-top:24px">
@@ -1337,7 +1338,14 @@ tr:hover td{background:var(--g50)}
                 </div>
                 <div class="fg" style="margin-bottom:0">
                   <label class="fl">Country</label>
-                  <input class="fc" type="text" id="settings-dl-country" placeholder="e.g. Malaysia">
+                  <select class="fc" id="settings-dl-country">
+                  <option value="Malaysia">🇲🇾 Malaysia</option>
+                  <option value="Singapore">🇸🇬 Singapore</option>
+                  <option value="Indonesia">🇮🇩 Indonesia</option>
+                  <option value="Australia">🇦🇺 Australia</option>
+                  <option value="China">🇨🇳 China</option>
+                  <option value="Others">🌏 Others</option>
+                </select>
                 </div>
               </div>
               <div class="login-err" id="settings-dl-err" style="margin-bottom:8px"></div>
@@ -1379,7 +1387,7 @@ tr:hover td{background:var(--g50)}
             <div class="settings-row">
               <div>
                 <div class="settings-row-lbl">Version</div>
-                <div class="settings-row-sub">BD4U Book v51</div>
+                <div class="settings-row-sub">BD4U Book v52</div>
               </div>
             </div>
             <div style="margin-top:14px">
@@ -1565,7 +1573,7 @@ tr:hover td{background:var(--g50)}
     <span class="cp-icon">🔴</span><span>Add event here</span>
   </button>
   <button type="button" class="cell-pop-btn" onclick="cellPopPrivate()">
-    <span class="cp-icon">🟣</span><span>Private meeting</span>
+    <span class="cp-icon" style="background:var(--indigoLt);color:var(--indigo)">🎓</span><span>Training Section</span>
   </button>
 </div>
 
@@ -1713,7 +1721,7 @@ function makeLabel(slot){
   // Returns PLAIN TEXT — never call sanitize inside here. Callers sanitize for HTML.
   if(slot.type==='event')   return slot.label||'Event';
   if(slot.type==='blocked') return slot.reason||'Unavailable';
-  if(slot.type==='private') return slot.label||'Private Meeting';
+  if(slot.type==='private') return slot.label||'Training Section';
   if(slot.status==='av')    return 'Available';
   if(slot.status==='full')  return '🚫 Full';
 
@@ -2346,6 +2354,11 @@ function renderDesktopCal(){
           </div>`;
         }
         items.forEach(slot=>{
+          // Skip past unbooked av slots — irrelevant once time has passed
+          if(slot.status==='av'){
+            const slotDayIso=WEEK_DAYS[slot.dayIdx]?.iso||'';
+            if(slotDayIso<todayStr||(slotDayIso===todayStr&&slot.endMyt<=nowMins)) return;
+          }
           const span=spanPos(slot,row.startH);
           const sT=minToUser(slot.startMyt,tz.o);
           const eT=minToUser(slot.endMyt,tz.o);
@@ -2356,9 +2369,12 @@ function renderDesktopCal(){
           // Event block
           if(slot.type==='event'){
             const isFirst=slot.startMyt>=row.startH*60;
-            html+=`<div class="sc-event-block${span?' '+span:''}" role="listitem">
-              ${isFirst?`<span class="sc-event-name">🔴 ${sanitize(slot.label||'Event')}</span>`:''}
+            const isAdminUser=(isAdmin||isManager);
+            const delBtn=isAdminUser?`<button type="button" onclick="event.stopPropagation();deleteEventSlot('${slot._id}')" style="position:absolute;top:3px;right:3px;background:rgba(198,40,40,.15);border:none;border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--red)">✕</button>`:'';
+            html+=`<div class="sc-event-block${span?' '+span:''}" role="listitem" style="position:relative">
+              ${isFirst?`<span class="sc-event-name">🔴 ${sanitize(slot.label||'Event')}</span>`:'<span style="font-size:9px;opacity:.6;font-style:italic">↕ continues…</span>'}
               ${isFirst?`<span class="sc-event-time">${tRange}</span>`:''}
+              ${delBtn}
             </div>`;
             return;
           }
@@ -2995,7 +3011,7 @@ function getAvailableBlocks(){
         startH,
         endH,
         dayIdx: s.dayIdx,
-        label: `${dayName} ${fmtH(startH)}–${fmtH(endH)} MYT`,
+        label: `${dayName} ${d ? d.d+' '+d.m+' · ' : ''}${fmtH(startH)}–${fmtH(endH)} MYT`,
       });
     });
   return blocks;
@@ -3317,7 +3333,7 @@ async function confirmBooking(){
 
   if(!saved){
     hideAuthSpinner();
-    alert('Booking failed. The slot may already be taken. Please try another time.');
+    alert('Booking failed. Please check your internet connection and try again. If the problem persists, the Supabase booking policy may need to be set up — see the DB Migration card in the Dev Console.');
     return;
   }
 
@@ -3711,9 +3727,14 @@ async function assignRow(idx,key){
 }
 function filterRows(q){
   const uplineFilter=($id('admin-filter-upline')?.value||'').toLowerCase();
+  const todayStr=todayISOStr();
+  const nowMins=nowMYTMins();
   return weekSlots().filter(s=>{
     if(s.status!=='booked'&&s.status!=='mine') return false;
     if(s.type==='event') return false;
+    // Hide past bookings (already happened)
+    if(s.day_date<todayStr) return false;
+    if(s.day_date===todayStr&&s.endMyt<=nowMins) return false;
     if(q&&!makeLabel(s).toLowerCase().includes(q)) return false;
     if(uplineFilter==='assigned'&&!s.presenter) return false;
     if(uplineFilter==='pending'&&s.presenter) return false;
@@ -3957,7 +3978,7 @@ async function cellPopOpenForPrivate(){
     const slots=[0,20,40].map(min=>({
       type:'private',status:'av',dayIdx:di,
       startMyt:sh*60+min,endMyt:sh*60+min+20,
-      label:'Private Meeting',user_id:null,presenter_id:null,week:weekOffset
+      label:'Training Section',user_id:null,presenter_id:null,week:weekOffset
     }));
     await adminInsertAndReload(slots);
   }
@@ -4126,7 +4147,7 @@ async function saveBookingToDB(slotData){
       end_myt:   slotData.endMyt,
       label:     slotData.label || null,
     }).eq('id', slotData.slotDbId).select().single();
-    if(error){ console.error('saveBookingToDB UPDATE error:', error); return null; }
+    if(error){ console.error('saveBookingToDB UPDATE error:', error, JSON.stringify(error)); return null; }
     return data;
   }
   // Fallback: INSERT new booked row
@@ -4938,6 +4959,21 @@ function markAllNotifRead(){
 }
 
 // ═══════════════════════════════════════════════
+//  DELETE EVENT SLOT
+// ═══════════════════════════════════════════════
+async function deleteEventSlot(dbId){
+  if(!dbId) return;
+  if(!confirm('Delete this event? This cannot be undone.')) return;
+  showAuthSpinner('Deleting event…');
+  await adminHardDelete(dbId);
+  const idx=SCHEDULE.findIndex(s=>s._id===dbId);
+  if(idx>=0) SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
+  renderCalendar();
+  if(panelOpen&&panelDay!==null) renderPanel(panelDay);
+}
+
+// ═══════════════════════════════════════════════
 //  CLEAR AVAILABLE SLOTS (admin mobile action)
 // ═══════════════════════════════════════════════
 async function bsheetClearAvailable(){
@@ -5269,7 +5305,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v51 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v52 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -5350,7 +5386,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
               <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v51</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v52</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
@@ -5380,8 +5416,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
       <div class="bsheet-item-info"><span>Open for 15-min Zoom</span><span class="bsheet-item-desc">4 slots · :00 :15 :30 :45</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetPrivate()">
-      <span class="bsheet-item-icon">🟣</span>
-      <div class="bsheet-item-info"><span>Open for Private Meeting</span><span class="bsheet-item-desc">3 slots · :00 :20 :40</span></div>
+      <span class="bsheet-item-icon" style="background:var(--indigoLt);border-radius:6px">🎓</span>
+      <div class="bsheet-item-info"><span style="color:var(--indigo)">Training Section</span><span class="bsheet-item-desc">1-hr training session</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetBlock()">
       <span class="bsheet-item-icon">🔒</span>
