@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>5
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -14,7 +14,7 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v41 — Full audit & cleanup
+   BD4U Book v50 — New nav, username login, dev console, no sidebar, logo B
    Remove Manage Schedule, add Settings screen,
    fix Add to schedule modal, fix all hardcoded data,
    Add button in toolbar, full page cleanup
@@ -97,8 +97,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .screen.on{display:block}
 
 /* ── SHELL ── */
-.shell{display:flex;min-height:calc(100vh - 52px)}
-.sidebar{width:200px;flex-shrink:0;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;padding:14px 0}
+.main-content{display:block;width:100%;min-height:calc(100vh - 52px)}
 .sb-lbl{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--g400);text-transform:uppercase;padding:0 10px;margin:10px 0 4px}
 .sb-lbl:first-child{margin-top:0}
 .sb-i{display:flex;align-items:center;gap:9px;padding:8px 10px;margin:0 6px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--g500);cursor:pointer;transition:all .12s}
@@ -113,7 +112,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sb-av.adm{background:linear-gradient(135deg,var(--renee),var(--gus))}
 .sb-un{font-size:12.5px;font-weight:700;color:var(--g800)}
 .sb-role{font-size:10px;color:var(--g400);margin-top:1px}
-.main{flex:1;overflow-y:auto;background:var(--g50);min-width:0}
+.main{padding:20px 24px;max-width:1400px;margin:0 auto;background:var(--g50);min-width:0}
 
 /* ── PAGE HEADER ── */
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
@@ -179,14 +178,14 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .leg-d{width:9px;height:9px;border-radius:3px;flex-shrink:0}
 
 /* ── BLOCK-LIST GRID ── */
-.blk-grid{background:#fff;border:1px solid var(--g200);border-radius:var(--rLg);overflow:hidden;box-shadow:var(--sh-sm)}
+.blk-grid{background:#fff;border:1px solid var(--g200);border-radius:0 0 var(--rLg) var(--rLg);overflow:clip;box-shadow:var(--sh-sm)}
 .blk-head{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));background:var(--navy)}
 .blk-head-cell{padding:10px 4px;text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.05em}
 .blk-head-cell:first-child{border-right:1px solid rgba(255,255,255,.08);padding:10px 8px;text-align:right}
 .blk-head-num{font-size:15px;font-weight:800;color:#fff;display:block;margin-top:1px}
 .blk-head-num.today{background:#5BC8B0;color:var(--navy);width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:2px auto 0}
 .blk-row{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));border-top:1px solid var(--g100)}
-.blk-tc{padding:8px;border-right:1px solid var(--g200);background:var(--g50);display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-height:60px}
+.blk-tc{padding:8px;border-right:1px solid var(--g200);background:var(--g50);display:flex;flex-direction:column;position:sticky;left:0;z-index:10;align-items:flex-end;gap:2px;min-height:60px}
 .blk-tc-name{font-size:10px;font-weight:700;color:var(--g600);white-space:nowrap}
 .blk-tc-tz{font-size:9px;font-family:var(--mono);color:var(--teal);white-space:nowrap;margin-top:2px}
 .blk-cell{border-right:1px solid var(--g100);padding:3px;min-height:60px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
@@ -198,6 +197,33 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-av-zoom{background:var(--greenLt);border:1.5px dashed var(--greenB);color:var(--green)}.sc-av-zoom:hover{background:#c0f0d8}
 .sc-av-meet{background:var(--greenLt);border:1.5px dashed var(--greenB);color:var(--green)}.sc-av-meet:hover{background:#c0f0d8}
 .sc-booked-zoom{background:var(--zoomLt);border:1.5px solid var(--zoomB);color:var(--zoom)}
+.sc-av-manager{background:var(--amberLt);border:1.5px dashed var(--amberB);color:#7B4F00}.sc-av-manager:hover{background:#FFE0A0}
+.sc-booked-manager{background:#FFD580;border:1.5px solid #E8A000;color:#5A3500}
+.sc-mine-manager{background:#FFE5A0;border:1.5px solid #E8A000;color:#5A3500}
+/* ── PAST SLOTS ── */
+.sc-past{opacity:.32;filter:grayscale(70%);pointer-events:none;cursor:default}
+.sc-past-admin{opacity:.32;filter:grayscale(70%)}
+.blk-tc.tc-past{opacity:.32}
+.blk-row.row-past .blk-tc{opacity:.32}
+/* ── STICKY DATE HEADER ── */
+#cal-date-hdr{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));min-width:660px;position:sticky;top:52px;z-index:25;border-radius:var(--rLg) var(--rLg) 0 0;overflow:hidden;box-shadow:var(--sh-sm);background:var(--navy)}
+.cal-dhdr-tc{padding:10px 4px;text-align:right;padding-right:8px;font-size:10px;font-weight:700;color:rgba(255,255,255,.6)}
+.cal-dhdr-cell{padding:10px 4px;text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.3px}
+.cal-dhdr-cell.today-col .blk-head-num{background:var(--teal);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
+/* ── NOTIFICATION BELL ── */
+#notif-bell-wrap{position:relative}
+.notif-bell-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid transparent;background:rgba(255,255,255,.08);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;color:#fff;position:relative}
+.notif-bell-btn:hover{background:rgba(255,255,255,.18)}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;font-size:9px;font-weight:800;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border:2px solid var(--navy)}
+.notif-drop{position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);width:300px;overflow:hidden;z-index:9999;border:1px solid var(--g200)}
+.notif-drop-hdr{padding:10px 14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.notif-item{padding:10px 14px;border-bottom:1px solid var(--g100);font-size:12px;display:flex;gap:10px;align-items:flex-start}
+.notif-item.unread{background:var(--tealLt)}
+.notif-item-icon{font-size:16px;flex-shrink:0}
+.notif-item-body{flex:1;min-width:0}
+.notif-item-msg{font-weight:600;color:var(--navy);line-height:1.4}
+.notif-item-time{font-size:10px;color:var(--g400);margin-top:2px}
+.notif-empty{padding:20px;text-align:center;color:var(--g400);font-size:12px}
 .sc-booked-meet{background:var(--meetLt);border:1.5px solid var(--meetB);color:var(--meet)}
 .sc-mine-zoom{background:#C0D9F5;border:1.5px solid var(--zoom);color:#0D4F9E}
 .sc-mine-meet{background:#CEBEF0;border:1.5px solid var(--meet);color:#3A1E7A}
@@ -593,7 +619,6 @@ tr:hover td{background:var(--g50)}
 
 /* ── RESPONSIVE ── */
 @media(max-width:860px){
-  .sidebar{display:none}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .bk-grid{grid-template-columns:1fr}
   .dash-grid{grid-template-columns:1fr}
@@ -605,6 +630,10 @@ tr:hover td{background:var(--g50)}
 }
 @media(max-width:640px){
   .login-left{display:none}
+  #nav-tabs{display:none!important}
+  #mob-menu-btn{display:inline-flex!important}
+  #tz-nav-pill{display:none!important}
+  .profile-nav-wrap{display:none!important}
   .ntab{padding:14px 9px;font-size:11.5px}
   .desktop-cal{display:none}
   .mobile-cal-wrapper{display:block}
@@ -744,32 +773,66 @@ tr:hover td{background:var(--g50)}
 
 
 <!-- ═══════════════════ NAV ═══════════════════ -->
-<nav class="nav">
-  <div class="nav-logo">BD4U <span>Book</span></div>
-  <div class="ntab on" data-screen="sc-login" onclick="goScreen('sc-login')">Login</div>
-  <div class="ntab" data-screen="sc-cal" onclick="goScreen('sc-cal')">Calendar</div>
-  <div class="ntab" data-screen="sc-book" onclick="goScreen('sc-book')">New Booking</div>
-  <div class="ntab" data-screen="sc-mybk" onclick="goScreen('sc-mybk')">My Bookings</div>
-  <div class="ntab hidden" data-screen="sc-admin" id="tab-admin" onclick="goScreen('sc-admin')">Dashboard</div>
-  <div class="ntab hidden" data-screen="sc-settings" id="tab-settings" onclick="goScreen('sc-settings')">Settings</div>
-  <div class="nav-right">
-    <button type="button" id="logout-btn" onclick="logout()" class="role-toggle" style="display:none">⏏ Logout</button>
-    <button type="button" class="role-toggle" id="role-toggle-btn" onclick="toggleAdminMode()" style="display:none">→ Admin view</button>
-    <!-- Compact TZ pill — shown when logged in -->
-    <div id="tz-nav-pill" style="display:none;position:relative">
-      <button type="button" id="tz-pill-btn" onclick="toggleTZDropdown()"
-        style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap"
-        title="Switch timezone">
-        <span id="tz-pill-flag">🇲🇾</span>
-        <span id="tz-pill-code">MYT</span>
-        <span style="font-size:9px;opacity:.7">▾</span>
-      </button>
-      <div id="tz-dropdown" style="display:none;position:fixed;right:auto;top:auto;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)">
-      </div>
+<nav class="nav" id="main-nav">
+  <div class="nav-logo" id="nav-logo" onclick="navLogoClick()" style="display:flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none;flex-shrink:0">
+    <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="3.5" width="15" height="13" rx="2.5" stroke="white" stroke-width="1.4"/><path d="M1.5 7.5h15" stroke="white" stroke-width="1.2"/><path d="M5.5 1.5v4M12.5 1.5v4" stroke="white" stroke-width="1.4" stroke-linecap="round"/><circle cx="5.5" cy="12" r="1.1" fill="white"/><circle cx="9" cy="12" r="1.1" fill="white"/></svg>
+    </div>
+    <div style="display:flex;flex-direction:column;line-height:1">
+      <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-.2px">BD4U Book</span>
+      <span style="font-size:8.5px;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;margin-top:1px">Smart Scheduling</span>
     </div>
   </div>
+  <div class="nav-tabs" id="nav-tabs" style="display:flex;align-items:stretch;margin-left:8px">
+    <div class="ntab" data-screen="sc-cal" onclick="goScreen('sc-cal')">Calendar</div>
+    <div class="ntab" data-screen="sc-mybk" onclick="goScreen('sc-mybk')">My Bookings</div>
+    <div class="ntab hidden" data-screen="sc-admin" id="tab-admin" onclick="goScreen('sc-admin')">Dashboard</div>
+    <div class="ntab hidden" data-screen="sc-dev" id="tab-dev" onclick="goScreen('sc-dev')">🛠 Dev</div>
+  </div>
+  <div class="nav-right">
+    <div id="tz-nav-pill" style="display:none;position:relative">
+      <button type="button" id="tz-pill-btn" onclick="toggleTZDropdown()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap" title="Switch timezone">
+        <span id="tz-pill-flag">🇲🇾</span><span id="tz-pill-code">MYT</span><span style="font-size:9px;opacity:.7">▾</span>
+      </button>
+      <div id="tz-dropdown" style="display:none;position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)"></div>
+    </div>
+    <div id="notif-bell-wrap" style="display:none">
+      <button type="button" class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifBell()" title="Notifications">
+        🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <div class="notif-drop" id="notif-drop" style="display:none">
+        <div class="notif-drop-hdr">
+          <span style="font-size:13px;font-weight:700;color:var(--navy)">Notifications</span>
+          <button type="button" onclick="markAllNotifRead()" style="font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;font-weight:600">Mark all read</button>
+        </div>
+        <div id="notif-list"><div class="notif-empty">No notifications</div></div>
+      </div>
+    </div>
+    <div id="profile-nav-wrap" style="display:none;position:relative">
+      <button type="button" id="profile-nav-btn" onclick="toggleProfileDropdown()" style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap">
+        <div id="profile-nav-av" style="width:22px;height:22px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0">?</div>
+        <span id="profile-nav-name">—</span><span style="font-size:9px;opacity:.7">▾</span>
+      </button>
+      <div id="profile-dropdown" style="display:none;position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)">
+        <div style="padding:12px 14px 10px;border-bottom:1px solid var(--g100)">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)" id="pd-name">—</div>
+          <div style="font-size:11px;color:var(--g400);margin-top:2px" id="pd-role">—</div>
+        </div>
+        <button type="button" onclick="goScreen('sc-profile');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left" onmouseover="this.style.background='var(--g50)'" onmouseout="this.style.background='#fff'">👤 My Profile</button>
+        <button type="button" onclick="goScreen('sc-settings');closeProfileDropdown()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);text-align:left;transition:background .12s" onmouseover="this.style.background='#f6f8fb'" onmouseout="this.style.background='#fff'">
+          <span style="font-size:15px">⚙️</span><span>Settings</span>
+        </button>
+        <button type="button" onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border:none;background:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--red);text-align:left" onmouseover="this.style.background='var(--redLt)'" onmouseout="this.style.background='#fff'">⏏ Sign out</button>
+      </div>
+    </div>
+    <button type="button" class="role-toggle" id="role-toggle-btn" onclick="toggleAdminMode()" style="display:none">→ Downline view</button>
+    <button type="button" id="nav-signin-btn" onclick="goScreen('sc-login')" style="display:none;padding:7px 16px;border-radius:20px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">Sign in →</button>
+    <button type="button" id="mob-menu-btn" onclick="toggleMobMenu()" style="display:none;padding:6px 12px;border-radius:8px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:18px;cursor:pointer;line-height:1;font-family:var(--font);letter-spacing:2px">···</button>
+  </div>
 </nav>
-<!-- Old tz-bar-row hidden — TZ switching now in nav pill and Profile -->
+<div id="mob-menu" style="display:none;position:fixed;top:52px;left:0;right:0;background:var(--navy);z-index:500;border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.3)">
+  <div style="padding:8px 0" id="mob-menu-items"></div>
+</div>
 <div class="tz-bar-row hidden" id="tz-bar-row" style="display:none!important">
   <span class="tz-bar-lbl">Viewing in:</span>
   <div class="tz-pills" id="tz-bar-pills"></div>
@@ -797,41 +860,46 @@ tr:hover td{background:var(--g50)}
         </div>
         <div id="login-user" class="role-form on">
           <div class="login-err" id="login-user-err"></div>
-          <div class="fg"><label class="fl">Email address</label><input class="fc" type="email" id="user-email" placeholder="your@email.com" autocomplete="email"></div>
-          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
-          <div style="text-align:right;margin-bottom:14px"><a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600" onclick="forgotPassword()">Forgot password?</a></div>
+          <div class="fg"><label class="fl" for="user-username">Username</label><input class="fc" type="text" id="user-username" placeholder="e.g. ali" autocomplete="username"></div>
+          <div class="fg"><label class="fl" for="user-pass">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g600);cursor:pointer">
+              <input type="checkbox" id="user-remember" checked style="accent-color:var(--teal);width:14px;height:14px"> Remember me
+            </label>
+            <a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600" onclick="forgotPasswordByUsername()">Forgot password?</a>
+          </div>
           <button type="button" class="btn btn-primary btn-full" id="user-login-btn" onclick="loginAs('user')">Sign in →</button>
           <div class="divider"><div class="divl"></div><div class="divt">or</div><div class="divl"></div></div>
           <button type="button" class="btn btn-outline btn-full" onclick="alert('Contact Renee or Gus to get your account created.')">Request an account</button>
         </div>
         <div id="login-admin" class="role-form">
           <div class="login-err" id="login-admin-err"></div>
-          <div class="fg"><label class="fl">Admin email</label><input class="fc" type="email" id="admin-email" placeholder="admin@bd4u.com" autocomplete="email"></div>
-          <div class="fg"><label class="fl">Password</label><input class="fc" type="password" id="admin-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('admin')"></div>
+          <div class="fg"><label class="fl" for="admin-username">Username</label><input class="fc" type="text" id="admin-username" placeholder="e.g. renee" autocomplete="username"></div>
+          <div class="fg"><label class="fl" for="admin-pass">Password</label><input class="fc" type="password" id="admin-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('admin')"></div>
+          <div style="display:flex;align-items:center;margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g600);cursor:pointer">
+              <input type="checkbox" id="admin-remember" checked style="accent-color:var(--teal);width:14px;height:14px"> Remember me
+            </label>
+          </div>
           <button type="button" class="btn btn-navy btn-full" id="admin-login-btn" onclick="loginAs('admin')">Sign in as Admin →</button>
         </div>
+        <!-- Developer tab — hidden, revealed by logo ×5 -->
+        <div id="login-dev" class="role-form" style="display:none">
+          <div style="background:var(--navy);color:#fff;border-radius:var(--r);padding:8px 12px;font-size:11px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px">🛠 Developer Access</div>
+          <div class="login-err" id="login-dev-err"></div>
+          <div class="fg"><label class="fl" for="dev-email">Developer email</label><input class="fc" type="email" id="dev-email" placeholder="your@gmail.com" autocomplete="email"></div>
+          <div class="fg"><label class="fl" for="dev-pass">Password</label><input class="fc" type="password" id="dev-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('developer')"></div>
+          <button type="button" class="btn btn-navy btn-full" id="dev-login-btn" onclick="loginAs('developer')">Developer Sign in →</button>
+        </div>
       </div>
-    </div>
+  </div>
   </div>
 </div>
 
 <!-- ═══════════════════ CALENDAR ═══════════════════ -->
 <div id="sc-cal" class="screen">
-  <div class="shell">
-    <aside class="sidebar" id="cal-sidebar">
-      <div class="sb-lbl" id="sb-role-lbl">Downline</div>
-      <div class="sb-i on" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i" id="sb-mybk" onclick="goScreen('sc-mybk')"><span class="sb-ico">📋</span>My Bookings</div>
-      <div class="sb-i" id="sb-admin-dash"     style="display:none" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i" id="sb-schedule-link" style="display:none" onclick="goScreen('sc-settings')"><span class="sb-ico">🗓️</span>Settings</div>
-      <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👤</span>My Profile</div>
-      <div class="sb-bot">
-        <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
-          <div class="sb-av" id="sb-av-cal">AB</div>
-          <div><div class="sb-un" id="sb-name-cal">Ambar</div><div class="sb-role" id="sb-tz-cal">🇮🇩 WIB</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
+
           <main class="main" style="padding:20px">
         <div class="ph">
           <div>
@@ -868,7 +936,8 @@ tr:hover td{background:var(--g50)}
 
         <!-- DESKTOP calendar -->
         <div class="desktop-cal">
-          <div style="overflow-x:auto">
+          <div id="cal-date-hdr"><!-- built by JS --></div>
+          <div style="overflow-x:auto" id="cal-scroll-body">
             <div style="min-width:660px" id="desktop-cal-wrap">
               <!-- built by JS -->
             </div>
@@ -895,21 +964,7 @@ tr:hover td{background:var(--g50)}
 
 <!-- ════════ PROFILE SCREEN ════════ -->
 <div id="sc-profile" class="screen">
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="sb-lbl" id="sb-role-lbl-prof">Downline</div>
-      <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i" onclick="goScreen('sc-mybk')"><span class="sb-ico">📋</span>My Bookings</div>
-      <div class="sb-i on sb-profile-link"><span class="sb-ico">👤</span>My Profile</div>
-      <div class="sb-i hidden" id="sb-admin-dash-prof" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i hidden" id="sb-schedule-link-prof" onclick="goScreen('sc-settings')"><span class="sb-ico">🗓️</span>Settings</div>
-      <div class="sb-bot">
-        <div class="sb-user sb-profile-link">
-          <div class="sb-av" id="sb-av-prof">DA</div>
-          <div><div class="sb-un" id="sb-name-prof">Downline A</div><div class="sb-role" id="sb-tz-prof">🇮🇩 WIB</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
     <main class="main">
       <div class="profile-wrap">
         <div class="ph">
@@ -1027,11 +1082,11 @@ tr:hover td{background:var(--g50)}
       <!-- Time range -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl">Start time (MYT)</label>
+          <label class="fl" for="add-start">Start time (MYT)</label>
           <input type="text" class="fc" id="add-start" placeholder="e.g. 6:00pm" oninput="validateAddTimes()">
         </div>
         <div class="fg" style="margin-bottom:0">
-          <label class="fl">End time (MYT)</label>
+          <label class="fl" for="add-end">End time (MYT)</label>
           <input type="text" class="fc" id="add-end" placeholder="e.g. 8:00pm" oninput="validateAddTimes()">
         </div>
       </div>
@@ -1039,14 +1094,14 @@ tr:hover td{background:var(--g50)}
       <!-- Block fields -->
       <div id="add-block-fields">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl">Reason shown to downlines</label>
+          <label class="fl" for="add-block-reason">Reason shown to downlines</label>
           <input type="text" class="fc" id="add-block-reason" placeholder="e.g. Renee busy, Public holiday...">
         </div>
       </div>
       <!-- Event fields -->
       <div id="add-event-fields" style="display:none">
         <div class="fg" style="margin-bottom:0">
-          <label class="fl">Event name</label>
+          <label class="fl" for="add-event-name">Event name</label>
           <input type="text" class="fc" id="add-event-name" placeholder="e.g. BD4U Nite 🌟">
         </div>
       </div>
@@ -1077,26 +1132,13 @@ tr:hover td{background:var(--g50)}
 
 <!-- ═══════════════════ BOOKING FORM ═══════════════════ -->
 <div id="sc-book" class="screen">
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="sb-lbl">User</div>
-      <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i on"><span class="sb-ico">➕</span>New Booking</div>
-      <div class="sb-i" onclick="goScreen('sc-mybk')"><span class="sb-ico">📋</span>My Bookings</div>
-      <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👤</span>My Profile</div>
-      <div class="sb-bot">
-        <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
-          <div class="sb-av">AB</div>
-          <div><div class="sb-un" id="sb-name-book">—</div><div class="sb-role" id="sb-tz-book">—</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
     <main class="main">
       <div class="bk-wrap">
         <div class="ph">
           <div>
             <div class="ph-t">New Booking</div>
-            <div class="ph-s" id="book-ph-s">Wednesday, 21 May · Times in 🇮🇩 WIB · Presenter assigned after</div>
+            <div class="ph-s" id="book-ph-s">New booking · Presenter assigned after booking</div>
           </div>
           <button type="button" class="btn btn-outline btn-sm" onclick="goScreen('sc-cal')">← Back to Calendar</button>
         </div>
@@ -1229,19 +1271,7 @@ tr:hover td{background:var(--g50)}
 
 <!-- ════════ SETTINGS SCREEN ════════ -->
 <div id="sc-settings" class="screen">
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="sb-lbl" id="sb-settings-role-lbl">Admin</div>
-      <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i" onclick="goScreen('sc-admin')"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i on"><span class="sb-ico">⚙️</span>Settings</div>
-      <div class="sb-bot">
-        <div class="sb-user">
-          <div class="sb-av adm" id="sb-av-settings">?</div>
-          <div><div class="sb-un" id="sb-name-settings">—</div><div class="sb-role" id="sb-tz-settings">—</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
     <main class="main">
       <div class="schedule-wrap">
         <div class="ph">
@@ -1256,11 +1286,11 @@ tr:hover td{background:var(--g50)}
           <div class="card-b">
             <div class="settings-section-title">🔒 Change Password</div>
             <div class="fg" style="margin-bottom:10px">
-              <label class="fl">New password</label>
+              <label class="fl" for="settings-new-pass">New password</label>
               <input class="fc" type="password" id="settings-new-pass" placeholder="Enter new password" autocomplete="new-password">
             </div>
             <div class="fg" style="margin-bottom:14px">
-              <label class="fl">Confirm new password</label>
+              <label class="fl" for="settings-confirm-pass">Confirm new password</label>
               <input class="fc" type="password" id="settings-confirm-pass" placeholder="Confirm new password" autocomplete="new-password">
             </div>
             <div class="login-err" id="settings-pass-err"></div>
@@ -1268,41 +1298,64 @@ tr:hover td{background:var(--g50)}
           </div>
         </div>
 
-        <!-- Notification preferences -->
-        <div class="card" style="margin-bottom:16px">
+        <!-- Notification preferences — role-specific, built by renderSettings() -->
+        <div class="card" style="margin-bottom:16px" id="notif-prefs-card">
+          <div class="card-b" id="notif-prefs-container">
+            <!-- populated by renderSettings() -->
+          </div>
+        </div>
+
+        <!-- Team Management — admin only -->
+        <div class="card" id="settings-team-card" style="display:none;margin-bottom:16px">
           <div class="card-b">
-            <div class="settings-section-title">🔔 Notification Preferences</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-row-lbl">New booking notification</div>
-                <div class="settings-row-sub">Get notified when a downline makes a booking</div>
+            <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+              👥 Team Management
+              <button type="button" class="btn btn-primary btn-xs" onclick="settingsAddDownlineToggle()">+ Add Downline</button>
+            </div>
+            <!-- Add downline form (hidden by default) -->
+            <div id="settings-add-dl-form" style="display:none;background:var(--g50);border-radius:var(--r);padding:14px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">New Downline Account</div>
+              <div class="fg" style="margin-bottom:8px">
+                <label class="fl">Full Name</label>
+                <input class="fc" type="text" id="settings-dl-name" placeholder="e.g. Ahmad Rizal">
               </div>
-              <button type="button" class="settings-toggle on" id="notif-new-booking" onclick="toggleSetting(this)"></button>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-row-lbl">Booking cancellation</div>
-                <div class="settings-row-sub">Get notified when a downline cancels</div>
+              <div class="fg" style="margin-bottom:8px">
+                <label class="fl">Username</label>
+                <input class="fc" type="text" id="settings-dl-username" placeholder="e.g. rizal (no spaces)">
               </div>
-              <button type="button" class="settings-toggle on" id="notif-cancel" onclick="toggleSetting(this)"></button>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-row-lbl">Booking reminder</div>
-                <div class="settings-row-sub">Reminder 1 hour before each session</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div class="fg" style="margin-bottom:0">
+                  <label class="fl">Timezone</label>
+                  <select class="fc" id="settings-dl-tz">
+                    <option value="MY">🇲🇾 MYT</option>
+                    <option value="SG">🇸🇬 SGT</option>
+                    <option value="ID">🇮🇩 WIB</option>
+                    <option value="AU">🇦🇺 AEDT</option>
+                    <option value="CN">🇨🇳 CST</option>
+                  </select>
+                </div>
+                <div class="fg" style="margin-bottom:0">
+                  <label class="fl">Country</label>
+                  <input class="fc" type="text" id="settings-dl-country" placeholder="e.g. Malaysia">
+                </div>
               </div>
-              <button type="button" class="settings-toggle" id="notif-reminder" onclick="toggleSetting(this)"></button>
-            </div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-row-lbl">Weekly summary</div>
-                <div class="settings-row-sub">Summary of all bookings every Monday morning</div>
+              <div class="login-err" id="settings-dl-err" style="margin-bottom:8px"></div>
+              <div id="settings-dl-ok" style="display:none;color:var(--teal);font-size:12px;font-weight:600;margin-bottom:8px">✓ Account created. Default password: bd4u123</div>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-outline btn-sm" onclick="settingsAddDownlineToggle()">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="settingsCreateDownline()">Create Account</button>
               </div>
-              <button type="button" class="settings-toggle" id="notif-weekly" onclick="toggleSetting(this)"></button>
             </div>
-            <div style="margin-top:14px;padding:10px 12px;background:var(--amberLt);border-radius:var(--r);border:1px solid var(--amberB)">
-              <div style="font-size:11.5px;color:var(--amber);font-weight:600">⚠️ Email notifications coming soon — preferences saved locally for now.</div>
-            </div>
+            <div id="settings-team-list"><div style="color:var(--g400);font-size:12px;padding:8px">Loading team…</div></div>
+          </div>
+        </div>
+
+        <!-- Admin Managers — admin only (promote/demote) -->
+        <div class="card" id="settings-managers-card" style="display:none;margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">⭐ Admin Managers</div>
+            <div style="font-size:12px;color:var(--g400);margin-bottom:12px">Managers can open calendar slots and host Zoom sessions. Promote trusted downlines here.</div>
+            <div id="settings-managers-list"><div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div></div>
           </div>
         </div>
 
@@ -1325,7 +1378,7 @@ tr:hover td{background:var(--g50)}
             <div class="settings-row">
               <div>
                 <div class="settings-row-lbl">Version</div>
-                <div class="settings-row-sub">BD4U Book v41</div>
+                <div class="settings-row-sub">BD4U Book v50</div>
               </div>
             </div>
             <div style="margin-top:14px">
@@ -1379,19 +1432,7 @@ tr:hover td{background:var(--g50)}
 
 <!-- ═══════════════════ MY BOOKINGS ═══════════════════ -->
 <div id="sc-mybk" class="screen">
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="sb-lbl">User</div>
-      <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i on"><span class="sb-ico">📋</span>My Bookings</div>
-      <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👤</span>My Profile</div>
-      <div class="sb-bot">
-        <div class="sb-user" onclick="goScreen('sc-profile')" title="My Profile">
-          <div class="sb-av">AB</div>
-          <div><div class="sb-un" id="sb-name-mybk">—</div><div class="sb-role" id="sb-tz-mybk">—</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
     <main class="main" style="padding:20px">
       <div class="ph">
         <div>
@@ -1410,20 +1451,7 @@ tr:hover td{background:var(--g50)}
 
 <!-- ═══════════════════ ADMIN DASHBOARD ═══════════════════ -->
 <div id="sc-admin" class="screen">
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="sb-lbl">Admin</div>
-      <div class="sb-i on"><span class="sb-ico">📊</span>Dashboard</div>
-      <div class="sb-i" onclick="goScreen('sc-cal')"><span class="sb-ico">📅</span>Calendar</div>
-      <div class="sb-i" onclick="goScreen('sc-profile')"><span class="sb-ico">👥</span>Users</div>
-      <div class="sb-i" onclick="goScreen('sc-settings')"><span class="sb-ico">⚙️</span>Settings</div>
-      <div class="sb-bot">
-        <div class="sb-user">
-          <div class="sb-av adm" id="sb-av-admin">?</div>
-          <div><div class="sb-un" id="sb-name-admin">—</div><div class="sb-role" id="sb-tz-admin">—</div></div>
-        </div>
-      </div>
-    </aside>
+  <div class="main-content">
     <main class="main" style="padding:20px">
       <div class="ph">
         <div>
@@ -1468,7 +1496,7 @@ tr:hover td{background:var(--g50)}
           <div class="mobile-cal-wrapper" id="admin-mob-cards" style="padding:12px"></div>
         </div>
         <div class="card">
-          <div class="card-hd"><div class="card-t">Next 7 days</div></div>
+          <div class="card-hd"><div class="card-t">Next 30 days</div></div>
           <div class="card-b" id="upcoming-list"></div>
         </div>
       </div>
@@ -1566,15 +1594,11 @@ const TZ_DATA = {
 // ═══════════════════════════════════════════════
 //  USER PROFILES  (single source of truth)
 // ═══════════════════════════════════════════════
-const USERS = {
-  renee:     { name:'Renee', initials:'RN', role:'admin', tz:'MY', country:'Malaysia', email:'renee@bd4u.com', color:'var(--renee)', bg:'var(--reneeLt)', sessionsHosted:47, isMain:true },
-  gus:       { name:'Gus',   initials:'GS', role:'admin', tz:'MY', country:'Malaysia', email:'gus@bd4u.com',   color:'var(--gus)',   bg:'var(--gusLt)',   sessionsHosted:39, isMain:true },
-  downlineA: { name:'Downline A', initials:'DA', role:'downline', tz:'ID', country:'Indonesia',  email:'downlineA@bd4u.com',  color:'var(--teal)',  bg:'var(--tealLt)',  sessionsBooked:5 },
-  downlineB: { name:'Downline B', initials:'DB', role:'downline', tz:'MY', country:'Malaysia',   email:'downlineB@bd4u.com',  color:'var(--teal)',  bg:'var(--tealLt)',  sessionsBooked:3 },
-  downlineC: { name:'Downline C', initials:'DC', role:'downline', tz:'SG', country:'Singapore',  email:'downlineC@bd4u.com',  color:'var(--teal)',  bg:'var(--tealLt)',  sessionsBooked:7 },
-  downlineD: { name:'Downline D', initials:'DD', role:'downline', tz:'AU', country:'Australia',  email:'downlineD@bd4u.com',  color:'var(--teal)',  bg:'var(--tealLt)',  sessionsBooked:2 },
-  downlineE: { name:'Downline E', initials:'DE', role:'downline', tz:'CN', country:'China',      email:'downlineE@bd4u.com',  color:'var(--teal)',  bg:'var(--tealLt)',  sessionsBooked:4 },
-};
+// USERS — minimal stub for presenter name lookups from DB joins
+// All real user data comes from Supabase. Do NOT add hardcoded users here.
+// Populated dynamically from DB when schedule loads (_dbUsers cache)
+const USERS = {};
+let _dbUsers = {}; // uuid → {id, name, initials, role, tz} — populated from schedule joins
 
 // Currently logged-in user (changes on login)
 let CURRENT_USER = null;
@@ -1583,39 +1607,7 @@ let CURRENT_USER = null;
 //  SCHEDULE  — flat array, single source of truth
 //  startMyt / endMyt = minutes from midnight MYT
 // ═══════════════════════════════════════════════
-let SCHEDULE = [
-  // 15-min Zoom sessions — Mon (dayIdx 0)
-  { type:'zoom15', status:'booked', dayIdx:0, startMyt:600,  endMyt:615,  prospect:'Prospect 1', user:'downlineB', presenter:'renee'   },
-  { type:'zoom15', status:'av',     dayIdx:0, startMyt:615,  endMyt:630,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'av',     dayIdx:0, startMyt:630,  endMyt:645,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'booked', dayIdx:0, startMyt:1200, endMyt:1215, prospect:'Prospect 2', user:'downlineA', presenter:'gus' },
-  { type:'zoom15', status:'booked', dayIdx:0, startMyt:1215, endMyt:1230, prospect:'Prospect 3', user:'downlineC', presenter:'renee'   },
-  { type:'zoom15', status:'av',     dayIdx:0, startMyt:1245, endMyt:1260, prospect:'',          user:'',          presenter:null    },
-  // Tue (dayIdx 1) — today
-  { type:'zoom15', status:'av',     dayIdx:1, startMyt:600,  endMyt:615,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'mine',   dayIdx:1, startMyt:1215, endMyt:1230, prospect:'Prospect 4', user:'downlineA', presenter:null    },
-  { type:'zoom15', status:'booked', dayIdx:1, startMyt:1230, endMyt:1245, prospect:'Prospect 5', user:'downlineB', presenter:'gus'   },
-  { type:'zoom15', status:'av',     dayIdx:1, startMyt:1260, endMyt:1275, prospect:'',          user:'',          presenter:null    },
-  // Wed (dayIdx 2)
-  { type:'zoom15', status:'av',     dayIdx:2, startMyt:600,  endMyt:615,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'av',     dayIdx:2, startMyt:615,  endMyt:630,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'av',     dayIdx:2, startMyt:1200, endMyt:1215, prospect:'',          user:'',          presenter:null    },
-  // Thu (dayIdx 3)
-  { type:'zoom15', status:'booked', dayIdx:3, startMyt:600,  endMyt:615,  prospect:'Prospect 6', user:'downlineC', presenter:'renee'   },
-  { type:'zoom15', status:'booked', dayIdx:3, startMyt:615,  endMyt:630,  prospect:'Prospect 7', user:'downlineD', presenter:'gus' },
-  { type:'zoom15', status:'av',     dayIdx:3, startMyt:630,  endMyt:645,  prospect:'',          user:'',          presenter:null    },
-  { type:'zoom15', status:'av',     dayIdx:3, startMyt:1200, endMyt:1215, prospect:'',          user:'',          presenter:null    },
-  // Fri (dayIdx 4)
-  { type:'zoom15', status:'booked', dayIdx:4, startMyt:1260, endMyt:1275, prospect:'Prospect 8', user:'downlineE', presenter:'renee' },
-  // Private meetings
-  { type:'private',status:'booked', dayIdx:0, startMyt:840,  endMyt:860,  prospect:'',          user:'downlineC', presenter:'gus', label:'Leadership check-in' },
-  { type:'private',status:'mine',   dayIdx:2, startMyt:900,  endMyt:920,  prospect:'',          user:'downlineA', presenter:'renee',   label:'Private: Downline A & Gus' },
-  // Events (6–8pm = 1080–1200 MYT)
-  { type:'event',  status:'event',  dayIdx:1, startMyt:1080, endMyt:1200, label:'BD4U Nite 🌟',     prospect:'',user:'',presenter:null },
-  { type:'event',  status:'event',  dayIdx:4, startMyt:1080, endMyt:1200, label:'Team Recognition 🏆',prospect:'',user:'',presenter:null },
-  // Blocked times
-  { type:'blocked',status:'blocked',dayIdx:2, startMyt:780,  endMyt:840,  reason:'Renee busy',    prospect:'',user:'',presenter:null },
-].map(s=>({...s, week:0})); // tag all demo data as week 0
+let SCHEDULE = []; // Populated from Supabase DB on login — no hardcoded demo data // tag all demo data as week 0
 
 // ═══════════════════════════════════════════════
 //  WEEK DAYS
@@ -1628,6 +1620,7 @@ function buildWeekDays(offset){
   const dow = now.getDay(); // 0=Sun,1=Mon...6=Sat
   const monday = new Date(now);
   monday.setDate(now.getDate() - (dow===0?6:dow-1) + offset*7);
+  monday.setHours(0,0,0,0); // normalise to midnight
   const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTH_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const days=[];
@@ -1646,10 +1639,7 @@ function buildWeekDays(offset){
 
 // Initialise WEEK_DAYS for current week
 let WEEK_DAYS = buildWeekDays(0);
-const _STATIC_WEEK_DAYS = [
-  { n:'Mon',d:19 },{ n:'Tue',d:20,today:true },{ n:'Wed',d:21 },
-  { n:'Thu',d:22 },{ n:'Fri',d:23 },{ n:'Sat',d:24 },{ n:'Sun',d:25 },
-];
+// _STATIC_WEEK_DAYS removed — WEEK_DAYS always built from real date via buildWeekDays()
 const TODAY_D = new Date().getDate();
 
 // Hour rows — only rows WITH content rendered (CAL-2/3 fix)
@@ -1664,8 +1654,11 @@ const ALL_HOUR_ROWS = [
 // ═══════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════
-let activeTZ       = 'ID';   // set from CURRENT_USER.tz on login
+let activeTZ       = 'MY';   // set from CURRENT_USER.tz on login
 let isAdmin        = false;
+let isDev          = false; // developer role
+let isManager      = false; // promoted downline — v48
+let selSlotDbId    = null;  // specific host slot tapped for booking — v48
 let panelOpen      = false;
 let panelDay       = null;
 let dayWindowStart = 0;
@@ -1758,13 +1751,14 @@ function presenterDot(key){
   return `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${u.color};margin-right:3px;vertical-align:middle;flex-shrink:0" title="${u.name}"></span>`;
 }
 function slotChipCls(slot){
+  const mgr = slot._presenterRole === 'manager';
   if(slot.status==='full')  return 'sc sc-full';
   if(slot.type==='event')   return ''; // rendered as sc-event-block
   if(slot.type==='blocked') return ''; // rendered as sc-blocked
   if(slot.type==='private') return slot.status==='mine'?'sc-private sc-private-mine':'sc-private';
-  if(slot.status==='av')    return 'sc sc-av-zoom';
-  if(slot.status==='mine')  return 'sc sc-mine-zoom';
-  return 'sc sc-booked-zoom';
+  if(slot.status==='av')    return mgr ? 'sc sc-av-manager'    : 'sc sc-av-zoom';
+  if(slot.status==='mine')  return mgr ? 'sc sc-mine-manager'  : 'sc sc-mine-zoom';
+  return mgr ? 'sc sc-booked-manager' : 'sc sc-booked-zoom';
 }
 function spanPos(slot,rowStartH){
   const rS=rowStartH*60, rE=(rowStartH+1)*60;
@@ -1783,7 +1777,7 @@ function getItemsForCell(di,rowStartH,rowEndH){
 // Admin always sees all 14 hour rows (8am–10pm) regardless of slots
 // Downlines only see rows that have content
 function getActiveRows(){
-  if(isAdmin) return ALL_HOUR_ROWS;
+  if(isAdmin || isManager) return ALL_HOUR_ROWS;
   return ALL_HOUR_ROWS.filter(row=>{
     for(let di=0;di<7;di++){
       if(getItemsForCell(di,row.startH,row.endH).length) return true;
@@ -1826,6 +1820,7 @@ function goScreen(id){
   if(id==='sc-book')     renderBookForm();
   if(id==='sc-mybk')     renderMyBookings();
   if(id==='sc-admin')    renderAdmin();
+  if(id==='sc-dev')      renderDevConsole();
   if(id==='sc-settings') renderSettings();
   if(id==='sc-profile')  renderProfile();
 }
@@ -1850,94 +1845,111 @@ function hideAuthSpinner(){
   if(ov) ov.classList.add('hidden');
 }
 function setLoginError(role, msg){
-  const id = role==='admin' ? 'login-admin-err' : 'login-user-err';
+  const id = role==='admin' ? 'login-admin-err' : role==='developer' ? 'login-dev-err' : 'login-user-err';
   const el=$id(id);
   if(!el) return;
   if(msg){ el.textContent=msg; el.classList.add('on'); }
   else { el.textContent=''; el.classList.remove('on'); }
 }
 function setLoginBtnLoading(role, loading){
-  const id = role==='admin' ? 'admin-login-btn' : 'user-login-btn';
+  const id = role==='admin' ? 'admin-login-btn' : role==='developer' ? 'dev-login-btn' : 'user-login-btn';
   const btn=$id(id); if(!btn) return;
   if(loading){ btn.classList.add('btn-loading'); btn.textContent='Signing in…'; }
   else {
     btn.classList.remove('btn-loading');
-    btn.textContent = role==='admin' ? 'Sign in as Admin →' : 'Sign in →';
+    btn.textContent = role==='admin' ? 'Sign in as Admin →' : role==='developer' ? 'Developer Sign in →' : 'Sign in →';
   }
 }
 
-// FIX LOGIN-2: real Supabase auth
+// Username → email conversion
+function usernameToEmail(username, role){
+  if(role==='developer') return username; // developer uses full email
+  const u=username.trim().toLowerCase();
+  // Already looks like an email
+  if(u.includes('@')) return u;
+  return `${u}@bd4u.com`;
+}
+
 async function loginAs(role){
-  const emailId = role==='admin' ? 'admin-email' : 'user-email';
-  const passId  = role==='admin' ? 'admin-pass'  : 'user-pass';
-  const email = ($id(emailId)?.value||'').trim();
-  const pass  = ($id(passId)?.value||'').trim();
-  setLoginError(role, '');
-  if(!email){ setLoginError(role,'Please enter your email address.'); return; }
-  if(!pass){  setLoginError(role,'Please enter your password.');       return; }
+  let email='', pass='', rememberMe=true;
+  if(role==='developer'){
+    email=($id('dev-email')?.value||'').trim();
+    pass=($id('dev-pass')?.value||'').trim();
+  } else if(role==='admin'){
+    const uname=($id('admin-username')?.value||'').trim();
+    email=usernameToEmail(uname, 'admin');
+    pass=($id('admin-pass')?.value||'').trim();
+    rememberMe=$id('admin-remember')?.checked!==false;
+  } else {
+    const uname=($id('user-username')?.value||'').trim();
+    email=usernameToEmail(uname, 'user');
+    pass=($id('user-pass')?.value||'').trim();
+    rememberMe=$id('user-remember')?.checked!==false;
+  }
+  setLoginError(role,'');
+  if(!email){ setLoginError(role,'Please enter your username.'); return; }
+  if(!pass){  setLoginError(role,'Please enter your password.');  return; }
 
   setLoginBtnLoading(role, true);
   showAuthSpinner('Signing in…');
 
   try {
-    // 1. Sign in with Supabase Auth
-    const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password: pass });
+    const signInOpts = { email, password: pass };
+    if(!rememberMe){
+      // Session expires when browser closes
+      sb.auth.setSession && (signInOpts.options = { persistSession: false });
+    }
+    const { data: authData, error: authError } = await sb.auth.signInWithPassword(signInOpts);
     if(authError){
       hideAuthSpinner(); setLoginBtnLoading(role, false);
       const msg = authError.message.includes('Invalid login')
-        ? 'Incorrect email or password. Please try again.'
+        ? 'Incorrect username or password. Please try again.'
         : authError.message;
       setLoginError(role, msg); return;
     }
-
-    // 2. Fetch profile from users table
     const { data: profile, error: profileError } = await sb
       .from('users').select('*').eq('id', authData.user.id).single();
-
     if(profileError || !profile){
       hideAuthSpinner(); setLoginBtnLoading(role, false);
       await sb.auth.signOut();
-      setLoginError(role,'Account profile not found. Contact Renee or Gus.'); return;
+      setLoginError(role,'Account not found. Contact Renee or Gus.'); return;
     }
-
     if(profile.suspended){
       hideAuthSpinner(); setLoginBtnLoading(role, false);
       await sb.auth.signOut();
-      setLoginError(role,'Your account has been suspended. Contact Renee or Gus.'); return;
+      setLoginError(role,'Your account has been suspended.'); return;
     }
-
-    // 3. Role check — admin tab should only work for admins
-    if(role==='admin' && profile.role!=='admin'){
+    // Role check
+    if(role==='admin' && !['admin','developer'].includes(profile.role)){
       hideAuthSpinner(); setLoginBtnLoading(role, false);
       await sb.auth.signOut();
-      setLoginError(role,'This account does not have admin access. Use the User tab.'); return;
+      setLoginError(role,'This account does not have admin access.'); return;
     }
-
-    // 4. Set app state
+    if(role==='developer' && profile.role!=='developer'){
+      hideAuthSpinner(); setLoginBtnLoading(role, false);
+      await sb.auth.signOut();
+      setLoginError(role,'Developer access only.'); return;
+    }
+    // Set state
     CURRENT_USER = {
-      id:        profile.id,
-      name:      profile.name,
-      email:     profile.email,
-      role:      profile.role,
-      tz:        profile.timezone || 'MY',
-      country:   profile.country || '',
-      initials:  profile.initials || profile.name.slice(0,2).toUpperCase(),
-      sessionsBooked: profile.sessions_booked || 0,
-      sessionsHosted: profile.sessions_hosted || 0,
-      color: profile.role==='admin' ? 'var(--renee)' : 'var(--teal)',
-      bg:    profile.role==='admin' ? 'var(--reneeLt)' : 'var(--tealLt)',
+      id: profile.id, name: profile.name, email: profile.email,
+      role: profile.role, tz: profile.timezone||'MY',
+      country: profile.country||'',
+      initials: profile.initials||profile.name.slice(0,2).toUpperCase(),
+      sessionsBooked: profile.sessions_booked||0,
+      sessionsHosted: profile.sessions_hosted||0,
+      color: profile.role==='admin'||profile.role==='developer'?'var(--renee)':'var(--teal)',
+      bg:    profile.role==='admin'||profile.role==='developer'?'var(--reneeLt)':'var(--tealLt)',
     };
-    isAdmin  = profile.role === 'admin';
-    activeTZ = CURRENT_USER.tz;
-
-    // 5. Load real schedule from DB
-    setText('auth-spinner-txt', 'Loading calendar…');
+    isAdmin   = profile.role==='admin'||profile.role==='developer';
+    isManager = profile.role==='manager';
+    isDev     = profile.role==='developer';
+    activeTZ  = CURRENT_USER.tz;
+    setText('auth-spinner-txt','Loading calendar…');
     await loadScheduleFromDB();
-
     hideAuthSpinner(); setLoginBtnLoading(role, false);
     updateRoleUI(); renderTZBar(); renderNavFlags();
-    goScreen('sc-cal');
-
+    goScreen(isDev?'sc-dev':'sc-cal');
   } catch(e){
     hideAuthSpinner(); setLoginBtnLoading(role, false);
     setLoginError(role,'Connection error. Please check your internet and try again.');
@@ -1959,17 +1971,17 @@ async function forgotPassword(){
 
 // FIX UX-3: logout with real Supabase signout
 async function logout(){
+  closeProfileDropdown(); closeMobMenu();
   showAuthSpinner('Signing out…');
   await sb.auth.signOut();
   hideAuthSpinner();
   CURRENT_USER = null;
-  isAdmin = false;
-  blockValues = {}; blockErrors = {}; selSlotTime = null;
-  // Clear login fields
-  ['user-email','user-pass','admin-email','admin-pass'].forEach(id=>{
+  isAdmin = false; isManager = false; isDev = false;
+  blockValues = {}; blockErrors = {}; selSlotTime = null; selSlotDbId = null;
+  ['user-username','user-pass','admin-username','admin-pass','dev-email','dev-pass'].forEach(id=>{
     const el=$id(id); if(el) el.value='';
   });
-  setLoginError('user',''); setLoginError('admin','');
+  setLoginError('user',''); setLoginError('admin',''); setLoginError('developer','');
   updateRoleUI();
   goScreen('sc-login');
 }
@@ -1980,92 +1992,86 @@ function toggleAdminMode(){
   renderCalendar();
 }
 
-// FIX UX-1/2: manage schedule tab + logout wired
+// FIX UX-1/2: new nav, no sidebar
 function updateRoleUI(){
   const loggedIn = !!CURRENT_USER;
-
-  // Nav tabs — FIX UX-1: schedule tab hidden for downlines
-  const tabLogin    = document.querySelector('.ntab[data-screen="sc-login"]');
-  const tabAdmin    = $id('tab-admin');
-  const tabSettings = $id('tab-settings');
-  if(tabAdmin)    tabAdmin.className    = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
-  if(tabSettings) tabSettings.className = 'ntab'+(isAdmin&&loggedIn?'':' hidden');
-
-  // + Add button — admin only
-  const addBtn=$id('add-toolbar-btn');
-  if(addBtn) addBtn.style.display=(isAdmin&&loggedIn)?'inline-flex':'none';
-
-  // Role toggle — ONLY visible if DB role is admin AND logged in
-  const btn=$id('role-toggle-btn');
-  if(btn){
-    const isActualAdmin = CURRENT_USER?.role==='admin';
-    btn.style.display = (loggedIn && isActualAdmin) ? 'inline-flex' : 'none';
-    btn.textContent = isAdmin ? '→ Downline view' : '→ Admin view';
-    btn.className = isAdmin ? 'role-toggle admin-on' : 'role-toggle';
-  }
-
-  // Admin badge + new booking button
-  const ab=$id('admin-badge'), nb=$id('new-booking-btn');
-  if(ab) ab.style.display = isAdmin ? 'inline-flex' : 'none';
-  if(nb) nb.style.display = !loggedIn ? 'none' : isAdmin ? 'none' : 'inline-flex';
-
-  // Sidebar items
-  ['sb-admin-dash','sb-schedule-link'].forEach(id=>{
-    const el=$id(id); if(el) el.style.display = isAdmin ? '' : 'none';
-  });
-  document.querySelectorAll('.sb-profile-link').forEach(el=>{
-    el.onclick = ()=>goScreen('sc-profile');
-  });
-
-  // Update ALL sidebar user displays with real name/TZ
   const userName = CURRENT_USER?.name || '—';
-  const userInitials = CURRENT_USER?.initials || (userName!=='—' ? userName.slice(0,2).toUpperCase() : '?');
+  const nameInitials = userName!=='—'
+    ? userName.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
   const tzKey = CURRENT_USER?.tz || activeTZ || 'MY';
   const tz = TZ_DATA[tzKey] || TZ_DATA['MY'];
   const tzStr = `${tz.f} ${tz.l}`;
+  const roleLabel = isDev?'Developer':isAdmin?'Admin':isManager?'Manager':'Downline';
 
-  // Calendar sidebar
-  setText('sb-role-lbl', isAdmin ? 'Admin' : 'Downline');
-  const av=$id('sb-av-cal');
-  if(av){ av.textContent=userInitials; av.className=isAdmin?'sb-av adm':'sb-av'; }
-  setText('sb-name-cal', userName);
-  setText('sb-tz-cal', tzStr);
+  // Nav tabs
+  const tabAdmin=$id('tab-admin'), tabDev=$id('tab-dev');
+  if(tabAdmin) tabAdmin.className='ntab'+((isAdmin&&loggedIn)?' ':' hidden');
+  if(tabDev)   tabDev.className='ntab'+((isDev&&loggedIn)?' ':' hidden');
 
-  // My Bookings sidebar
-  setText('sb-name-mybk', userName);
-  setText('sb-tz-mybk', tzStr);
+  // Nav tabs visibility — hide on mobile (replaced by ··· menu)
+  const navTabs=$id('nav-tabs');
+  if(navTabs) navTabs.style.display=(loggedIn&&!isMob())?'flex':'none';
 
-  // New Booking sidebar
-  setText('sb-name-book', userName);
-  setText('sb-tz-book', tzStr);
+  // Sign in button — only when logged out on desktop
+  const signinBtn=$id('nav-signin-btn');
+  if(signinBtn) signinBtn.style.display=(!loggedIn&&!isMob())?'inline-flex':'none';
 
-  // Admin Dashboard sidebar
-  const avAdmin=$id('sb-av-admin');
-  if(avAdmin){ avAdmin.textContent=userInitials; avAdmin.className='sb-av adm'; }
-  setText('sb-name-admin', userName);
-  setText('sb-tz-admin', `Admin · ${tzStr}`);
+  // Notification bell — show when logged in
+  const notifWrap=$id('notif-bell-wrap');
+  if(notifWrap) notifWrap.style.display=loggedIn?'block':'none';
 
-  // Update page subtitles with correct TZ
+  // Mobile menu button — always when logged in on mobile, or when logged out on mobile
+  const mobBtn=$id('mob-menu-btn');
+  if(mobBtn) mobBtn.style.display=isMob()?'inline-flex':'none';
+
+  // Profile dropdown button
+  const profWrap=$id('profile-nav-wrap');
+  if(profWrap) profWrap.style.display=loggedIn?'block':'none';
+  const profAv=$id('profile-nav-av');
+  if(profAv){
+    profAv.textContent=nameInitials;
+    profAv.style.background=isDev?'var(--navy)':isAdmin?'var(--renee)':'var(--teal)';
+  }
+  setText('profile-nav-name', userName);
+  setText('pd-name', userName);
+  setText('pd-role', roleLabel);
+
+  // Admin toggle — only for actual admin (not developer)
+  const btn=$id('role-toggle-btn');
+  if(btn){
+    btn.style.display=(loggedIn&&CURRENT_USER?.role==='admin')?'inline-flex':'none';
+    btn.textContent=isAdmin?'→ Downline view':'→ Admin view';
+    btn.className=isAdmin?'role-toggle admin-on':'role-toggle';
+  }
+
+  // TZ pill
+  activeTZ=CURRENT_USER?.tz||activeTZ||'MY';
+  updateTZPill();
+  const tzPill=$id('tz-nav-pill');
+  if(tzPill) tzPill.style.display=loggedIn?'block':'none';
+
+  // + Add / Quick Open buttons
+  const addBtn=$id('add-toolbar-btn'), qoBtn=$id('qopen-toolbar-btn');
+  if(addBtn) addBtn.style.display=(isAdmin&&loggedIn)?'inline-flex':'none';
+  if(qoBtn)  qoBtn.style.display=(isAdmin&&loggedIn)?'inline-flex':'none';
+
+  // Calendar admin badge + new booking btn
+  const ab=$id('admin-badge'), nb=$id('new-booking-btn');
+  if(ab) ab.style.display=isAdmin?'inline-flex':'none';
+  if(nb) nb.style.display=(!loggedIn)?'none':isAdmin?'none':'inline-flex';
+
+  // Page subtitles
   const calPhs=$id('cal-ph-s');
   if(calPhs) calPhs.textContent=`All times in ${tzStr}`+(isAdmin?' · Admin mode':'');
-  setText('cal-ph-t', isAdmin?'Booking Calendar (Admin)':'Booking Calendar');
-  setText('mybk-ph-s', `Your sessions with Renee & Gus · Times in ${tzStr}`);
+  setText('cal-ph-t',isAdmin?'Booking Calendar (Admin)':'Booking Calendar');
+  setText('mybk-ph-s',`Your sessions with Renee & Gus · Times in ${tzStr}`);
 
-  // New Booking form name field
+  // New Booking form name
   const bookNameEl=$id('book-user-name');
-  if(bookNameEl) bookNameEl.value = userName;
+  if(bookNameEl) bookNameEl.value=userName;
 
-  // Logout button
-  const logoutBtn=$id('logout-btn');
-  if(logoutBtn) logoutBtn.style.display = loggedIn ? 'inline-flex' : 'none';
-
-  // TZ nav pill — show when logged in, show active TZ
-  activeTZ = CURRENT_USER?.tz || activeTZ || 'MY';
-  updateTZPill();
-
-  // Quick Open button — admin only
-  const qoBtn=$id('qopen-toolbar-btn');
-  if(qoBtn) qoBtn.style.display = (isAdmin && loggedIn) ? 'inline-flex' : 'none';
+  // Update mobile menu
+  renderMobMenu();
 }
 
 // ─── TZ ──────────────────────────────────────
@@ -2165,24 +2171,46 @@ function renderNavFlags(){
 //  CALENDAR
 // ═══════════════════════════════════════════════
 function shiftWeek(delta){
-  weekOffset+=delta;
-  dayWindowStart=0;
+  weekOffset += delta;
+  dayWindowStart = 0;
+  WEEK_DAYS = buildWeekDays(weekOffset);
   reloadWeekSchedule();
 }
 function jumpToday(){
-  weekOffset=0;
-  dayWindowStart=0;
-  reloadWeekSchedule().then(()=>{
-    WEEK_DAYS=buildWeekDays(0);
-    const todayIdx=WEEK_DAYS.findIndex(d=>{
-      const t=new Date(); return d.d===t.getDate()&&d.fullDate.getMonth()===t.getMonth();
-    });
-    if(todayIdx>=0) dayWindowStart=Math.min(todayIdx,WEEK_DAYS.length-3);
-    renderCalendar();
-  });
+  weekOffset = 0;
+  dayWindowStart = 0;
+  WEEK_DAYS = buildWeekDays(0);
+  const now = new Date();
+  const todayIdx = WEEK_DAYS.findIndex(d =>
+    d.fullDate.getDate()===now.getDate() &&
+    d.fullDate.getMonth()===now.getMonth() &&
+    d.fullDate.getFullYear()===now.getFullYear()
+  );
+  if(todayIdx >= 0) dayWindowStart = Math.min(todayIdx, WEEK_DAYS.length - 3);
+  reloadWeekSchedule();
 }
 function renderCalendar(){
-  updateWeekLabel(); renderDesktopCal(); renderDayStrip(); updateNavBtns();
+  try {
+    updateWeekLabel(); renderDesktopCal(); renderDayStrip(); updateNavBtns();
+    updatePastSlots();
+    // Sync sticky header horizontal scroll with grid body
+    const scrollBody=$id('cal-scroll-body');
+    const dateHdr=$id('cal-date-hdr');
+    if(scrollBody && dateHdr){
+      scrollBody.onscroll=null; // remove old listener
+      scrollBody.addEventListener('scroll',()=>{
+        dateHdr.style.transform=`translateX(-${scrollBody.scrollLeft}px)`;
+      },{passive:true});
+    }
+  } catch(e){
+    console.error('renderCalendar error:', e);
+    const wrap=$id('desktop-cal-wrap');
+    if(wrap) wrap.innerHTML=`<div style="padding:28px 20px;text-align:center;color:var(--red)">
+      <div style="font-size:22px;margin-bottom:8px">⚠️</div>
+      <div style="font-size:13px;font-weight:700">Calendar failed to render</div>
+      <div style="font-size:11px;color:var(--g400);margin-top:4px">${e.message}</div>
+    </div>`;
+  }
 }
 function updateWeekLabel(){
   const first=WEEK_DAYS[0], last=WEEK_DAYS[6];
@@ -2192,12 +2220,16 @@ function updateWeekLabel(){
     :`${first.d} ${first.m||''}–${last.d} ${last.m||''}`;
   setText('week-label', label);
   const vis=WEEK_DAYS.slice(dayWindowStart,dayWindowStart+3);
-  if(vis.length) setText('mob-week-label',`${vis[0].d}–${vis[vis.length-1].d} May 2025`);
+  if(vis.length){
+    const m=WEEK_DAYS[0].m||'';
+    const y=WEEK_DAYS[0].fullDate?.getFullYear()||'';
+    setText('mob-week-label',`${vis[0].d}–${vis[vis.length-1].d} ${m} ${y}`);
+  }
 }
 
 function renderDesktopCal(){
   const wrap=$id('desktop-cal-wrap'); if(!wrap) return;
-  const tz=TZ_DATA[activeTZ];
+  const tz=TZ_DATA[activeTZ]||TZ_DATA['MY']; // fallback to MYT
 
   // ── Week context checks ──
   const now = new Date();
@@ -2206,9 +2238,12 @@ function renderDesktopCal(){
   currentMonday.setDate(now.getDate() - (dow===0?6:dow-1));
   currentMonday.setHours(0,0,0,0);
   const weekMonday = WEEK_DAYS[0]?.fullDate;
-  const isPastWeek  = weekMonday && weekMonday < currentMonday;
-  const isThisWeek  = weekMonday && weekMonday.toDateString() === currentMonday.toDateString();
-  const isFutureWeek = weekMonday && weekMonday > currentMonday;
+  // Normalise to midnight for fair date-only comparisons
+  const weekMondayMidnight = weekMonday ? new Date(weekMonday.getFullYear(), weekMonday.getMonth(), weekMonday.getDate()) : null;
+  const isPastWeek  = weekMondayMidnight && weekMondayMidnight < currentMonday;
+  const isThisWeek  = weekMondayMidnight && weekMondayMidnight.getTime() === currentMonday.getTime();
+  const isFutureWeek = weekMondayMidnight && weekMondayMidnight > currentMonday;
+  isPastWeekGlobal = !!isPastWeek; // used by updatePastSlots
 
   // For downlines: block future weeks with no slots
   const hasAnySlots = SCHEDULE.some(s => s.week === weekOffset || weekOffset !== 0);
@@ -2221,12 +2256,12 @@ function renderDesktopCal(){
       <span class="week-banner-icon">🕐</span>
       <span>Past week — view only. Bookings shown for reference.</span>
     </div>`;
-  } else if(isFutureWeek && !isAdmin && !hasDBSlots){
-    // Downline on a future week with no slots — show friendly message instead of grid
-    wrap.innerHTML = `<div class="week-banner week-banner-empty" style="padding:28px 20px;flex-direction:column;text-align:center;gap:6px">
-      <span style="font-size:28px">📅</span>
-      <span style="font-size:14px;font-weight:700">No slots available this week</span>
-      <span style="font-size:12px;font-weight:400;color:var(--teal);opacity:.8">Check back soon or contact Renee / Gus directly.</span>
+  } else if(!isAdmin && !hasDBSlots){
+    // Downline with no slots (any week) — show friendly message instead of grid
+    wrap.innerHTML = `<div class="week-banner week-banner-empty" style="padding:40px 20px;flex-direction:column;text-align:center;gap:8px;border-radius:var(--rLg);margin:0">
+      <span style="font-size:32px">📅</span>
+      <span style="font-size:15px;font-weight:800;color:var(--teal)">No slots available this week</span>
+      <span style="font-size:12.5px;font-weight:500;color:var(--g500);max-width:320px;margin:0 auto;line-height:1.6">Check back soon or use the arrows to browse other weeks. Contact Renee or Gus directly to book.</span>
     </div>`;
     return;
   } else if(isFutureWeek && isAdmin && !hasDBSlots){
@@ -2238,17 +2273,20 @@ function renderDesktopCal(){
 
   // getActiveRows handles admin empty week — always returns all rows for admin
   const activeRows=getActiveRows();
-  let html = bannerHtml + '<div class="blk-grid">';
-
-  // Head
-  html+='<div class="blk-head">';
-  html+='<div class="blk-head-cell" style="text-align:right;padding-right:8px">MYT</div>';
+  // Build sticky date header (injected into #cal-date-hdr outside scroll container)
+  const todayStr = todayISOStr(); // use ISO string for reliable today comparison
+  let hdrHtml = '<div class="cal-dhdr-tc">MYT</div>';
   WEEK_DAYS.forEach((d,di)=>{
-    html+=`<div class="blk-head-cell" role="columnheader">${sanitize(d.n)}<br>
-      <span class="blk-head-num${d.d===TODAY_D?' today':''}">${d.d}</span>
+    const isTodayCol = d.iso === todayStr;
+    hdrHtml+=`<div class="cal-dhdr-cell${isTodayCol?' today-col':''}">
+      ${sanitize(d.n)}<br>
+      <span class="blk-head-num${isTodayCol?' today':''}">${d.d} ${sanitize(d.m)}</span>
     </div>`;
   });
-  html+='</div>';
+  const hdrEl=$id('cal-date-hdr');
+  if(hdrEl) hdrEl.innerHTML=hdrHtml;
+
+  let html = bannerHtml + '<div class="blk-grid">';
 
   // If no active rows — only happens for downline on week with no content
   if(!activeRows.length){
@@ -2273,7 +2311,7 @@ function renderDesktopCal(){
   activeRows.forEach(row=>{
     html+='<div class="blk-row" role="row">';
     const uS=m2u(row.startH,tz.o), uE=m2u(row.endH,tz.o);
-    html+=`<div class="blk-tc">
+    html+=`<div class="blk-tc" data-row-end-h="${row.endH}">
       <div class="blk-tc-name">${fmtH(row.startH)}–${fmtH(row.endH)}</div>
       <div class="blk-tc-tz">${sanitize(tz.f)} ${fmtH(uS)}–${fmtH(uE)}</div>
     </div>`;
@@ -2362,17 +2400,26 @@ function renderDesktopCal(){
                 const tzOffsetMins=Math.round((tz.o-8)*60);
                 const uStartMin=((slot.startMyt+tzOffsetMins)%1440+1440)%1440;
                 const slotTimeStr=fmtMinutes(uStartMin);
-                onclick=`onclick="selBlock='${blockKey}';selSlotTime='${slotTimeStr}';goScreen('sc-book')"`;
+                onclick=`onclick="selSlotDbId='${slot._id}';selBlock='${blockKey}';selSlotTime='${slotTimeStr}';goScreen('sc-book')"`;
               }
               if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
             } else {
               if(slot.status==='mine') onclick=`onclick="goScreen('sc-mybk')"`;
             }
           }
+          // Host name shown on chip — admin=teal, manager=amber
+          const hostName = slot._presenterName || '';
+          const chipTop  = slot.status==='av'
+            ? sanitize(hostName || 'Available')
+            : `${presenterDot(slot.presenter)}${sanitize(chipLabel)}`;
+          const chipSub  = slot.status==='av'
+            ? `<span class="sc-time">✓ Available</span>`
+            : `<span class="sc-time">${tRange}</span>`;
           html+=`<button type="button" class="${cls}" ${onclick}
+            data-end-myt="${slot.endMyt}" data-day-iso="${WEEK_DAYS[slot.dayIdx]?.iso||''}"
             title="${sanitize(label)}" aria-label="${sanitize(label)}">
-            <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(chipLabel)}</span>
-            <span class="sc-time">${tRange}</span>
+            <span class="sc-label">${chipTop}</span>
+            ${chipSub}
           </button>`;
         });
         // Admin occupancy
@@ -2699,7 +2746,7 @@ function updateNavBtns(){
 function renderDayStrip(){
   const strip=$id('day-strip-snap'); if(!strip) return;
   strip.style.transition='opacity .18s';
-  const tz=TZ_DATA[activeTZ];
+  const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
   const vis=WEEK_DAYS.slice(dayWindowStart,dayWindowStart+3);
   const todayIdx=WEEK_DAYS.findIndex(d=>d.d===TODAY_D);
   strip.innerHTML=vis.map(day=>{
@@ -3094,8 +3141,15 @@ function onTimeInput(inp,key){
 function updateSummary(){
   if(!CURRENT_USER) return; // prevent ghost rendering
   const tz=TZ_DATA[activeTZ];
-  const blk=getAvailableBlocks().find(b=>b.key===selBlock)||getAvailableBlocks()[0];
-  if(!blk) return;
+  const blk=getAvailableBlocks().find(b=>b.key===selBlock);
+  if(!blk) return; // no matching block — nothing to confirm
+  // One-booking-per-timeslot guard — only if user selected a specific slot
+  if(selSlotDbId && !isAdmin && !isManager){
+    const p0=parseT(blockValues[selBlock]||'');
+    const sMin0=p0?(p0.h*60+p0.min):(blk.startH*60);
+    const alreadyMine=SCHEDULE.some(s=>s.dayIdx===blk.dayIdx&&s.startMyt===sMin0&&s.status==='mine');
+    if(alreadyMine){ alert('You already have a booking at this time. Please choose a different slot.'); return; }
+  }
   const uH=m2u(blk.startH,tz.o), val=blockValues[selBlock];
   const ok=val&&!blockErrors[selBlock], dT=ok?val:fmtH(uH,15);
   const st=SLOT_TYPES[selSlotType];
@@ -3243,7 +3297,10 @@ async function confirmBooking(){
   if(!dayDate){ alert('Could not determine booking date. Please try again.'); return; }
 
   showAuthSpinner('Saving booking…');
+  // Notify admin of new booking (in-app)
+  if(!isAdmin&&!isManager) addNotification(`New booking by ${CURRENT_USER?.name||'downline'}`, 'booking');
   const saved = await saveBookingToDB({
+    slotDbId: selSlotDbId,
     type:     selSlotType,
     dayDate:  dayDate,
     startMyt: sMin,
@@ -3387,13 +3444,21 @@ async function renderMyBookings(){
 
 // Cancel from My Bookings screen
 async function cancelBookingFromMyBk(dbId){
-  if(!confirm('Cancel this booking? This cannot be undone.')) return;
+  if(!confirm('Cancel this booking? The slot will become available again for others to book.')) return;
   showAuthSpinner('Cancelling…');
   const ok = await cancelBookingInDB(dbId);
   if(!ok){ hideAuthSpinner(); alert('Could not cancel. Please try again.'); return; }
-  // Remove from local SCHEDULE too
-  const idx = SCHEDULE.findIndex(s => s._id === dbId);
-  if(idx >= 0) SCHEDULE.splice(idx, 1);
+  addNotification('Your booking has been cancelled. Slot is now available again.', 'cancel');
+  // Revert slot in local SCHEDULE (back to available, keep slot object)
+  const slot = SCHEDULE.find(s => s._id === dbId);
+  if(slot){
+    slot.status    = 'av';
+    slot.user      = '';
+    slot.prospect  = '';
+    slot.label     = '';
+    slot._bookerName     = '';
+    slot._bookerInitials = '';
+  }
   hideAuthSpinner();
   renderMyBookings();
   renderCalendar();
@@ -3423,13 +3488,17 @@ function renderProfile(){
   const isAdminUser=u.role==='admin';
   const tz=TZ_DATA[u.tz||activeTZ];
   const avatarBg=isAdminUser?'linear-gradient(135deg,var(--renee),var(--gus))':'var(--teal)';
-  const displayInitials=isAdminUser?'GR':u.initials;
+  // Always derive initials from name — never use stale stored initials
+  const displayInitials = u.name
+    ? u.name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)
+    : '?';
+  const roleText = isAdminUser ? 'Admin' : 'Downline';
   // Hero
   setHTML('profile-hero-content',`
     <div class="profile-avatar-big" style="background:${avatarBg}">${sanitize(displayInitials)}</div>
     <div class="profile-hero-info">
-      <div class="profile-hero-name">${sanitize(isAdminUser?'Gus & Renee':u.name)}</div>
-      <div class="profile-hero-role">${sanitize(isAdminUser?'Admin (Renee & Gus)':'Downline')} · BD4U</div>
+      <div class="profile-hero-name">${sanitize(u.name)}</div>
+      <div class="profile-hero-role">${sanitize(roleText)} · BD4U</div>
       <div class="profile-hero-email">${sanitize(u.email)}</div>
       ${isAdminUser?`<div class="profile-stats">
         <div class="ps-item"><div class="ps-val">${(USERS.renee?.sessionsHosted||0)+(USERS.gus?.sessionsHosted||0)}</div><div class="ps-lbl">Total hosted</div></div>
@@ -3460,8 +3529,6 @@ function renderProfile(){
         ${['Malaysia','Indonesia','Singapore','Australia','China'].map(c=>
           `<option${c===u.country?' selected':''}>${c}</option>`).join('')}
       </select></div>
-    <div class="fg"><label class="fl">Change password</label>
-      <input type="password" class="fc" placeholder="Enter new password"></div>
     <button type="button" class="btn btn-primary" onclick="saveProfile()">Save changes</button>`);
   // Admin-only: Admin managers section
   const adminsSection=$id('profile-admins-section');
@@ -3483,12 +3550,15 @@ function renderProfile(){
   const teamSection=$id('profile-team-section');
   if(teamSection) teamSection.style.display = isAdminUser ? 'block' : 'none';
   if(isAdminUser){
-    const downlines=Object.entries(USERS).filter(([,v])=>v.role==='downline');
-    setHTML('profile-team-list', downlines.length===0
-      ? `<div style="color:var(--g400);font-size:13px;text-align:center;padding:16px">No downlines yet.</div>`
-      : downlines.map(([key,du])=>`
-        <div class="team-row" id="team-row-${key}">
-          <div class="team-av${du.suspended?' suspended':''}">${sanitize(du.initials)}</div>
+    // Fetch downlines live from Supabase (USERS{} is empty — data comes from DB)
+    sb.from('users').select('id,name,initials,timezone,suspended').eq('role','downline').order('name')
+      .then(({data})=>{
+        const downlines=data||[];
+        setHTML('profile-team-list', downlines.length===0
+          ? `<div style="color:var(--g400);font-size:13px;text-align:center;padding:16px">No downlines yet.</div>`
+          : downlines.map(du=>`
+            <div class="team-row" id="team-row-${du.id}">
+              <div class="team-av${du.suspended?' suspended':''}">${sanitize(du.initials)}</div>
           <div class="team-info">
             <div class="team-name">${sanitize(du.name)}${du.suspended?'<span class="team-suspended-tag">Suspended</span>':''}</div>
             <div class="team-meta">${sanitize(du.email)} · ${sanitize(du.country||'—')} · ${du.sessionsBooked||0} bookings</div>
@@ -3499,7 +3569,8 @@ function renderProfile(){
               : `<button type="button" class="btn btn-ghost btn-xs" onclick="teamSuspend('${key}')">⏸ Suspend</button>`}
             <button type="button" class="btn btn-danger btn-xs" onclick="teamRemove('${key}')">✕ Remove</button>
           </div>
-        </div>`).join(''));
+        </div>`).join(''))
+      });
   }
 }
 function profileNameChange(val){
@@ -3572,7 +3643,7 @@ function teamRemove(key){
 // ═══════════════════════════════════════════════
 //  ADMIN DASHBOARD
 // ═══════════════════════════════════════════════
-function renderAdmin(){ renderStats(); renderAdminTable(); renderUpcomingList(); }
+async function renderAdmin(){ renderStats(); renderAdminTable(); await renderUpcomingList(); }
 function renderStats(){
   const booked=weekSlots().filter(s=>s.status==='booked').length;
   const avail =SCHEDULE.filter(s=>s.status==='av').length;
@@ -3700,103 +3771,81 @@ async function adminDeleteRow(idx){
   hideAuthSpinner();
   renderAdmin(); renderCalendar();
 }
-function renderUpcomingList(){
-  const items=SCHEDULE.filter(s=>(s.status==='booked'||s.status==='mine')&&s.type!=='event').slice(0,5);
-  setHTML('upcoming-list',`<div class="upc-list">${items.map(r=>{
-    const d=WEEK_DAYS[r.dayIdx]||{d:'?'};
-    return`<div class="upc-i">
-      <div class="upc-dt"><div class="upc-d">${sanitize(String(d.d))}</div><div class="upc-m">MAY</div></div>
-      <div class="upc-info">
-        <div class="upc-n">${sanitize(makeLabel(r))}</div>
-        <div class="upc-l">${sanitize(slotTypeIcon(r.type))} ${r.presenter?sanitize(USERS[r.presenter]?.name||''):'TBA'}</div>
-        <div class="upc-z">🇲🇾 ${sanitize(mytTimeStr(r.startMyt))}–${sanitize(mytTimeStr(r.endMyt))}</div>
-      </div>
-    </div>`;
-  }).join('')}</div>`);
+async function renderUpcomingList(){
+  const container=$id('upcoming-list'); if(!container) return;
+  container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:12px">Loading…</div>';
+  try{
+    const today=new Date(); today.setHours(0,0,0,0);
+    const end30=new Date(today); end30.setDate(today.getDate()+30);
+    const todayIso=today.toISOString().slice(0,10);
+    const endIso=end30.toISOString().slice(0,10);
+    const {data,error}=await sb.from('schedule')
+      .select('*, presenter_user:presenter_id(id,name,initials,role)')
+      .in('status',['booked','mine'])
+      .neq('type','event')
+      .gte('day_date',todayIso)
+      .lte('day_date',endIso)
+      .order('day_date').order('start_myt').limit(10);
+    if(error||!data||!data.length){
+      container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:12px;text-align:center">No bookings in next 30 days</div>';
+      return;
+    }
+    // Manager sees only their own slots' bookings
+    const rows=isManager?data.filter(r=>r.presenter_id===CURRENT_USER.id):data;
+    const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    container.innerHTML=`<div class="upc-list">${rows.map(r=>{
+      const dt=new Date(r.day_date+'T00:00:00');
+      const presName=r.presenter_user?.name||'TBA';
+      return`<div class="upc-i">
+        <div class="upc-dt"><div class="upc-d">${dt.getDate()}</div><div class="upc-m">${MONTHS[dt.getMonth()]}</div></div>
+        <div class="upc-info">
+          <div class="upc-n">${sanitize(r.prospect||'Booking')}</div>
+          <div class="upc-l">${sanitize(slotTypeIcon(r.type))} ${sanitize(presName)}</div>
+          <div class="upc-z">🇲🇾 ${sanitize(mytTimeStr(r.start_myt))}–${sanitize(mytTimeStr(r.end_myt))}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }catch(e){
+    container.innerHTML='<div style="color:var(--red);font-size:12px;padding:12px">Could not load upcoming bookings</div>';
+  }
 }
 
 // ═══════════════════════════════════════════════
 //  MANAGE SCHEDULE
 // ═══════════════════════════════════════════════
-function renderCalendar(){
-  const all=[...weekSlots()].sort((a,b)=>a.dayIdx!==b.dayIdx?a.dayIdx-b.dayIdx:a.startMyt-b.startMyt);
-  const filtered=schDayFilter==='all'?all:all.filter(s=>s.dayIdx===parseInt(schDayFilter));
-  setHTML('sch-day-filter',`<div class="day-filter-row">
-    ${['all',...WEEK_DAYS.map((_,i)=>String(i))].map(v=>{
-      const lbl=v==='all'?'All days':WEEK_DAYS[parseInt(v)].n+' '+WEEK_DAYS[parseInt(v)].d;
-      return`<button type="button" class="day-filter-pill${schDayFilter===v?' on':''}" onclick="setSchDay('${v}')">${lbl}</button>`;
-    }).join('')}
-  </div>`);
-  if(!filtered.length){
-    setHTML('sch-list',`<div class="sch-empty"><div style="font-size:28px;margin-bottom:8px">📅</div>
-      <div style="font-size:13px;font-weight:600;color:var(--g600)">No items for this day</div></div>`);
-    return;
+function openAddModal(type, ctx){
+  // ctx = { dayIdx, startH, endH, iso } — optional pre-fill from cell click
+  addModalType = type || 'zoom15';
+  renderAddModal();
+  initMCal();
+
+  // Pre-fill date and time if context provided
+  if(ctx){
+    // Pre-fill date
+    if(ctx.iso){
+      _mcalSelDate = new Date(ctx.iso + 'T00:00:00');
+      const d = _mcalSelDate;
+      const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const dayName = dayNames[d.getDay()===0?6:d.getDay()-1];
+      const monName = MONTHS[d.getMonth()].slice(0,3);
+      const display = $id('mcal-display');
+      if(display) display.textContent = `${dayName}, ${d.getDate()} ${monName} ${d.getFullYear()}`;
+      const isoEl = $id('add-day-iso'); if(isoEl) isoEl.value = ctx.iso;
+      const dayEl = $id('add-day');
+      if(dayEl) dayEl.value = WEEK_DAYS.findIndex(d2=>d2.iso===ctx.iso);
+      _mcalYear  = d.getFullYear();
+      _mcalMonth = d.getMonth();
+    }
+    // Pre-fill start/end times (MYT)
+    if(ctx.startH !== undefined){
+      const startEl = $id('add-start');
+      const endEl   = $id('add-end');
+      if(startEl) startEl.value = fmtH(ctx.startH);
+      if(endEl)   endEl.value   = fmtH(ctx.endH || ctx.startH + 1);
+    }
   }
-  const sections=[
-    {key:'event',  label:'🔴 Business Events',    color:'var(--evt)'},
-    {key:'blocked',label:'🔒 Blocked Times',       color:'var(--red)'},
-    {key:'private',label:'🟣 Private Meetings',    color:'#7E57C2'},
-    {key:'zoom15', label:'🔵 Zoom 15-min Sessions',color:'var(--zoom)'},
-  ];
-  // Show av slots grouped by type under their section
-  // av slots appear as "Open" rows in each section
-  let html='';
-  sections.forEach(sec=>{
-    const items=filtered.filter(s=>s.type===sec.key);
-    if(!items.length) return;
-    html+=`<div class="sch-sec-lbl" style="color:${sec.color}">${sec.label}</div>`;
-    html+='<div class="sch-table"><div class="sch-head">';
-    html+='<div class="sch-hc">Day</div><div class="sch-hc">Details</div><div class="sch-hc">MYT</div><div class="sch-hc">Presenter</div><div class="sch-hc"></div>';
-    html+='</div>';
-    items.forEach(slot=>{
-      const idx=SCHEDULE.indexOf(slot), d=WEEK_DAYS[slot.dayIdx]||{n:'',d:''};
-      const sT=mytTimeStr(slot.startMyt), eT=mytTimeStr(slot.endMyt), label=makeLabel(slot);
-      const presName = slot.presenter==='both'?'Renee & Gus':(USERS[slot.presenter]?.name||slot.presenter||'');
-      const presBg   = slot.presenter==='both'?'#EEF1F6':(USERS[slot.presenter]?.bg||'#eee');
-      const presCol  = slot.presenter==='both'?'var(--navy)':(USERS[slot.presenter]?.color||'#333');
-      const pBadge = (slot.type==='event'||slot.type==='blocked')
-        ? '—'
-        : slot.status==='av'
-          ? `<span class="bdg" style="background:var(--greenLt);color:var(--green)">Open</span>`
-          : slot.presenter
-            ? `<button type="button" class="bdg" style="background:${presBg};color:${presCol};cursor:pointer;border:none;font-family:var(--font)" onclick="openSA(${idx})" title="Click to reassign">${sanitize(presName)} ✎</button>`
-            : `<div style="display:flex;gap:3px;flex-wrap:wrap">
-                <button type="button" class="assign-pill assign-renee" onclick="assignSlot(${idx},'renee')">Renee</button>
-                <button type="button" class="assign-pill assign-gus"   onclick="assignSlot(${idx},'gus')">Gus</button>
-                <button type="button" class="assign-pill assign-both"  onclick="assignSlot(${idx},'both')">Both</button>
-               </div>`;
-      html+=`<div class="sch-row">
-        <div class="sch-day">${sanitize(d.n)} ${sanitize(String(d.d))}</div>
-        <div class="sch-name">${sanitize(label)}</div>
-        <div class="sch-time">${sanitize(sT)}–${sanitize(eT)}</div>
-        <div>${pBadge}</div>
-        <div class="sch-acts">
-          <button type="button" class="btn btn-danger btn-xs" onclick="deleteSlot(${idx})">✕ Remove</button>
-        </div>
-      </div>`;
-    });
-    html+='</div>';
-  });
-  setHTML('sch-list',html);
-}
-function setSchDay(v){ schDayFilter=v; renderCalendar(); }
-async function deleteSlot(idx){
-  const slot=SCHEDULE[idx]; if(!slot) return;
-  if(!confirm('Remove this item from the schedule?')) return;
-  showAuthSpinner('Removing…');
-  if(slot._id){
-    const isBooked=slot.status==='booked'||slot.status==='mine';
-    if(isBooked) await adminSoftDelete(slot._id);
-    else await adminHardDelete(slot._id);
-  }
-  SCHEDULE.splice(idx,1);
-  hideAuthSpinner();
-  renderCalendar(); renderCalendar();
-}
-function openAddModal(type){
-  addModalType=type||'zoom15'; renderAddModal();
-  initMCal(); // initialize mini calendar picker
-  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+
+  const mo = $id('add-modal'); if(mo) mo.classList.add('on');
 }
 // ═══════════════════════════════════════════════
 //  CELL QUICK-PICK POPOVER
@@ -3848,7 +3897,7 @@ function cellQuickBlock(dayIdx, startH, event){
   SCHEDULE.push({type:'blocked',status:'blocked',dayIdx,
     startMyt:startH*60,endMyt:(startH+1)*60,
     reason:'Unavailable',prospect:'',user:'',presenter:null,week:weekOffset});
-  renderCalendar(); renderCalendar();
+  renderCalendar();
 }
 async function cellPopOpenForBooking(){
   const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
@@ -3891,35 +3940,24 @@ async function cellPopOpenForPrivate(){
   }
   renderCalendar();
 }
+function _getCellCtx(di, sh){
+  const iso = WEEK_DAYS[di]?.iso || null;
+  return { dayIdx: di, startH: sh, endH: sh+1, iso };
+}
 function cellPopBlock(){
   const di=_cellPopDayIdx, sh=_cellPopStartH;
   closeCellPop(); if(di===null||sh===null) return;
-  addModalType='blocked'; renderAddModal();
-  const dayEl=$id('add-day'),startEl=$id('add-start'),endEl=$id('add-end');
-  if(dayEl) dayEl.value=String(di);
-  if(startEl) startEl.value=fmtH(sh);
-  if(endEl) endEl.value=fmtH(sh+1);
-  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+  openAddModal('blocked', _getCellCtx(di,sh));
 }
 function cellPopEvent(){
   const di=_cellPopDayIdx, sh=_cellPopStartH;
   closeCellPop(); if(di===null||sh===null) return;
-  addModalType='event'; renderAddModal();
-  const dayEl=$id('add-day'),startEl=$id('add-start'),endEl=$id('add-end');
-  if(dayEl) dayEl.value=String(di);
-  if(startEl) startEl.value=fmtH(sh);
-  if(endEl) endEl.value=fmtH(sh+1);
-  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+  openAddModal('event', _getCellCtx(di,sh));
 }
 function cellPopPrivate(){
   const di=_cellPopDayIdx, sh=_cellPopStartH;
   closeCellPop(); if(di===null||sh===null) return;
-  addModalType='private'; renderAddModal();
-  const dayEl=$id('add-day'),startEl=$id('add-start'),endEl=$id('add-end');
-  if(dayEl) dayEl.value=String(di);
-  if(startEl) startEl.value=fmtH(sh);
-  if(endEl) endEl.value=fmtH(sh+1);
-  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+  openAddModal('private', _getCellCtx(di,sh));
 }
 function showSettingsToast(){
   // Settings screen — coming in a future update
@@ -3973,7 +4011,7 @@ async function confirmAdd(){
   let rows=[];
   if(addModalType==='zoom15'){
     for(let m=sMin;m<eMin;m+=15)
-      rows.push({type:'zoom15',status:'av',day_date:iso,start_myt:m,end_myt:m+15,user_id:null,presenter_id:null,cancelled:false});
+      rows.push({type:'zoom15',status:'av',day_date:iso,start_myt:m,end_myt:m+15,user_id:null,presenter_id:CURRENT_USER?.id||null,cancelled:false});
   } else if(addModalType==='blocked'){
     const rEl=$id('add-block-reason');
     rows.push({type:'blocked',status:'blocked',day_date:iso,start_myt:sMin,end_myt:eMin,
@@ -4008,7 +4046,7 @@ async function loadScheduleFromDB(){
 
     const { data, error } = await sb
       .from('schedule')
-      .select('*, booker:user_id(id,name,initials,timezone), presenter_user:presenter_id(id,name,initials)')
+      .select('*, booker:user_id(id,name,initials,timezone), presenter_user:presenter_id(id,name,initials,role)')
       .gte('day_date', start)
       .lte('day_date', end);
 
@@ -4043,6 +4081,7 @@ async function loadScheduleFromDB(){
         _bookerName:    row.booker?.name    || '',
         _bookerInitials:row.booker?.initials|| '',
         _presenterName: row.presenter_user?.name || '',
+        _presenterRole: row.presenter_user?.role || '',
         week: weekOffset,
       };
     }).filter(Boolean);
@@ -4052,6 +4091,22 @@ async function loadScheduleFromDB(){
 
 // Save a new booking to Supabase
 async function saveBookingToDB(slotData){
+  // If we know the exact slot DB id (multi-host: downline tapped a specific chip),
+  // UPDATE that av slot. Otherwise INSERT a new booked row (legacy fallback).
+  if(slotData.slotDbId){
+    const { data, error } = await sb.from('schedule').update({
+      status:    'booked',
+      user_id:   CURRENT_USER.id,
+      prospect:  slotData.prospect || '',
+      type:      slotData.type,
+      start_myt: slotData.startMyt,
+      end_myt:   slotData.endMyt,
+      label:     slotData.label || null,
+    }).eq('id', slotData.slotDbId).select().single();
+    if(error){ console.error('saveBookingToDB UPDATE error:', error); return null; }
+    return data;
+  }
+  // Fallback: INSERT new booked row
   const { data, error } = await sb.from('schedule').insert({
     type:         slotData.type,
     status:       'booked',
@@ -4063,13 +4118,19 @@ async function saveBookingToDB(slotData){
     presenter_id: null,
     label:        slotData.label || null,
   }).select().single();
-  if(error){ console.error('saveBookingToDB error:', error); return null; }
+  if(error){ console.error('saveBookingToDB INSERT error:', error); return null; }
   return data;
 }
 
-// Cancel a booking in Supabase
+// Cancel a booking — revert slot to available (UPDATE not DELETE)
 async function cancelBookingInDB(dbId){
-  const { error } = await sb.from('schedule').delete().eq('id', dbId);
+  const { error } = await sb.from('schedule').update({
+    status:    'av',
+    user_id:   null,
+    prospect:  null,
+    label:     null,
+    reason:    null,
+  }).eq('id', dbId);
   if(error){ console.error('cancelBookingInDB error:', error); return false; }
   return true;
 }
@@ -4195,10 +4256,12 @@ async function rescheduleBookingDB(dbId, slotType){
 
 async function reloadWeekSchedule(){
   showAuthSpinner('Loading week…');
-  WEEK_DAYS = buildWeekDays(weekOffset);
+  // WEEK_DAYS already set by shiftWeek/jumpToday before calling this
+  if(!WEEK_DAYS || !WEEK_DAYS[0]) WEEK_DAYS = buildWeekDays(weekOffset);
   await loadScheduleFromDB();
   hideAuthSpinner();
   renderCalendar();
+  updateWeekLabel();
 }
 
 // ═══════════════════════════════════════════════
@@ -4268,12 +4331,7 @@ async function bsheetBlock(){
 function bsheetEvent(){
   const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
   if(di===null||sh===null) return;
-  addModalType='event'; renderAddModal();
-  const dayEl=$id('add-day'),startEl=$id('add-start'),endEl=$id('add-end');
-  if(dayEl) dayEl.value=String(di);
-  if(startEl) startEl.value=fmtH(sh);
-  if(endEl) endEl.value=fmtH(sh+2);
-  const mo=$id('add-modal'); if(mo) mo.classList.add('on');
+  openAddModal('event', _getCellCtx(di,sh));
 }
 
 // ═══════════════════════════════════════════════
@@ -4397,28 +4455,41 @@ function initMCal(){
   renderMCalGrid();
 }
 function toggleMCal(){
-  const popup=$id('mcal-popup'); if(!popup) return;
+  let popup=$id('mcal-popup');
   const inp=$id('mcal-input');
+  if(!popup||!inp) return;
   const isOpen=popup.classList.contains('on');
   if(isOpen){ closeMCal(); return; }
-  // Position popup
+
+  // Move popup to body to escape modal overflow clipping
+  if(popup.parentElement !== document.body){
+    document.body.appendChild(popup);
+  }
+
+  // Position using fixed coords from input bounding rect
   const rect=inp.getBoundingClientRect();
+  popup.style.position='fixed';
   popup.style.top=(rect.bottom+4)+'px';
-  const left=Math.min(rect.left, window.innerWidth-270);
-  popup.style.left=left+'px';
+  popup.style.left=Math.max(8, Math.min(rect.left, window.innerWidth-270))+'px';
   popup.style.right='auto';
+  popup.style.zIndex='99999';
+
   inp.classList.add('on');
   popup.classList.add('on');
   renderMCalGrid();
-  setTimeout(()=>document.addEventListener('click',_mcalOutside,{once:true}),10);
+  setTimeout(()=>document.addEventListener('click',_mcalOutside,{once:true}),50);
 }
 function closeMCal(){
-  const popup=$id('mcal-popup'); if(popup) popup.classList.remove('on');
-  const inp=$id('mcal-input'); if(inp) inp.classList.remove('on');
+  const popup=$id('mcal-popup');
+  if(popup) popup.classList.remove('on');
+  const inp=$id('mcal-input');
+  if(inp) inp.classList.remove('on');
 }
 function _mcalOutside(e){
-  const wrap=document.querySelector('.mcal-wrap');
-  if(wrap&&!wrap.contains(e.target)) closeMCal();
+  const popup=$id('mcal-popup');
+  const inp=$id('mcal-input');
+  if(!popup) return;
+  if(!popup.contains(e.target) && (!inp||!inp.contains(e.target))) closeMCal();
 }
 function shiftMCal(delta,e){
   if(e) e.stopPropagation();
@@ -4491,23 +4562,76 @@ function validateAddTimes(){
 // ═══════════════════════════════════════════════
 //  SETTINGS SCREEN
 // ═══════════════════════════════════════════════
-function renderSettings(){
+async function renderSettings(){
   if(!CURRENT_USER) return;
-  const u=CURRENT_USER;
-  const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
-  const tzStr=`${tz.f} ${tz.l}`;
-  // Update sidebar
-  setText('sb-name-settings', u.name||'—');
-  setText('sb-tz-settings', tzStr);
-  const av=$id('sb-av-settings');
-  if(av){ av.textContent=u.initials||u.name?.slice(0,2)||'?'; av.className='sb-av adm'; }
-  // Update account info
+  const u = CURRENT_USER;
+  // Account info
   setText('settings-email', u.email||'—');
-  setText('settings-role', u.role==='admin'?'Admin':'Downline');
-  // Clear password fields
-  const np=$id('settings-new-pass'), cp=$id('settings-confirm-pass');
-  if(np) np.value=''; if(cp) cp.value='';
-  setLoginError('settings-pass', '');
+  setText('settings-role', isDev?'Developer':isAdmin?'Super Admin':isManager?'Manager':'Downline');
+  // Render role-specific notification prefs
+  const notifContainer=$id('notif-prefs-container');
+  if(notifContainer){
+    if(isAdmin||isManager){
+      notifContainer.innerHTML=`
+        <div class="settings-section-title">🔔 Notification Preferences</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">Session reminder</div>
+            <div class="settings-row-sub">5 min before a booked Zoom session starts</div>
+          </div>
+          <button type="button" class="settings-toggle" id="notif-admin-reminder" onclick="toggleSetting(this)"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">New booking</div>
+            <div class="settings-row-sub">When a downline makes a new booking</div>
+          </div>
+          <button type="button" class="settings-toggle on" id="notif-admin-new-booking" onclick="toggleSetting(this)"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">Booking cancelled</div>
+            <div class="settings-row-sub">When a downline cancels a booking</div>
+          </div>
+          <button type="button" class="settings-toggle on" id="notif-admin-cancel" onclick="toggleSetting(this)"></button>
+        </div>`;
+    } else {
+      notifContainer.innerHTML=`
+        <div class="settings-section-title">🔔 Notification Preferences</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">Session reminder</div>
+            <div class="settings-row-sub">30 min before my upcoming Zoom session</div>
+          </div>
+          <button type="button" class="settings-toggle" id="notif-dl-reminder" onclick="toggleSetting(this)"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">Booking cancelled</div>
+            <div class="settings-row-sub">When an admin cancels my booking</div>
+          </div>
+          <button type="button" class="settings-toggle on" id="notif-dl-cancel" onclick="toggleSetting(this)"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-lbl">New event added</div>
+            <div class="settings-row-sub">When a new calendar event is added</div>
+          </div>
+          <button type="button" class="settings-toggle" id="notif-dl-event" onclick="toggleSetting(this)"></button>
+        </div>`;
+    }
+  }
+  // Load notification prefs from DB (or localStorage fallback)
+  await loadSettingsPrefs();
+  // Admin-only sections
+  const teamCard=$id('settings-team-card');
+  const mgrsCard=$id('settings-managers-card');
+  if(teamCard) teamCard.style.display = isAdmin ? 'block' : 'none';
+  if(mgrsCard) mgrsCard.style.display = isAdmin ? 'block' : 'none';
+  if(isAdmin){
+    await settingsLoadTeam();
+    await settingsLoadManagers();
+  }
 }
 
 function setSettingsError(msg){
@@ -4535,16 +4659,34 @@ async function changePassword(){
   if(btn){ const orig=btn.textContent; btn.textContent='✅ Password updated!'; btn.style.background='var(--teal)'; setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; },2500); }
 }
 
-function toggleSetting(btn){
+async function toggleSetting(btn){
   btn.classList.toggle('on');
-  // Save to localStorage (will wire to DB later)
   const id=btn.id, val=btn.classList.contains('on');
   try{ localStorage.setItem('bd4u_notif_'+id, val); } catch(e){}
+  // Save whatsapp/email prefs to DB
+  if((id==='notif-whatsapp'||id==='notif-email')&&CURRENT_USER){
+    const col = id==='notif-whatsapp'?'notif_whatsapp':'notif_email';
+    await sb.from('users').update({[col]:val}).eq('id',CURRENT_USER.id);
+  }
 }
 
-function loadSettingsPrefs(){
-  // Load saved notification prefs from localStorage
-  ['notif-new-booking','notif-cancel','notif-reminder','notif-weekly'].forEach(id=>{
+async function loadSettingsPrefs(){
+  // Try DB first, fallback to localStorage
+  const notifIds=['notif-new-booking','notif-cancel','notif-reminder','notif-weekly','notif-whatsapp','notif-email'];
+  try{
+    if(CURRENT_USER){
+      const {data}=await sb.from('users').select('notif_whatsapp,notif_email').eq('id',CURRENT_USER.id).single();
+      if(data){
+        const btn_w=$id('notif-whatsapp'); if(btn_w) btn_w.classList.toggle('on',!!data.notif_whatsapp);
+        const btn_e=$id('notif-email');    if(btn_e) btn_e.classList.toggle('on',!!data.notif_email);
+      }
+    }
+  }catch(e){}
+  // Local prefs for role-specific toggles
+  const localIds=isAdmin||isManager
+    ?['notif-admin-reminder','notif-admin-new-booking','notif-admin-cancel']
+    :['notif-dl-reminder','notif-dl-cancel','notif-dl-event'];
+  localIds.forEach(id=>{
     const btn=$id(id); if(!btn) return;
     try{
       const saved=localStorage.getItem('bd4u_notif_'+id);
@@ -4554,14 +4696,485 @@ function loadSettingsPrefs(){
 }
 
 // ═══════════════════════════════════════════════
+//  SETTINGS — TEAM MANAGEMENT & MANAGERS
+// ═══════════════════════════════════════════════
+async function settingsLoadTeam(){
+  const container=$id('settings-team-list'); if(!container) return;
+  container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
+  const {data,error}=await sb.from('users').select('id,name,email,timezone,suspended,role').eq('role','downline').order('name');
+  if(error||!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">Failed to load team</div>'; return; }
+  if(!data.length){ container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">No downlines yet.</div>'; return; }
+  const tz=k=>TZ_DATA[k]?.l||k;
+  container.innerHTML=data.map(u=>`
+    <div class="team-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)">
+      <div class="team-av${u.suspended?' suspended':''}" style="width:36px;height:36px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
+        ${sanitize((u.name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}</div>
+        <div style="font-size:11px;color:var(--g400)">${tz(u.timezone)}${u.suspended?' · 🔴 Suspended':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn btn-xs" style="background:var(--amberLt);color:#7B4F00;border:1px solid var(--amberB)" onclick="settingsPromoteDemote('${u.id}','manager','${sanitize(u.name||'')}')" >⭐ Promote</button>
+        <button type="button" class="btn btn-xs ${u.suspended?'btn-primary':'btn-outline'}" onclick="settingsToggleSuspend('${u.id}',${!u.suspended},'downline')">${u.suspended?'Unsuspend':'Suspend'}</button>
+      </div>
+    </div>`).join('');
+}
+
+async function settingsLoadManagers(){
+  const container=$id('settings-managers-list'); if(!container) return;
+  // Show current managers + downlines that can be promoted
+  const {data:mgrs}=await sb.from('users').select('id,name,email,timezone,role').eq('role','manager').order('name');
+  const {data:dls}=await sb.from('users').select('id,name,email,timezone,role').eq('role','downline').order('name');
+  const tz=k=>TZ_DATA[k]?.l||k;
+  let html='';
+  if(mgrs&&mgrs.length){
+    html+='<div style="font-size:11px;font-weight:700;color:var(--g400);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Current Managers</div>';
+    html+=mgrs.map(u=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--amber);color:#000;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">
+          ${sanitize((u.name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}</div>
+          <div style="font-size:11px;color:var(--g400)">Manager · ${tz(u.timezone)}</div>
+        </div>
+        <button type="button" class="btn btn-xs btn-danger" onclick="settingsPromoteDemote('${u.id}','downline','${sanitize(u.name||'')}')">Demote</button>
+      </div>`).join('');
+  }
+  // Promote from Team Management — managers-only list here (no promote downline section)
+  if(!html) html='<div style="color:var(--g400);font-size:12px;padding:8px">No users found.</div>';
+  container.innerHTML=html;
+}
+
+async function settingsPromoteDemote(userId, newRole, name){
+  const action = newRole==='manager'?'promote to Manager':'demote to Downline';
+  if(!confirm(`${action} ${name}?`)) return;
+  showAuthSpinner(newRole==='manager'?'Promoting…':'Demoting…');
+  const {error}=await sb.from('users').update({role:newRole}).eq('id',userId);
+  hideAuthSpinner();
+  if(error){ alert('Could not update role. Please try again.'); return; }
+  await settingsLoadManagers();
+  await settingsLoadTeam();
+}
+
+async function settingsToggleSuspend(userId, suspend, role){
+  showAuthSpinner(suspend?'Suspending…':'Reinstating…');
+  const {error}=await sb.from('users').update({suspended:suspend}).eq('id',userId);
+  hideAuthSpinner();
+  if(error){ alert('Could not update status.'); return; }
+  await settingsLoadTeam();
+}
+
+function settingsAddDownlineToggle(){
+  const form=$id('settings-add-dl-form');
+  if(!form) return;
+  const isShowing = form.style.display!=='none';
+  form.style.display = isShowing?'none':'block';
+  if(!isShowing){
+    setText('settings-dl-err',''); 
+    const ok=$id('settings-dl-ok'); if(ok) ok.style.display='none';
+    ['settings-dl-name','settings-dl-username','settings-dl-country'].forEach(id=>{const el=$id(id);if(el)el.value='';});
+  }
+}
+
+async function settingsCreateDownline(){
+  const name     = ($id('settings-dl-name')?.value||'').trim();
+  const username = ($id('settings-dl-username')?.value||'').trim().toLowerCase().replace(/\s+/g,'');
+  const tz       = $id('settings-dl-tz')?.value || 'MY';
+  const country  = ($id('settings-dl-country')?.value||'').trim();
+  if(!name||!username){ setText('settings-dl-err','Name and username are required.'); return; }
+  if(!/^[a-z0-9_]+$/.test(username)){ setText('settings-dl-err','Username can only contain letters, numbers and underscores.'); return; }
+  const email = `${username}@bd4u.com`;
+  const defaultPass = 'bd4u123';
+  setText('settings-dl-err','');
+  showAuthSpinner('Creating account…');
+  try{
+    // Create Supabase auth user (admin method if available, else signUp)
+    let userId=null;
+    try{
+      const {data:au}=await sb.auth.admin?.createUser({email,password:defaultPass,email_confirm:true,user_metadata:{name}});
+      if(au?.user) userId=au.user.id;
+    }catch(e2){}
+    if(!userId){
+      const {data:su}=await sb.auth.signUp({email,password:defaultPass,options:{data:{name}}});
+      if(su?.user) userId=su.user.id;
+    }
+    if(!userId){ hideAuthSpinner(); setText('settings-dl-err','Could not create auth account. Check Supabase settings.'); return; }
+    const ini=(name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))||'??';
+    await sb.from('users').insert({id:userId,name,email,role:'downline',timezone:tz,country,initials:ini,suspended:false});
+    hideAuthSpinner();
+    const ok=$id('settings-dl-ok'); if(ok) ok.style.display='block';
+    setTimeout(()=>settingsAddDownlineToggle(),2000);
+    await settingsLoadTeam();
+  }catch(e){
+    hideAuthSpinner();
+    setText('settings-dl-err','Error: '+e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  PAST SLOT GREYING
+// ═══════════════════════════════════════════════
+function nowMYTMins(){
+  const d=new Date();
+  return ((d.getUTCHours()*60+d.getUTCMinutes())+8*60)%1440;
+}
+function todayISOStr(){
+  const d=new Date();
+  const myt=new Date(d.getTime()+8*3600*1000);
+  return myt.toISOString().slice(0,10);
+}
+function updatePastSlots(){
+  const todayIso=todayISOStr();
+  const nowMins=nowMYTMins();
+  // Grey chips
+  document.querySelectorAll('[data-end-myt]').forEach(el=>{
+    const endMyt=parseInt(el.dataset.endMyt||'0');
+    const dayIso=el.dataset.dayIso||'';
+    const isPast = dayIso<todayIso || (dayIso===todayIso && endMyt<=nowMins);
+    if(isPast){
+      if(isAdmin||isManager){ el.classList.add('sc-past-admin'); el.classList.remove('sc-past'); }
+      else { el.classList.add('sc-past'); el.classList.remove('sc-past-admin'); }
+    } else {
+      el.classList.remove('sc-past','sc-past-admin');
+    }
+  });
+  // Grey time-label cells for fully-past rows
+  document.querySelectorAll('[data-row-end-h]').forEach(el=>{
+    const endH=parseInt(el.dataset.rowEndH||el.dataset['rowEndH']||0);
+    // Use data-row-end-h attribute
+    const endMins=endH*60;
+    // Need to know which day — not in blk-tc data, but if it's past week the whole row is past
+    const isPastRow = isPastWeekGlobal || (endMins<=nowMins);
+    el.classList.toggle('tc-past', isPastRow);
+  });
+}
+// Track isPastWeek globally so updatePastSlots can use it
+let isPastWeekGlobal=false;
+
+// Run past-slot update every 30 seconds
+setInterval(updatePastSlots, 30000);
+
+// ═══════════════════════════════════════════════
+//  IN-APP NOTIFICATION BELL
+// ═══════════════════════════════════════════════
+let NOTIFICATIONS = [];
+let _notifOpen = false;
+
+function addNotification(msg, type='info'){
+  NOTIFICATIONS.unshift({ id:Date.now(), msg, type, read:false, time:new Date() });
+  renderNotifBell();
+  renderNotifList();
+}
+function renderNotifBell(){
+  const unread=NOTIFICATIONS.filter(n=>!n.read).length;
+  const badge=$id('notif-badge');
+  if(badge){ badge.textContent=unread; badge.style.display=unread>0?'flex':'none'; }
+}
+function renderNotifList(){
+  const container=$id('notif-list'); if(!container) return;
+  if(!NOTIFICATIONS.length){
+    container.innerHTML='<div class="notif-empty">No notifications yet</div>'; return;
+  }
+  const icons={booking:'✅',cancel:'❌',event:'📅',reminder:'🔔',info:'ℹ️'};
+  container.innerHTML=NOTIFICATIONS.slice(0,15).map(n=>`
+    <div class="notif-item${n.read?'':' unread'}">
+      <span class="notif-item-icon">${icons[n.type]||'🔔'}</span>
+      <div class="notif-item-body">
+        <div class="notif-item-msg">${sanitize(n.msg)}</div>
+        <div class="notif-item-time">${fmtNotifTime(n.time)}</div>
+      </div>
+    </div>`).join('');
+}
+function fmtNotifTime(d){
+  if(!d) return '';
+  const diff=Math.floor((Date.now()-new Date(d).getTime())/60000);
+  if(diff<1) return 'Just now';
+  if(diff<60) return `${diff}m ago`;
+  if(diff<1440) return `${Math.floor(diff/60)}h ago`;
+  return new Date(d).toLocaleDateString();
+}
+function toggleNotifBell(){
+  _notifOpen=!_notifOpen;
+  const drop=$id('notif-drop'); if(!drop) return;
+  if(_notifOpen){
+    const btn=$id('notif-bell-btn');
+    const rect=btn?.getBoundingClientRect()||{bottom:52,right:200};
+    drop.style.cssText=`display:block;top:${rect.bottom+6}px;right:${window.innerWidth-rect.right}px`;
+    NOTIFICATIONS.forEach(n=>n.read=true);
+    renderNotifBell();
+    renderNotifList();
+    setTimeout(()=>document.addEventListener('click',_notifOutside,{once:true}),50);
+  } else {
+    drop.style.display='none';
+  }
+}
+function _notifOutside(e){
+  const drop=$id('notif-drop'),btn=$id('notif-bell-btn');
+  if(drop&&!drop.contains(e.target)&&btn&&!btn.contains(e.target)){
+    _notifOpen=false; drop.style.display='none';
+  }
+}
+function markAllNotifRead(){
+  NOTIFICATIONS.forEach(n=>n.read=true);
+  renderNotifBell(); renderNotifList();
+  _notifOpen=false; const drop=$id('notif-drop'); if(drop) drop.style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+//  MOBILE MENU
+// ═══════════════════════════════════════════════
+function renderMobMenu(){
+  const container=$id('mob-menu-items'); if(!container) return;
+  const loggedIn=!!CURRENT_USER;
+  const items=[];
+  if(!loggedIn){
+    items.push({label:'Sign in', icon:'🔑', action:"goScreen('sc-login');closeMobMenu()"});
+  } else {
+    items.push({label:'Calendar', icon:'📅', action:"goScreen('sc-cal');closeMobMenu()"});
+    items.push({label:'My Bookings', icon:'📋', action:"goScreen('sc-mybk');closeMobMenu()"});
+    if(isAdmin) items.push({label:'Dashboard', icon:'📊', action:"goScreen('sc-admin');closeMobMenu()"});
+    if(isDev)   items.push({label:'Dev Console', icon:'🛠', action:"goScreen('sc-dev');closeMobMenu()"});
+    // TZ switcher
+    const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
+    items.push({label:`Timezone: ${tz.f} ${tz.l}`, icon:'🌐', action:"toggleMobTZPicker()"});
+    items.push({label:'My Profile', icon:'👤', action:"goScreen('sc-profile');closeMobMenu()"});
+    items.push({label:'Settings', icon:'⚙️', action:"goScreen('sc-settings');closeMobMenu()"});
+    if(CURRENT_USER?.role==='admin')
+      items.push({label:isAdmin?'Downline view':'Admin view', icon:'🔄', action:"toggleAdminMode();closeMobMenu()"});
+    items.push({label:'Sign out', icon:'⏏', action:"logout()", danger:true});
+  }
+  container.innerHTML=items.map(item=>`
+    <button type="button" onclick="${item.action}"
+      style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;border:none;background:transparent;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;color:${item.danger?'var(--red)':'rgba(255,255,255,.9)'};text-align:left;transition:background .1s;border-bottom:1px solid rgba(255,255,255,.06)"
+      onmouseover="this.style.background='rgba(255,255,255,.08)'"
+      onmouseout="this.style.background='transparent'">
+      <span style="font-size:18px;width:24px;text-align:center">${item.icon}</span>${item.label}
+    </button>`).join('');
+}
+let _mobMenuOpen=false;
+function toggleMobMenu(){
+  _mobMenuOpen=!_mobMenuOpen;
+  const menu=$id('mob-menu');
+  if(menu) menu.style.display=_mobMenuOpen?'block':'none';
+  if(_mobMenuOpen) renderMobMenu();
+}
+function closeMobMenu(){
+  _mobMenuOpen=false;
+  const menu=$id('mob-menu');
+  if(menu) menu.style.display='none';
+}
+function toggleMobTZPicker(){
+  closeMobMenu();
+  toggleTZDropdown();
+}
+
+// ═══════════════════════════════════════════════
+//  PROFILE DROPDOWN
+// ═══════════════════════════════════════════════
+function toggleProfileDropdown(){
+  const dd=$id('profile-dropdown'), btn=$id('profile-nav-btn');
+  if(!dd||!btn) return;
+  const isOpen=dd.style.display==='block';
+  if(isOpen){ closeProfileDropdown(); return; }
+  const rect=btn.getBoundingClientRect();
+  dd.style.display='block';
+  dd.style.top=(rect.bottom+6)+'px';
+  const rightPos=window.innerWidth-rect.right;
+  dd.style.right=rightPos+'px';
+  dd.style.left='auto';
+  setTimeout(()=>document.addEventListener('click',_profileDDOutside,{once:true}),10);
+}
+function closeProfileDropdown(){
+  const dd=$id('profile-dropdown'); if(dd) dd.style.display='none';
+}
+function _profileDDOutside(e){
+  const wrap=$id('profile-nav-wrap');
+  if(wrap&&!wrap.contains(e.target)) closeProfileDropdown();
+}
+
+// ═══════════════════════════════════════════════
+//  LOGO EASTER EGG — tap 5× to reveal dev login
+// ═══════════════════════════════════════════════
+let _logoTaps=0, _logoTimer=null;
+function navLogoClick(){
+  _logoTaps++;
+  clearTimeout(_logoTimer);
+  if(_logoTaps>=5){
+    _logoTaps=0;
+    // Reveal developer tab
+    const loginScreen=$id('sc-login');
+    if(!loginScreen) return;
+    const devForm=$id('login-dev');
+    if(devForm){
+      devForm.style.display='block';
+      // Add dev tab button if not already there
+      const devTab=document.querySelector('.role-tab[data-role="developer"]');
+      if(!devTab){
+        const tabs=document.querySelector('.role-tabs');
+        if(tabs){
+          const btn=document.createElement('button');
+          btn.type='button'; btn.className='role-tab';
+          btn.setAttribute('data-role','developer');
+          btn.textContent='🛠 Dev';
+          btn.onclick=()=>switchLoginRole('dev',btn);
+          tabs.appendChild(btn);
+        }
+      }
+      switchLoginRole('dev',document.querySelector('.role-tab[data-role="developer"]'));
+    }
+  }
+  _logoTimer=setTimeout(()=>{ _logoTaps=0; },800);
+}
+
+// ═══════════════════════════════════════════════
+//  FORGOT PASSWORD (username-based)
+// ═══════════════════════════════════════════════
+async function forgotPasswordByUsername(){
+  const unEl=$id('user-username');
+  const username=(unEl?.value||'').trim();
+  if(!username){ setLoginError('user','Enter your username above first, then click Forgot password.'); return; }
+  const email=usernameToEmail(username,'user');
+  showAuthSpinner('Sending reset email…');
+  const { error } = await sb.auth.resetPasswordForEmail(email,{
+    redirectTo: window.location.origin+window.location.pathname,
+  });
+  hideAuthSpinner();
+  if(error){ setLoginError('user','Could not send reset email: '+error.message); }
+  else { setLoginError('user',''); alert('✅ Password reset email sent. Check your inbox.'); }
+}
+
+// ═══════════════════════════════════════════════
+//  DEVELOPER CONSOLE FUNCTIONS
+// ═══════════════════════════════════════════════
+async function renderDevConsole(){
+  // Load users
+  devLoadUsers();
+  devLoadSlotCount();
+  // Check DB status
+  try {
+    const {error}=await sb.from('users').select('id',{count:'exact',head:true});
+    setText('dev-supabase-status', error?'⚠ DB error':'✅ DB connected · Singapore');
+  } catch(e){ setText('dev-supabase-status','⚠ DB offline'); }
+}
+async function devLoadUsers(){
+  const container=$id('dev-users-list'); if(!container) return;
+  container.innerHTML='<div style="color:var(--g400);font-size:12px">Loading…</div>';
+  const {data,error}=await sb.from('users').select('id,name,email,role,timezone,suspended').order('role');
+  if(error||!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">Failed to load users</div>'; return; }
+  container.innerHTML=`<table style="width:100%;font-size:12px;border-collapse:collapse">
+    <tr style="border-bottom:1px solid var(--g200)">
+      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Name</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Email</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Role</th>
+      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">TZ</th>
+      <th style="padding:6px 8px"></th>
+    </tr>
+    ${data.map(u=>`<tr style="border-bottom:1px solid var(--g100)${u.suspended?';opacity:.5':''}">
+      <td style="padding:7px 8px;font-weight:600;color:var(--navy)">${sanitize(u.name)}</td>
+      <td style="padding:7px 8px;color:var(--g500)">${sanitize(u.email)}</td>
+      <td style="padding:7px 8px"><span style="background:${u.role==='developer'?'var(--navy)':u.role==='admin'?'var(--reneeLt)':'var(--tealLt)'};color:${u.role==='developer'?'#fff':u.role==='admin'?'var(--renee)':'var(--teal)'};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${u.role}</span></td>
+      <td style="padding:7px 8px;color:var(--g500)">${u.timezone}</td>
+      <td style="padding:7px 8px;display:flex;gap:4px">
+        ${u.role!=='developer'?`<button type="button" class="btn btn-danger btn-xs" onclick="devSuspendUser('${u.id}','${u.name}',${!u.suspended})">${u.suspended?'Unsuspend':'Suspend'}</button>
+        <button type="button" class="btn btn-outline btn-xs" onclick="devDeleteUser('${u.id}','${u.name}')">Delete</button>`:'<span style="font-size:10px;color:var(--g400)">protected</span>'}
+      </td>
+    </tr>`).join('')}
+  </table>`;
+}
+async function devCreateUser(){
+  const username=($id('dev-new-username')?.value||'').trim().toLowerCase();
+  const name=($id('dev-new-name')?.value||'').trim();
+  const role=$id('dev-new-role')?.value||'downline';
+  const tz=$id('dev-new-tz')?.value||'MY';
+  const err=$id('dev-create-err'), res=$id('dev-create-result');
+  if(err){err.textContent='';err.classList.remove('on');}
+  if(!username){if(err){err.textContent='Please enter a username.';err.classList.add('on');}return;}
+  if(!name){if(err){err.textContent='Please enter a full name.';err.classList.add('on');}return;}
+  const email=`${username}@bd4u.com`;
+  const defaultPw='bd4u123';
+  showAuthSpinner('Creating account…');
+  // Create auth user via Supabase admin — use service key approach via edge function
+  // For now use the signup endpoint with auto-confirm
+  const {data:authData,error:authErr}=await sb.auth.admin?.createUser({
+    email, password:defaultPw, email_confirm:true
+  }).catch(()=>({data:null,error:{message:'Admin API not available'}})) || {data:null,error:{message:'Admin API not available'}};
+  // Fallback: use signUp (user must confirm email)
+  let userId=authData?.user?.id;
+  if(!userId){
+    const {data:su,error:suErr}=await sb.auth.signUp({email,password:defaultPw,options:{emailRedirectTo:null}});
+    if(suErr||!su?.user){hideAuthSpinner();if(err){err.textContent='Could not create auth account: '+(suErr?.message||'unknown error');err.classList.add('on');}return;}
+    userId=su.user.id;
+  }
+  // Insert profile
+  const initials=name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const {error:profErr}=await sb.from('users').insert({
+    id:userId,email,name,role,timezone:tz,initials,country:tz,suspended:false,sessions_booked:0,sessions_hosted:0
+  });
+  hideAuthSpinner();
+  if(profErr){if(err){err.textContent='Account auth created but profile failed: '+profErr.message;err.classList.add('on');}return;}
+  if(res) res.textContent=`✅ Created: username="${username}" · password="bd4u123" · email="${email}"`;
+  if($id('dev-new-username')) $id('dev-new-username').value='';
+  if($id('dev-new-name')) $id('dev-new-name').value='';
+  devLoadUsers();
+}
+async function devSuspendUser(id,name,suspend){
+  if(!confirm(`${suspend?'Suspend':'Unsuspend'} "${name}"?`)) return;
+  showAuthSpinner(suspend?'Suspending…':'Unsuspending…');
+  await sb.from('users').update({suspended}).eq('id',id);
+  hideAuthSpinner(); devLoadUsers();
+}
+async function devDeleteUser(id,name){
+  if(!confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
+  showAuthSpinner('Deleting…');
+  await sb.from('users').delete().eq('id',id);
+  hideAuthSpinner(); devLoadUsers();
+}
+async function devLoadSlotCount(){
+  const {count}=await sb.from('schedule').select('id',{count:'exact',head:true});
+  setText('dev-slot-count',`${count||0} total slots in database`);
+}
+async function devClearWeekSlots(){
+  if(!confirm(`Clear all av + blocked slots for week ${WEEK_DAYS[0]?.iso} to ${WEEK_DAYS[6]?.iso}? Booked sessions are kept.`)) return;
+  showAuthSpinner('Clearing week slots…');
+  await sb.from('schedule').delete()
+    .in('status',['av','blocked'])
+    .gte('day_date',WEEK_DAYS[0]?.iso)
+    .lte('day_date',WEEK_DAYS[6]?.iso);
+  await reloadWeekSchedule();
+  hideAuthSpinner();
+  devLoadSlotCount();
+}
+async function devExportCSV(){
+  showAuthSpinner('Exporting…');
+  const {data}=await sb.from('schedule').select('*').order('day_date').order('start_myt');
+  hideAuthSpinner();
+  if(!data||!data.length){alert('No data to export.');return;}
+  const keys=Object.keys(data[0]);
+  const csv=[keys.join(','),...data.map(r=>keys.map(k=>JSON.stringify(r[k]??'')).join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`bd4u_bookings_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+async function devResetPassword(){
+  const uEl=$id('dev-reset-username');
+  const username=(uEl?.value||'').trim();
+  if(!username){alert('Enter a username.');return;}
+  const email=usernameToEmail(username,'user');
+  showAuthSpinner('Sending reset…');
+  const {error}=await sb.auth.resetPasswordForEmail(email);
+  hideAuthSpinner();
+  alert(error?'Error: '+error.message:`✅ Password reset sent to ${email}`);
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 window.addEventListener('load', async ()=>{
   _lastMob=isMob();
-  // Safety alias for backward compat with any slots using presenter:'admin'
-  USERS.admin = USERS.renee;
-  // Set CURRENT_USER id on objects for easier referencing
-  Object.entries(USERS).forEach(([k,u])=>u.id=k);
+  // USERS object is now empty — all user data from Supabase DB
 
   // Check if user already has an active Supabase session (e.g. after page refresh)
   showAuthSpinner('Loading…');
@@ -4580,11 +5193,13 @@ window.addEventListener('load', async ()=>{
           initials:  profile.initials || profile.name.slice(0,2).toUpperCase(),
           sessionsBooked: profile.sessions_booked || 0,
           sessionsHosted: profile.sessions_hosted || 0,
-          color: profile.role==='admin' ? 'var(--renee)' : 'var(--teal)',
-          bg:    profile.role==='admin' ? 'var(--reneeLt)' : 'var(--tealLt)',
+          color: profile.role==='developer'?'var(--navy)':profile.role==='admin' ? 'var(--renee)' : 'var(--teal)',
+          bg:    profile.role==='developer'?'var(--g100)':profile.role==='admin' ? 'var(--reneeLt)' : 'var(--tealLt)',
         };
-        isAdmin  = profile.role === 'admin';
-        activeTZ = CURRENT_USER.tz;
+        isAdmin   = profile.role === 'admin' || profile.role === 'developer';
+        isManager = profile.role === 'manager';
+        isDev     = profile.role === 'developer';
+        activeTZ  = CURRENT_USER.tz;
         // Load schedule for restored session
         setText('auth-spinner-txt', 'Loading calendar…');
         await loadScheduleFromDB();
@@ -4596,19 +5211,126 @@ window.addEventListener('load', async ()=>{
   renderTZBar(); renderNavFlags();
   updateRoleUI();
   loadSettingsPrefs();
-  if(CURRENT_USER){ goScreen('sc-cal'); }
+  if(CURRENT_USER){ goScreen(isDev?'sc-dev':'sc-cal'); }
   else { goScreen('sc-login'); }
   updateNavBtns();
   const searchEl=$id('admin-search');
   if(searchEl) searchEl.addEventListener('input',e=>renderAdminTable(e.target.value.toLowerCase()));
 });
 window.addEventListener('resize',()=>{
-  const mob=isMob(); if(mob!==_lastMob){_lastMob=mob; renderCalendar();}
+  const mob=isMob(); if(mob!==_lastMob){_lastMob=mob; updateRoleUI(); renderCalendar();}
 });
 
 
 </script>
-<!-- ═══ BOTTOM SHEET ACTION MENU (admin hour chip) ═══ -->
+<!-- ════════ DEVELOPER CONSOLE ════════ -->
+<div id="sc-dev" class="screen">
+  <div class="main-content">
+    <main class="main">
+      <div class="schedule-wrap">
+        <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
+          <div>
+            <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v50 · Full system access · Louis only</div>
+          </div>
+          <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
+        </div>
+
+        <!-- Users section -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">👥 Users</div>
+            <!-- Create account -->
+            <div style="background:var(--g50);border-radius:var(--r);padding:14px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">Create new account</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-username">Username</label><input class="fc" type="text" id="dev-new-username" placeholder="e.g. ali_my"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-name">Full name</label><input class="fc" type="text" id="dev-new-name" placeholder="Ali Rahman"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-role">Role</label>
+                  <select class="fc" id="dev-new-role">
+                    <option value="downline">Downline</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-tz">Timezone</label>
+                  <select class="fc" id="dev-new-tz">
+                    <option value="MY">MY — MYT</option>
+                    <option value="SG">SG — SGT</option>
+                    <option value="ID">ID — WIB</option>
+                    <option value="AU">AU — AEST</option>
+                    <option value="CN">CN — CST</option>
+                  </select>
+                </div>
+              </div>
+              <div class="login-err" id="dev-create-err"></div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="devCreateUser()">Create account</button>
+              <div id="dev-create-result" style="margin-top:8px;font-size:12px;color:var(--teal);font-weight:600"></div>
+            </div>
+            <!-- All users list -->
+            <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px">All users</div>
+            <div id="dev-users-list"><div style="color:var(--g400);font-size:12px">Loading…</div></div>
+          </div>
+        </div>
+
+        <!-- Database section -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">🗄️ Database</div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">All schedule slots</div><div class="settings-row-sub" id="dev-slot-count">—</div></div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="devLoadSlotCount()">Refresh</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Clear slots for current week</div><div class="settings-row-sub">Removes all av + blocked slots (keeps bookings)</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="devClearWeekSlots()">Clear week</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Export all bookings as CSV</div><div class="settings-row-sub">Downloads all bookings from DB</div></div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="devExportCSV()">Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- DB Migration card -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title">🗄 DB Migration — v48</div>
+            <div style="font-size:12px;color:var(--g500);margin-bottom:10px">Run this SQL once in the Supabase dashboard → SQL Editor to enable v48 features (notification prefs columns).</div>
+            <pre style="background:var(--navy);color:#A8F0D0;border-radius:var(--r);padding:12px;font-size:11px;white-space:pre-wrap;overflow-x:auto;margin-bottom:10px">ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_whatsapp BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;</pre>
+            <button type="button" class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_whatsapp BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').then(()=>alert('SQL copied!'))">📋 Copy SQL</button>
+          </div>
+        </div>
+
+        <!-- App section -->
+        <div class="card">
+          <div class="card-b">
+            <div class="settings-section-title">⚙️ App</div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Maintenance mode</div><div class="settings-row-sub">Shows maintenance message to all users</div></div>
+              <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v50</div></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Reset password for user</div><div class="settings-row-sub">Enter username to send reset</div></div>
+              <div style="display:flex;gap:6px">
+                <input type="text" class="fc" id="dev-reset-username" placeholder="username" style="width:120px;padding:6px 10px;font-size:12px">
+                <button type="button" class="btn btn-outline btn-sm" onclick="devResetPassword()">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
 <div class="bsheet-overlay" id="bsheet-overlay" onclick="if(event.target===this)closeBSheet()">
   <div class="bsheet" id="bsheet">
     <div class="bsheet-hdr">
@@ -4673,9 +5395,9 @@ window.addEventListener('resize',()=>{
       <div>
         <div class="qopen-sec-lbl">Custom time range (MYT)</div>
         <div class="qopen-time-row">
-          <input type="text" class="fc" id="qopen-start" placeholder="e.g. 10am" oninput="updateQOpenSummary()">
+          <input type="text" class="fc" id="qopen-start" aria-label="Start time" placeholder="e.g. 10am" oninput="updateQOpenSummary()">
           <span class="qopen-time-sep">to</span>
-          <input type="text" class="fc" id="qopen-end" placeholder="e.g. 6pm" oninput="updateQOpenSummary()">
+          <input type="text" class="fc" id="qopen-end" aria-label="End time" placeholder="e.g. 6pm" oninput="updateQOpenSummary()">
         </div>
       </div>
       <!-- Day picker -->
