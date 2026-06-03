@@ -14,7 +14,7 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v53 — New nav, username login, dev console, no sidebar, logo B
+   BD4U Book v54 — New nav, username login, dev console, no sidebar, logo B
    Remove Manage Schedule, add Settings screen,
    fix Add to schedule modal, fix all hardcoded data,
    Add button in toolbar, full page cleanup
@@ -237,9 +237,9 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-warn{font-size:8px;color:var(--warn);background:var(--warnLt);padding:1px 4px;border-radius:3px;display:block;margin-top:2px}
 /* Event block */
 .sc-event-block{border-radius:5px;padding:4px 6px;background:var(--evtLt);border:1.5px solid var(--evtB);color:var(--evt);width:100%;display:flex;flex-direction:column;gap:1px;min-height:20px;min-width:0;overflow:hidden}
-.sc-event-block.span-top{border-radius:5px 5px 0 0;border-bottom:none;padding-bottom:2px}
-.sc-event-block.span-mid{border-radius:0;border-top:1px dashed var(--evtB);border-bottom:none;padding:2px 6px;flex:1;min-height:24px}
-.sc-event-block.span-bot{border-radius:0 0 5px 5px;border-top:1px dashed var(--evtB);border-bottom:1.5px solid var(--evtB);padding-top:2px;flex:1;min-height:24px}
+.sc-event-block.span-top{border-radius:5px 5px 0 0;border-bottom:none;padding-bottom:2px;flex:1;align-self:stretch}
+.sc-event-block.span-mid{border-radius:0;border-top:1px dashed var(--evtB);border-bottom:none;flex:1;align-self:stretch;padding:2px 6px;flex:1;min-height:24px}
+.sc-event-block.span-bot{border-radius:0 0 5px 5px;border-top:1px dashed var(--evtB);flex:1;align-self:stretch;border-bottom:1.5px solid var(--evtB);padding-top:2px;flex:1;min-height:24px}
 .sc-event-name{font-size:10px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .sc-event-time{font-size:8.5px;font-family:var(--mono);opacity:.75;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 /* Blocked */
@@ -1387,7 +1387,7 @@ tr:hover td{background:var(--g50)}
             <div class="settings-row">
               <div>
                 <div class="settings-row-lbl">Version</div>
-                <div class="settings-row-sub">BD4U Book v53</div>
+                <div class="settings-row-sub">BD4U Book v54</div>
               </div>
             </div>
             <div style="margin-top:14px">
@@ -1722,7 +1722,7 @@ function makeLabel(slot){
   if(slot.type==='event')   return slot.label||'Event';
   if(slot.type==='blocked') return slot.reason||'Unavailable';
   if(slot.type==='private') return slot.label||'Training Section';
-  if(slot.status==='av')    return 'Available';
+  if(slot.status==='av'){  if(slot.type==='meet') return 'Available - 20min PV';  return 'Available - 15min ZM'; }
   if(slot.status==='full')  return '🚫 Full';
 
   // Use DB joined names if available, fall back to USERS lookup
@@ -1765,7 +1765,7 @@ function slotChipCls(slot){
   if(slot.type==='event')   return ''; // rendered as sc-event-block
   if(slot.type==='blocked') return ''; // rendered as sc-blocked
   if(slot.type==='private') return slot.status==='mine'?'sc-private sc-private-mine':'sc-private';
-  if(slot.status==='av')    return mgr ? 'sc sc-av-manager'    : 'sc sc-av-zoom';
+  if(slot.status==='av'){  if(slot.type==='meet') return 'sc sc-av-meet';  return mgr ? 'sc sc-av-manager' : 'sc sc-av-zoom'; }
   if(slot.status==='mine')  return mgr ? 'sc sc-mine-manager'  : 'sc sc-mine-zoom';
   return mgr ? 'sc sc-booked-manager' : 'sc sc-booked-zoom';
 }
@@ -2104,7 +2104,11 @@ function setActiveTZ(key){
   setText('mybk-ph-s',`Your sessions with Renee & Gus · Times in ${str}`);
   renderCalendar(); renderBookForm(); renderMyBookings();
   if(panelOpen&&panelDay) renderPanel(panelDay);
-  // Update profile TZ selector if open
+  // Update profile TZ selector if open — direct DOM update for immediate visual feedback
+  document.querySelectorAll('.tz-pill').forEach(btn=>{
+    const k=btn.dataset.tz||btn.getAttribute('data-tz');
+    if(k){ btn.classList.toggle('tz-sel',k===key); }
+  });
   const sc=$id('sc-profile');
   if(sc&&sc.classList.contains('on')) renderProfile();
 }
@@ -2398,10 +2402,14 @@ function renderDesktopCal(){
             let chipOnclick='';
             if(isAdmin) chipOnclick=`onclick="openSA(${idx})"`;
             else if(isMine) chipOnclick=`onclick="goScreen('sc-mybk')"`;
-            html+=`<button type="button" class="sc-private${isMine?' sc-private-mine':''}${isCancelled?' sc-cancelled':''}" ${chipOnclick}
+            const privDelBtn=(isAdmin||isManager)&&slot.status==='av'&&slot._id
+              ?`<button type="button" onclick="event.stopPropagation();deletePrivateSlot('${slot._id}')" style="position:absolute;top:2px;right:2px;background:rgba(79,70,229,.15);border:none;border-radius:3px;cursor:pointer;font-size:9px;padding:1px 4px;color:var(--indigo)">✕</button>`
+              :'';
+            html+=`<button type="button" class="sc-private${isMine?' sc-private-mine':''}${isCancelled?' sc-cancelled':''}" style="position:relative" ${chipOnclick}
               title="${sanitize(label)}">
               <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(label)}</span>
               <span class="sc-time">${tRange}</span>
+              ${privDelBtn}
             </button>`;
             return;
           }
@@ -2437,11 +2445,12 @@ function renderDesktopCal(){
           const chipSub  = slot.status==='av'
             ? `<span class="sc-time">✓ Available</span>`
             : `<span class="sc-time">${tRange}</span>`;
+          const avSub = slot.status==='av' ? `<span class="sc-sub" style="font-size:9px;opacity:.75">${sanitize(tz.f)} ${sanitize(sT)}</span>` : chipSub;
           html+=`<button type="button" class="${cls}" ${onclick}
             data-end-myt="${slot.endMyt}" data-day-iso="${WEEK_DAYS[slot.dayIdx]?.iso||''}"
             title="${sanitize(label)}" aria-label="${sanitize(label)}">
             <span class="sc-label">${chipTop}</span>
-            ${chipSub}
+            ${avSub}
           </button>`;
         });
         // Admin occupancy
@@ -3744,6 +3753,11 @@ function filterRows(q){
     if(uplineFilter==='renee'&&s.presenter!=='renee') return false;
     if(uplineFilter==='gus'&&s.presenter!=='gus') return false;
     return true;
+  }).sort((a,b)=>{
+    const ia=a.day_date||WEEK_DAYS[a.dayIdx]?.iso||'';
+    const ib=b.day_date||WEEK_DAYS[b.dayIdx]?.iso||'';
+    if(ia!==ib) return ia<ib?-1:1;
+    return a.startMyt-b.startMyt;
   });
 }
 function renderAdminTable(q=''){
@@ -3971,7 +3985,8 @@ async function cellPopOpenForBooking(){
 async function cellPopOpenForPrivate(){
   const di=_cellPopDayIdx, sh=_cellPopStartH; closeCellPop();
   if(di===null||sh===null) return;
-  const existing=SCHEDULE.filter(s=>s.type==='private'&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
+  // Look for existing 'meet' av slots (bookable 20-min) OR old 'private' av slots
+  const existing=SCHEDULE.filter(s=>(s.type==='meet'||s.type==='private')&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
   if(existing.length){
     showAuthSpinner('Removing slots…');
     for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
@@ -4041,7 +4056,7 @@ function renderAddModal(){
     <div class="type-sel-card${t==='event'?' on-event':''}" id="add-type-event" onclick="setAddType('event')">
       <div class="type-sel-icon">🔴</div><div class="type-sel-name">Event</div></div>
     <div class="type-sel-card${t==='private'?' on-private':''}" id="add-type-private" onclick="setAddType('private')">
-      <div class="type-sel-icon">🟣</div><div class="type-sel-name">Private Meet</div></div>
+      <div class="type-sel-icon" style="background:var(--indigoLt);color:var(--indigo)">🎓</div><div class="type-sel-name">Training Section</div></div>
   </div>`);
   setAddType(t);
 }
@@ -4069,7 +4084,7 @@ async function confirmAdd(){
   } else if(addModalType==='private'){
     const lEl=$id('add-private-label');
     rows.push({type:'private',status:'booked',day_date:iso,start_myt:sMin,end_myt:eMin,
-      label:lEl?lEl.value||'Private Meeting':'Private Meeting',user_id:null,presenter_id:null,cancelled:false});
+      label:lEl?lEl.value||'Training Section':'Training Section',user_id:null,presenter_id:null,cancelled:false});
   }
   closeAddModal();
   showAuthSpinner('Saving…');
@@ -4353,13 +4368,14 @@ async function bsheetZoom(){
 async function bsheetPrivate(){
   const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
   if(di===null||sh===null) return;
-  const existing=SCHEDULE.filter(s=>s.type==='private'&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
+  // Check for both type='meet' (new) and type='private' (legacy) av slots
+  const existing=SCHEDULE.filter(s=>(s.type==='meet'||s.type==='private')&&s.status==='av'&&s.dayIdx===di&&Math.floor(s.startMyt/60)===sh);
   if(existing.length){
     showAuthSpinner('Removing slots…');
     for(const s of existing){ if(s._id) await adminHardDelete(s._id); }
     await reloadWeekSchedule(); hideAuthSpinner();
   } else {
-    const slots=[0,20,40].map(min=>({type:'private',status:'av',dayIdx:di,startMyt:sh*60+min,endMyt:sh*60+min+20,label:'Private Meeting',user_id:null,presenter_id:null}));
+    const slots=[0,20,40].map(min=>({type:'meet',status:'av',dayIdx:di,startMyt:sh*60+min,endMyt:sh*60+min+20,label:null,user_id:null,presenter_id:null}));
     await adminInsertAndReload(slots);
   }
   if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
@@ -4843,8 +4859,12 @@ async function settingsCreateDownline(){
       if(au?.user) userId=au.user.id;
     }catch(e2){}
     if(!userId){
+      // Save admin session before signUp (signUp hijacks current session in Supabase SDK)
+      const {data:{session:adminSess}}=await sb.auth.getSession();
       const {data:su}=await sb.auth.signUp({email,password:defaultPass,options:{data:{name}}});
       if(su?.user) userId=su.user.id;
+      // Restore admin session immediately
+      if(adminSess) await sb.auth.setSession(adminSess);
     }
     if(!userId){ hideAuthSpinner(); setText('settings-dl-err','Could not create auth account. Disable email confirmation in Supabase Auth settings, then try again.'); return; }
     const ini=(name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))||'??';
@@ -4958,6 +4978,21 @@ function markAllNotifRead(){
   NOTIFICATIONS.forEach(n=>n.read=true);
   renderNotifBell(); renderNotifList();
   _notifOpen=false; const drop=$id('notif-drop'); if(drop) drop.style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+//  DELETE PRIVATE (TRAINING SECTION) SLOT
+// ═══════════════════════════════════════════════
+async function deletePrivateSlot(dbId){
+  if(!dbId) return;
+  if(!confirm('Delete this Training Section slot?')) return;
+  showAuthSpinner('Deleting…');
+  await adminHardDelete(dbId);
+  const idx=SCHEDULE.findIndex(s=>s._id===dbId);
+  if(idx>=0) SCHEDULE.splice(idx,1);
+  hideAuthSpinner();
+  renderCalendar();
+  if(panelOpen&&panelDay!==null) renderPanel(panelDay);
 }
 
 // ═══════════════════════════════════════════════
@@ -5307,7 +5342,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v53 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v54 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -5388,7 +5423,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
               <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v53</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v54</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
@@ -5498,7 +5533,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
         <div class="qopen-sec-lbl">Slot type</div>
         <div class="qopen-types">
           <button type="button" class="qopen-type on-zoom" id="qt-zoom" onclick="setQType('zoom15')">🔵 15-min Zoom</button>
-          <button type="button" class="qopen-type" id="qt-private" onclick="setQType('private')">🟣 Private Meet</button>
+          <button type="button" class="qopen-type" id="qt-private" onclick="setQType('private')">🎓 Training Section</button>
         </div>
       </div>
       <!-- Summary -->
