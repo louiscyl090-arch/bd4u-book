@@ -14,7 +14,7 @@
 </script>
 <style>
 /* ═══════════════════════════════════════════════════
-   BD4U Book v52 — New nav, username login, dev console, no sidebar, logo B
+   BD4U Book v53 — New nav, username login, dev console, no sidebar, logo B
    Remove Manage Schedule, add Settings screen,
    fix Add to schedule modal, fix all hardcoded data,
    Add button in toolbar, full page cleanup
@@ -974,7 +974,7 @@ tr:hover td{background:var(--g50)}
             <div class="ph-t">My Profile</div>
             <div class="ph-s">Manage your account, timezone and preferences</div>
           </div>
-          <button type="button" class="btn btn-outline btn-sm" onclick="history.back()">← Back</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="goScreen('sc-cal')">← Back</button>
         </div>
         <!-- Hero banner -->
         <div class="profile-hero" style="margin-bottom:20px">
@@ -1387,7 +1387,7 @@ tr:hover td{background:var(--g50)}
             <div class="settings-row">
               <div>
                 <div class="settings-row-lbl">Version</div>
-                <div class="settings-row-sub">BD4U Book v52</div>
+                <div class="settings-row-sub">BD4U Book v53</div>
               </div>
             </div>
             <div style="margin-top:14px">
@@ -1497,7 +1497,7 @@ tr:hover td{background:var(--g50)}
           <!-- Desktop: table -->
           <div class="tbl-wrap desktop-cal">
             <table>
-              <thead><tr><th>Booking label</th><th>MYT</th><th>User TZ</th><th>Admin In-charge</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Booking label</th><th>MYT</th><th>Date</th><th>Admin In-charge</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody id="admin-tbl-body"></tbody>
             </table>
           </div>
@@ -2288,6 +2288,7 @@ function renderDesktopCal(){
   const activeRows=getActiveRows();
   // Build sticky date header (injected into #cal-date-hdr outside scroll container)
   const todayStr = todayISOStr(); // use ISO string for reliable today comparison
+  const nowMins  = nowMYTMins();   // current MYT minutes — v53 fix (was missing, caused render crash)
   let hdrHtml = '<div class="cal-dhdr-tc">MYT</div>';
   WEEK_DAYS.forEach((d,di)=>{
     const isTodayCol = d.iso === todayStr;
@@ -3732,9 +3733,10 @@ function filterRows(q){
   return weekSlots().filter(s=>{
     if(s.status!=='booked'&&s.status!=='mine') return false;
     if(s.type==='event') return false;
-    // Hide past bookings (already happened)
-    if(s.day_date<todayStr) return false;
-    if(s.day_date===todayStr&&s.endMyt<=nowMins) return false;
+    // Hide past bookings — use WEEK_DAYS.iso as reliable fallback (s.day_date may be undefined)
+    const slotIso=s.day_date||WEEK_DAYS[s.dayIdx]?.iso||'';
+    if(slotIso<todayStr) return false;
+    if(slotIso===todayStr&&s.endMyt<=nowMins) return false;
     if(q&&!makeLabel(s).toLowerCase().includes(q)) return false;
     if(uplineFilter==='assigned'&&!s.presenter) return false;
     if(uplineFilter==='pending'&&s.presenter) return false;
@@ -3770,7 +3772,7 @@ function renderAdminTable(q=''){
     return`<tr>
       <td class="td-b">${sanitize(slotTypeIcon(r.type))} ${sanitize(makeLabel(r))}</td>
       <td class="td-m">${sanitize(d.n)} ${sanitize(mytTimeStr(r.startMyt))}–${sanitize(mytTimeStr(r.endMyt))}</td>
-      <td class="td-m">${sanitize(userTzStr)}</td>
+      <td class="td-m">${sanitize((WEEK_DAYS[r.dayIdx]?.n||'')+' '+( WEEK_DAYS[r.dayIdx]?.d||'')+' '+( WEEK_DAYS[r.dayIdx]?.m||''))}</td>
       <td>${makeAssignBtns(r)}</td>
       <td>${statusBdg}</td>
       <td><div style="display:flex;gap:4px">
@@ -3789,7 +3791,7 @@ function renderAdminTable(q=''){
     return`<div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--rLg);padding:12px 13px;margin-bottom:8px${isCancelled?';opacity:0.6':''}">
       <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">${sanitize(slotTypeIcon(r.type))} ${sanitize(makeLabel(r))}</div>
       <div style="font-size:11px;font-family:var(--mono);color:var(--g500);margin-bottom:8px">
-        🇲🇾 ${sanitize(mytTimeStr(r.startMyt))} · ${sanitize(userTz.f)} ${sanitize(uStart)}
+        📅 ${sanitize((WEEK_DAYS[r.dayIdx]?.n||'')+', '+(WEEK_DAYS[r.dayIdx]?.d||'')+' '+(WEEK_DAYS[r.dayIdx]?.m||''))} · 🇲🇾 ${sanitize(mytTimeStr(r.startMyt))}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between">
         <div>${makeAssignBtns(r)}</div>
@@ -5305,7 +5307,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v52 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v53 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -5386,7 +5388,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
               <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v52</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v53</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
