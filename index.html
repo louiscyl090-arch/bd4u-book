@@ -4628,13 +4628,92 @@ function renderDayStrip(){
 }
 
 // ── Panel ────────────────────────────────────
-function openPanel(dayNum){
-  panelDay=dayNum; renderPanel(dayNum);
-  const ov=$id('panel-overlay'), pn=$id('day-panel');
-  if(ov)ov.classList.add('on'); if(pn)pn.classList.add('on');
-  panelOpen=true; document.body.style.overflow='hidden';
-  const cp=$id('cal-prompt'); if(cp)cp.style.display='none';
+// ═══ v59 STEP 0 — DIAGNOSTIC INSTRUMENTATION (TEMPORARY — REMOVE AFTER BUG FOUND) ═══
+function _dbgPanelLog(msg){
+  let box = document.getElementById('_dbg-panel-log');
+  if(!box){
+    box = document.createElement('div');
+    box.id = '_dbg-panel-log';
+    box.style.cssText = 'position:fixed;top:60px;left:8px;right:8px;background:#FFF8E1;border:2px solid #FFA000;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;color:#5D4037;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,0.18);line-height:1.6;white-space:pre-wrap;word-wrap:break-word;max-height:60vh;overflow-y:auto';
+    document.body.appendChild(box);
+  }
+  if(box._fadeTimer) clearTimeout(box._fadeTimer);
+  if(box._removeTimer) clearTimeout(box._removeTimer);
+  box.style.opacity = '1';
+  box.style.display = 'block';
+  box.textContent = (box.textContent || '') + msg + '\n';
+  box._fadeTimer = setTimeout(() => {
+    box.style.transition = 'opacity 0.4s';
+    box.style.opacity = '0';
+    box._removeTimer = setTimeout(() => { if(box.parentNode) box.remove(); }, 450);
+  }, 8000);
 }
+function openPanel(dayNum){
+  // Clear any previous debug log so each tap starts fresh
+  const oldBox = document.getElementById('_dbg-panel-log');
+  if(oldBox) oldBox.remove();
+
+  _dbgPanelLog('1️⃣ openPanel(' + dayNum + ') called');
+  panelDay = dayNum;
+
+  try {
+    renderPanel(dayNum);
+    _dbgPanelLog('2️⃣ renderPanel done');
+  } catch(e) {
+    _dbgPanelLog('❌ renderPanel THREW: ' + (e && e.message ? e.message : String(e)));
+    return;
+  }
+
+  let ov, pn;
+  try {
+    ov = $id('panel-overlay');
+    pn = $id('day-panel');
+    _dbgPanelLog('3️⃣ ov=' + (ov?'YES':'NO') + ', pn=' + (pn?'YES':'NO'));
+  } catch(e) {
+    _dbgPanelLog('❌ $id THREW: ' + (e && e.message ? e.message : String(e)));
+    return;
+  }
+
+  if(ov){
+    try {
+      ov.classList.add('on');
+      _dbgPanelLog('4️⃣ overlay .on added');
+    } catch(e) {
+      _dbgPanelLog('❌ ov.classList.add THREW: ' + (e && e.message ? e.message : String(e)));
+      return;
+    }
+  } else {
+    _dbgPanelLog('⚠️ ov was null — skipped');
+  }
+
+  if(pn){
+    try {
+      pn.classList.add('on');
+      _dbgPanelLog('5️⃣ panel .on added');
+    } catch(e) {
+      _dbgPanelLog('❌ pn.classList.add THREW: ' + (e && e.message ? e.message : String(e)));
+      return;
+    }
+  } else {
+    _dbgPanelLog('⚠️ pn was null — skipped');
+  }
+
+  panelOpen = true;
+  _dbgPanelLog('6️⃣ panelOpen=true');
+
+  try {
+    document.body.style.overflow = 'hidden';
+    _dbgPanelLog('7️⃣ body scroll locked');
+  } catch(e) {
+    _dbgPanelLog('❌ body lock THREW: ' + (e && e.message ? e.message : String(e)));
+    return;
+  }
+
+  const cp = $id('cal-prompt');
+  if(cp) cp.style.display = 'none';
+  _dbgPanelLog('✅ openPanel COMPLETE');
+}
+// ═══ END v59 STEP 0 DIAGNOSTIC ═══
 function closePanel(){
   const ov=$id('panel-overlay'), pn=$id('day-panel');
   if(ov)ov.classList.remove('on'); if(pn)pn.classList.remove('on');
