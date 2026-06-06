@@ -422,11 +422,24 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .panel-admin-bar{background:var(--g50);border:1px solid var(--g200);border-radius:var(--rLg);padding:12px;margin-bottom:4px;flex-shrink:0}
 .panel-admin-lbl{font-size:10px;font-weight:800;color:var(--g400);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
 .panel-hour-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
-.panel-hchip{padding:6px 4px;border-radius:var(--r);border:1.5px solid var(--g200);background:#fff;font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer;text-align:center;transition:all .12s;color:var(--g600);line-height:1.2}
-.panel-hchip.open{border-color:var(--greenB);background:var(--greenLt);color:var(--green)}
-.panel-hchip.blocked{border-color:var(--g300);background:var(--g100);color:var(--g400);cursor:not-allowed;opacity:.6}
-.panel-hchip.has-booking{border-color:var(--zoomB);background:var(--zoomLt);color:var(--zoom)}
-.panel-hchip.partial{border-style:dashed;border-color:var(--greenB);background:var(--greenLt);color:var(--green)}
+.panel-hchip{padding:6px 4px;border-radius:var(--r);border:1.5px solid var(--g200);background:#fff;font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer;text-align:center;transition:all .12s;color:var(--g600);line-height:1.2;position:relative}
+/* v59 CAL-16: Hour chip palette now reflects what's INSIDE the hour (Louis spec), not just availability.
+   Priority order: Event > Blocked > Training > Meet (any state) > Zoom (any state) > empty.
+   Mixed hours: dominant colour wins; corner dot(s) indicate other types present (max 2 dots). */
+.panel-hchip.h-empty{background:#fff;color:var(--g500);border-color:var(--g200)}
+.panel-hchip.h-zoom{border-color:var(--greenB);background:var(--greenLt);color:var(--green)}
+.panel-hchip.h-meet{border-color:var(--orange);background:var(--orangeLt);color:var(--orange)}
+.panel-hchip.h-training{border-color:var(--indigo);background:var(--indigoLt);color:var(--indigo)}
+.panel-hchip.h-event{border-color:var(--evt);background:var(--evtLt);color:var(--evt)}
+.panel-hchip.h-blocked{border-color:var(--g300);background:var(--g100);color:var(--g400);cursor:not-allowed;opacity:.6}
+.panel-hchip .h-dot{position:absolute;width:5px;height:5px;border-radius:50%;border:0.5px solid #fff}
+.panel-hchip .h-dot-1{top:3px;right:3px}
+.panel-hchip .h-dot-2{bottom:3px;right:3px}
+.panel-hchip .h-dot.d-zoom{background:var(--green)}
+.panel-hchip .h-dot.d-meet{background:var(--orange)}
+.panel-hchip .h-dot.d-training{background:var(--indigo)}
+.panel-hchip .h-dot.d-event{background:var(--evt)}
+.panel-hchip .h-dot.d-blocked{background:var(--g400)}
 .panel-hchip-sub{font-size:8px;font-weight:400;opacity:.7;display:block;margin-top:1px}
 .panel-admin-acts{display:flex;gap:6px;flex-wrap:wrap}
 .panel-slot-admin{cursor:pointer}
@@ -4960,20 +4973,35 @@ function renderPanel(dayNum){
       <div class="panel-hour-grid">`;
     ALL_HOUR_ROWS.forEach(row=>{
       const hourItems=weekSlots().filter(s=>s.dayIdx===di&&s.startMyt<row.endH*60&&s.endMyt>row.startH*60);
-      const isBlocked=hourItems.some(s=>s.type==='blocked');
-      const avSlots=hourItems.filter(s=>s.status==='av');
-      const bkSlots=hourItems.filter(s=>s.status==='booked'||s.status==='mine');
       // Show in user's HOME TZ
       const uH=m2u(row.startH,homeTZ.o);
       const chipLabel=fmtH(uH);
       const mytLabel=fmtH(row.startH);
-      let cls='panel-hchip';
-      if(isBlocked)            cls+=' blocked';
-      else if(bkSlots.length&&!avSlots.length) cls+=' has-booking';
-      else if(avSlots.length)  cls+=' open';
+      // v59 CAL-16: detect every type present in this hour (Louis spec — colour reflects content).
+      const isTrainingFn = (s) => s.type==='private' && s.status!=='av' && !s.user;
+      const hasEvent    = hourItems.some(s => s.type==='event');
+      const hasBlocked  = hourItems.some(s => s.type==='blocked');
+      const hasTraining = hourItems.some(isTrainingFn);
+      const hasMeet     = hourItems.some(s => !isTrainingFn(s) && (s.type==='meet' || s.type==='private'));
+      const hasZoom     = hourItems.some(s => s.type==='zoom15');
+      // Priority order: Event > Blocked > Training > Meet > Zoom > empty
+      const types = []; // ordered by priority
+      if(hasEvent)    types.push('event');
+      if(hasBlocked)  types.push('blocked');
+      if(hasTraining) types.push('training');
+      if(hasMeet)     types.push('meet');
+      if(hasZoom)     types.push('zoom');
+      const dominant = types[0] || 'empty';
+      const others = types.slice(1, 3); // max 2 dots — keeps the chip readable
+      let cls='panel-hchip h-' + dominant;
+      let dots = '';
+      others.forEach((t, i) => {
+        dots += `<span class="h-dot h-dot-${i+1} d-${t}" aria-hidden="true"></span>`;
+      });
       html+=`<div class="${cls}" onclick="openBSheet(${di},${row.startH},event)">
         ${chipLabel}
         <span class="panel-hchip-sub">${mytLabel}MYT</span>
+        ${dots}
       </div>`;
     });
     html+=`</div></div>`;
@@ -8241,9 +8269,12 @@ async function bsheetClearAvailable(){
   if(di===undefined||di===null||sh===undefined||sh===null) return;
   closeBSheet(); // close the main bsheet — confirm sheet will slide up over the dimmer
   const day=WEEK_DAYS[di]; if(!day) return;
-  const iso=day.iso, h=sh;
+  // v59 CAL-27 [fix #2]: SCHEDULE entries have dayIdx (from loadScheduleFromDB) but NOT day_date.
+  // The original code (before this session's fixes) filtered on s.day_date which is undefined on every
+  // entry — so the function appeared to find nothing regardless of actual content. Matches the
+  // dayIdx/startMyt pattern used by bsheetZoom and bsheetPrivate.
   const toDelete=SCHEDULE.filter(s=>
-    s.day_date===iso && s.startMyt>=h*60 && s.startMyt<(h+1)*60 && s.status==='av'
+    s.dayIdx===di && s.startMyt>=sh*60 && s.startMyt<(sh+1)*60 && s.status==='av'
   );
   if(!toDelete.length){
     if(typeof showToast === 'function') showToast('No available slots to clear this hour');
@@ -8251,7 +8282,7 @@ async function bsheetClearAvailable(){
     return;
   }
   const n = toDelete.length;
-  const timeLabel = fmtH(h);
+  const timeLabel = fmtH(sh);
   const dayLabel = `${day.n}, ${day.d} ${day.m||''}`.trim();
   showBSheetConfirm({
     title: 'Clear available slots?',
