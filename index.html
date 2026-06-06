@@ -1023,6 +1023,16 @@ tr:hover td{background:var(--g50)}
 .bsheet-item-desc{font-size:11px;color:var(--g400);font-weight:400;margin-top:1px}
 .bsheet-cancel{width:100%;padding:14px;font-size:14px;font-weight:700;color:var(--g500);background:var(--g50);border:none;border-top:1px solid var(--g200);cursor:pointer;font-family:var(--font);transition:background .12s}
 .bsheet-cancel:hover{background:var(--g100)}
+/* v59 CAL-27: Bsheet confirm variant — replaces native confirm() for destructive admin actions.
+   Two-button action row at bottom (Cancel + Confirm), with the Confirm button color-coded by severity. */
+.bsheet-confirm-body{padding:18px;color:var(--g600);font-size:13.5px;line-height:1.55}
+.bsheet-confirm-count{display:inline-block;padding:1px 8px;background:var(--g100);color:var(--navy);border-radius:8px;font-weight:800;font-family:var(--mono);font-size:13px;margin:0 2px}
+.bsheet-confirm-actions{display:flex;gap:0;border-top:1px solid var(--g200)}
+.bsheet-confirm-actions button{flex:1;padding:14px;font-size:14px;font-weight:700;background:#fff;border:none;cursor:pointer;font-family:var(--font);transition:background .12s}
+.bsheet-confirm-actions button:hover{background:var(--g50)}
+.bsheet-confirm-actions .bsc-cancel{color:var(--g500);border-right:1px solid var(--g200)}
+.bsheet-confirm-actions .bsc-confirm{color:var(--red);font-weight:800}
+.bsheet-confirm-actions .bsc-confirm:hover{background:#FEF2F2}
 
 /* ── QUICK OPEN PANEL ── */
 .qopen-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.55);z-index:600;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
@@ -5019,13 +5029,17 @@ function renderPanel(dayNum){
       const pill=makePanelPill(slot);
       let badge='';
       if(isAdmin){
+        // v59 CAL-17: explicit isEvent branch BEFORE presenterBadge fallback. Event rows have no
+        // presenter — falling through to presenterBadge wrongly showed amber "TBA" badge for admin.
         badge=isBlocked
           ?`<button type="button" class="btn btn-ghost btn-xs" onclick="event.stopPropagation();unblockSlotByRef(${idx})">✕ Unblock</button>`
           :isAv
             ?`<span class="bdg" style="background:var(--greenLt);color:var(--green)">Open</span>`
-            :isTraining
-              ?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
-              :presenterBadge(slot.presenter, slot._presenterName);
+            :isEvent
+              ?`<span class="bdg" style="background:var(--evtLt);color:var(--evt)">Event</span>`
+              :isTraining
+                ?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
+                :presenterBadge(slot.presenter, slot._presenterName);
       } else {
         badge=isAv      ?'<button type="button" class="btn btn-primary btn-sm">Book →</button>'
              :isMine    ?'<span class="bdg bdg-teal">Mine</span>'
@@ -8189,6 +8203,34 @@ async function deleteEventSlot(dbId){
 // ═══════════════════════════════════════════════
 //  CLEAR AVAILABLE SLOTS (admin mobile action)
 // ═══════════════════════════════════════════════
+// v59 CAL-27: Bsheet-styled confirm replacement for native confirm(). Single pending callback model
+// — only one confirm at a time, which is fine for our destructive-action UX. Caller passes title,
+// description, and an onConfirm() function executed after user taps Confirm.
+let _bsConfirmCb = null;
+function showBSheetConfirm({title, sub, body, confirmLabel, onConfirm}){
+  const ov = $id('bsheet-confirm-overlay'); if(!ov) return;
+  setText('bsheet-confirm-title', title || 'Confirm');
+  setText('bsheet-confirm-sub', sub || '');
+  const bodyEl = $id('bsheet-confirm-body');
+  if(bodyEl) bodyEl.innerHTML = body || 'Are you sure?'; // innerHTML — caller-built safe HTML for count chip
+  const okBtn = $id('bsheet-confirm-ok-btn');
+  if(okBtn) okBtn.textContent = confirmLabel || 'Confirm';
+  _bsConfirmCb = onConfirm || null;
+  if(okBtn){
+    okBtn.onclick = () => {
+      closeBSheetConfirm();
+      if(typeof _bsConfirmCb === 'function') _bsConfirmCb();
+      _bsConfirmCb = null;
+    };
+  }
+  ov.classList.add('on');
+}
+function closeBSheetConfirm(){
+  const ov = $id('bsheet-confirm-overlay');
+  if(ov) ov.classList.remove('on');
+  _bsConfirmCb = null;
+}
+
 async function bsheetClearAvailable(){
   if(_bsDayIdx===undefined||_bsDayIdx===null||_bsStartH===undefined) return;
   const day=WEEK_DAYS[_bsDayIdx]; if(!day) return;
@@ -8196,17 +8238,30 @@ async function bsheetClearAvailable(){
   const toDelete=SCHEDULE.filter(s=>
     s.day_date===iso && s.startMyt>=h*60 && s.startMyt<(h+1)*60 && s.status==='av'
   );
-  if(!toDelete.length){ alert('No available slots to clear for this hour.'); return; }
-  if(!confirm(`Clear ${toDelete.length} available slot(s) at ${fmtH(h)} on ${iso}?`)) return;
-  showAuthSpinner('Clearing…');
-  for(const s of toDelete){
-    if(s._id) await adminHardDelete(s._id);
+  if(!toDelete.length){
+    if(typeof showToast === 'function') showToast('No available slots to clear this hour');
+    else alert('No available slots to clear for this hour.');
+    return;
   }
-  // Remove from local SCHEDULE
-  toDelete.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
-  hideAuthSpinner();
-  renderCalendar();
-  if(panelOpen&&panelDay!==null) renderPanel(panelDay);
+  // v59 CAL-27: replaced native confirm() with styled bsheet confirm including a count chip.
+  const n = toDelete.length;
+  const timeLabel = fmtH(h);
+  const dayLabel = `${day.n}, ${day.d} ${day.m||''}`.trim();
+  showBSheetConfirm({
+    title: 'Clear available slots?',
+    sub: `${dayLabel} · ${timeLabel} MYT`,
+    body: `This will remove <span class="bsheet-confirm-count">${n}</span> unbooked slot${n>1?'s':''} from this hour. Bookings, events, and blocks are untouched. This cannot be undone.`,
+    confirmLabel: `Clear ${n} slot${n>1?'s':''}`,
+    onConfirm: async () => {
+      showAuthSpinner('Clearing…');
+      for(const s of toDelete){ if(s._id) await adminHardDelete(s._id); }
+      toDelete.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+      hideAuthSpinner();
+      renderCalendar();
+      if(panelOpen && panelDay!==null) renderPanel(panelDay);
+      if(typeof showToast === 'function') showToast(`Cleared ${n} slot${n>1?'s':''}`);
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════
@@ -8671,6 +8726,21 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
       <div class="bsheet-item-info"><span style="color:var(--red)">Clear available slots</span><span class="bsheet-item-desc">Remove all unbooked slots this hour</span></div>
     </button>
     <button type="button" class="bsheet-cancel" onclick="closeBSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ v59 CAL-27: Confirm bsheet — styled replacement for native confirm() ═══ -->
+<div class="bsheet-overlay" id="bsheet-confirm-overlay" onclick="if(event.target===this)closeBSheetConfirm()">
+  <div class="bsheet">
+    <div class="bsheet-hdr">
+      <div class="bsheet-title" id="bsheet-confirm-title">Confirm</div>
+      <div class="bsheet-sub" id="bsheet-confirm-sub"></div>
+    </div>
+    <div class="bsheet-confirm-body" id="bsheet-confirm-body">Are you sure?</div>
+    <div class="bsheet-confirm-actions">
+      <button type="button" class="bsc-cancel" onclick="closeBSheetConfirm()">Cancel</button>
+      <button type="button" class="bsc-confirm" id="bsheet-confirm-ok-btn">Confirm</button>
+    </div>
   </div>
 </div>
 
