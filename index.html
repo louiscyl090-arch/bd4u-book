@@ -2104,7 +2104,23 @@ let SCHEDULE = []; // Populated from Supabase DB on login — no hardcoded demo 
 // ═══════════════════════════════════════════════
 //  WEEK DAYS
 // ═══════════════════════════════════════════════
-let weekOffset = 0; // 0 = current week
+// v59 CAL-23: Persist weekOffset across in-tab browser refresh via sessionStorage.
+// sessionStorage clears when the tab/window closes → new tab always starts at current week (Louis spec:
+// "always start at current week on fresh load"). Same-tab refresh restores the viewed week. In-app
+// navigation already preserves the in-memory variable; sessionStorage is the safety net for refresh.
+let weekOffset = (() => {
+  try {
+    const saved = sessionStorage.getItem('bd4u_weekOffset');
+    if(saved !== null){
+      const parsed = parseInt(saved, 10);
+      if(!isNaN(parsed)) return parsed;
+    }
+  } catch(e){ /* private mode or storage error — fall through to 0 */ }
+  return 0;
+})(); // 0 = current week
+function _persistWeekOffset(){
+  try { sessionStorage.setItem('bd4u_weekOffset', String(weekOffset)); } catch(e){ /* ignore */ }
+}
 
 function buildWeekDays(offset){
   // Build 7 days starting from the Monday of the current week + offset weeks
@@ -2748,12 +2764,14 @@ function renderNavFlags(){
 // ═══════════════════════════════════════════════
 function shiftWeek(delta){
   weekOffset += delta;
+  _persistWeekOffset(); // v59 CAL-23
   dayWindowStart = 0;
   WEEK_DAYS = buildWeekDays(weekOffset);
   reloadWeekSchedule();
 }
 function jumpToday(){
   weekOffset = 0;
+  _persistWeekOffset(); // v59 CAL-23
   dayWindowStart = 0;
   WEEK_DAYS = buildWeekDays(0);
   const now = new Date();
@@ -7025,7 +7043,14 @@ async function confirmAdd(){
     return;
   }
   if(weekDayIdx>=0) await reloadWeekSchedule();
-  else { hideAuthSpinner(); renderCalendar(); }
+  else {
+    hideAuthSpinner();
+    renderCalendar();
+    // v59 CAL-25: also refresh the panel in the off-week branch
+    if(typeof panelOpen !== 'undefined' && panelOpen && typeof panelDay !== 'undefined' && panelDay !== null){
+      try { renderPanel(panelDay); } catch(e){ /* safe */ }
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -7294,6 +7319,12 @@ async function reloadWeekSchedule(){
   hideAuthSpinner();
   renderCalendar();
   updateWeekLabel();
+  // v59 CAL-25: re-render the mobile day panel if it's open. renderCalendar already refreshes the
+  // desktop grid + 3-day strip, but the slide-up panel slot list was missed — admin would have to
+  // refresh the browser to see newly-saved Events/Training/Blocks. This closes that gap.
+  if(typeof panelOpen !== 'undefined' && panelOpen && typeof panelDay !== 'undefined' && panelDay !== null){
+    try { renderPanel(panelDay); } catch(e){ /* safe — panel may have closed mid-render */ }
+  }
 }
 
 // ═══════════════════════════════════════════════
