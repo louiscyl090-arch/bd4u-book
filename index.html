@@ -8341,6 +8341,8 @@ async function confirmDeleteSlot(idx){
     }
   });
 }
+
+async function bsheetClearAvailable(){
   // v59 CAL-27 [fix]: capture state IMMEDIATELY before any closeBSheet call nulls _bsDayIdx/_bsStartH.
   // Previously the HTML did onclick="closeBSheet();bsheetClearAvailable()" — the close nulled state, then
   // this function's null guard returned early. Function appeared completely non-functional.
