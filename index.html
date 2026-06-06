@@ -4343,11 +4343,12 @@ function applyFocusModeState(){
   ].filter(Boolean);
   const on = isFocusMode();
   targets.forEach(el => el.classList.toggle('focus-mode', on));
-  const btn = $id('focus-toggle-btn');
-  if(btn){
+  // v59 CAL-11: update ALL .focus-toggle buttons (toolbar + panel footer). Previously only the
+  // toolbar's #focus-toggle-btn was updated, so the new panel footer Focus button stayed stale.
+  document.querySelectorAll('.focus-toggle').forEach(btn => {
     btn.classList.toggle('on', on);
     btn.textContent = on ? '👁 Focus · on' : '👁 Focus';
-  }
+  });
 }
 function toggleFocusMode(){
   const next = !isFocusMode();
@@ -4949,11 +4950,15 @@ function renderPanel(dayNum){
   const foot=$id('panel-foot');
   if(foot){
     if(isAdmin){
+      // v59 CAL-11: Replaced 3-button footer (Block day / Add event / Settings) with 2-button
+      // (Quick Open / Focus). Block + Add event reachable via the per-hour bsheet; Settings reachable
+      // from the burger menu. .focus-toggle class so applyFocusModeState keeps button text in sync.
       foot.innerHTML=`<div style="display:flex;gap:8px">
-        <button type="button" class="btn btn-ghost btn-sm" style="flex:1" onclick="panelBlockDay(${di})">🔒 Block day</button>
-        <button type="button" class="btn btn-outline btn-sm" style="flex:1" onclick="panelAddEvent(${di})">🔴 Add event</button>
-        <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="closePanel();goScreen('sc-settings')">⚙️ Settings</button>
+        <button type="button" class="qopen-btn" style="flex:1" onclick="openQuickOpen()">⚡ Quick Open</button>
+        <button type="button" class="focus-toggle" style="flex:1" onclick="toggleFocusMode()">👁 Focus</button>
       </div>`;
+      // Sync the newly-rendered Focus button with current mode state
+      if(typeof applyFocusModeState === 'function') applyFocusModeState();
     } else {
       // v59 CAL-10 [v3]: Removed "+ Book a slot for this day" button. It led to bkNewRender with no
       // specific slot selected → form showed "—" placeholders. The button was also conceptually wrong
@@ -8322,20 +8327,24 @@ async function confirmDeleteSlot(idx){
     title, sub, body, confirmLabel,
     onConfirm: async () => {
       showAuthSpinner(isBooked ? 'Cancelling…' : 'Deleting…');
+      // v59 CAL-14 [hotfix]: capture DB result before mutating local state. Previously the function
+      // removed slots from local SCHEDULE unconditionally — if the DB delete failed (RLS, network),
+      // the slot appeared deleted but came back on refresh. Now we check the result and bail with an
+      // error toast on failure. Success path uses reloadWeekSchedule to re-sync with DB truth.
+      let dbOk = true;
       if(slot._id){
-        if(isBooked) await adminSoftDelete(slot._id);
-        else         await adminHardDelete(slot._id);
+        dbOk = isBooked
+          ? await adminSoftDelete(slot._id)
+          : await adminHardDelete(slot._id);
       }
-      if(isBooked){
-        // Soft delete — mark cancelled in memory so renderers can react
-        slot.status = 'cancelled'; slot.cancelled = true;
-      } else {
-        // Hard delete — remove from local SCHEDULE
-        const i = SCHEDULE.indexOf(slot);
-        if(i >= 0) SCHEDULE.splice(i, 1);
+      if(!dbOk){
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast('Could not delete — please try again', 'err');
+        return;
       }
+      // Reload from DB so the in-memory SCHEDULE matches what's actually stored
+      await reloadWeekSchedule();
       hideAuthSpinner();
-      renderCalendar();
       if(panelOpen && panelDay !== null) renderPanel(panelDay);
       if(typeof showToast === 'function') showToast(isBooked ? 'Booking cancelled' : 'Deleted');
     }
