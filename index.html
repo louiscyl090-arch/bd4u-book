@@ -2150,7 +2150,10 @@ function buildWeekDays(offset){
 }
 
 // Initialise WEEK_DAYS for current week
-let WEEK_DAYS = buildWeekDays(0);
+// v59 CAL-23 [v2]: WEEK_DAYS must be built from the restored weekOffset, not literal 0.
+// First fix only restored the variable — WEEK_DAYS still contained current-week dates, so calendar
+// looked unchanged after refresh. This rebuilds WEEK_DAYS for the actual restored week.
+let WEEK_DAYS = buildWeekDays(weekOffset);
 // _STATIC_WEEK_DAYS removed — WEEK_DAYS always built from real date via buildWeekDays()
 const TODAY_D = new Date().getDate();
 
@@ -4750,7 +4753,10 @@ function renderDayStrip(){
     const bookedCount=daySlots.filter(s=>s.status==='booked'||s.status==='mine').length;
     const hasEvent=daySlots.some(s=>s.type==='event');
     const rel=di-todayIdx;
-    const relLabel=rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day.n;
+    // v59 CAL-23A: When the week being viewed doesn't include today (e.g. next-week view), todayIdx
+    // is -1 and `rel = di - (-1) = di + 1` — which wrongly labels the first day "Tomorrow". Guard
+    // against this by falling back to day name when today isn't in the visible week.
+    const relLabel=todayIdx<0?day.n:(rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day.n);
     const numEl=day.today
       ?`<span class="dc-today-circle">${day.d}</span>`
       :`<span class="dc-num">${day.d}</span>`;
@@ -4835,7 +4841,9 @@ function renderPanel(dayNum){
   const day=WEEK_DAYS[di];
   const todayIdx=WEEK_DAYS.findIndex(d=>d.d===TODAY_D);
   const rel=di-todayIdx;
-  const relLabel=rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day?day.n:'';
+  // v59 CAL-23A: Same fix as renderDayStrip — when today isn't in the viewed week (todayIdx<0),
+  // fall back to day name rather than computing a misleading "Tomorrow" from negative todayIdx.
+  const relLabel=todayIdx<0?(day?day.n:''):(rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day?day.n:'');
   const monthStr=day?`${day.d} ${day.m||''}`.trim():String(dayNum);
   setText('panel-title',`${relLabel}, ${monthStr}`);
   setText('panel-sub', isAdmin
