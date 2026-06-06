@@ -889,6 +889,36 @@ tr:hover td{background:var(--g50)}
   .clean-mode .slot-entry.av,
   .clean-mode .panel-hchip.open,
   .clean-mode .dc-badge-open{display:none!important}
+
+  /* v59 CAL-15: Day-panel row colors aligned with desktop chip palette. The 7-state matrix replaces the
+     old logic where type='private' wrongly mapped to .meet (orange) instead of .private (purple), and
+     type='meet' booked/mine fell through to .zoom (blue). Now Meet=orange, Training=purple, Zoom=blue/green
+     as per the Chip Contract (Excel tab) and Phase 5 Review R23. Booked Meet uses #FCD9A8 (darker than AM1)
+     to address the "AM1 and BM1 look identical" complaint — established palette colour. */
+  .slot-entry.training{background:var(--indigoLt);border-color:var(--indigoB);color:var(--indigo)}
+  .slot-entry.av-meet{background:var(--orangeLt);border:1px dashed var(--orangeB);color:var(--orange);cursor:pointer}
+  .slot-entry.av-meet:hover{background:#fbe2c4}
+  .slot-entry.booked-meet{background:#FCD9A8;border-color:var(--orange);color:#8B4513}
+  .slot-entry.mine-meet{background:#FCD9A8;border-color:var(--orange);color:#8B4513}
+  .slot-entry.av-zoom{background:var(--greenLt);border:1px dashed var(--greenB);color:var(--green);cursor:pointer}
+  .slot-entry.av-zoom:hover{background:#c0f0d8}
+  .slot-entry.booked-zoom{background:var(--zoomLt);border-color:var(--zoomB);color:var(--zoom)}
+  .slot-entry.mine-zoom{background:#C0D9F5;border-color:var(--zoom);color:#0D4F9E}
+  /* Time-text colour overrides per row variant (matches the row's text colour for hierarchy) */
+  .slot-entry.av-zoom .se-t,
+  .slot-entry.av-zoom .se-name{color:var(--green)}
+  .slot-entry.av-meet .se-t,
+  .slot-entry.av-meet .se-name{color:#B8651A}
+  .slot-entry.booked-meet .se-t,
+  .slot-entry.booked-meet .se-name,
+  .slot-entry.mine-meet .se-t,
+  .slot-entry.mine-meet .se-name{color:#5A3500}
+  .slot-entry.booked-zoom .se-t,
+  .slot-entry.booked-zoom .se-name,
+  .slot-entry.mine-zoom .se-t,
+  .slot-entry.mine-zoom .se-name{color:#0D4F9E}
+  .slot-entry.training .se-t,
+  .slot-entry.training .se-name{color:var(--indigo)}
 }
 @media(min-width:641px){.mobile-cal-wrapper{display:none}}
 @media(max-width:400px){.stats-grid{grid-template-columns:1fr}}
@@ -2214,6 +2244,33 @@ function makeLabel(slot){
 function makeChipLabel(slot){
   const full = makeLabel(slot);
   return full.length > 22 ? full.slice(0,20) + '…' : full;
+}
+// v59 CAL-15: Mobile-only label override for the day panel slot rows. AM1 slots (Available 20-min Meet)
+// have slot.label='Private Meeting' set by desktop's cellPopOpenForPrivate, which makes makeLabel return
+// "Private Meeting" — too cryptic for the mobile row context. This override returns "Available – 20min Meet"
+// matching the "Available – 15min ZM" pattern used for AZ1. All other states fall through to makeLabel
+// unchanged. Used only in renderPanel.
+function makePanelLabel(slot){
+  if(slot.status === 'av' && (slot.type === 'meet' || slot.type === 'private') && !slot.user){
+    return 'Available – 20min Meet';
+  }
+  return makeLabel(slot);
+}
+// v59 CAL-15: Mobile-only pill override. For TS1 (Training Session) rows, show a "🟣 Training" pill
+// instead of the default "🟣 20-min Private Meeting" which conflates training sessions with bookable
+// 20-min Meet slots (AM1/BM1 use the orange Meet pill in the new palette). All other states fall through
+// to typePill unchanged.
+function makePanelPill(slot){
+  if(slot.type === 'blocked') return '';
+  const isTraining = slot.type === 'private' && slot.status !== 'av' && !slot.user;
+  if(isTraining){
+    return `<span class="type-pill type-private">🟣 Training</span>`;
+  }
+  // For Meet bookings (type='meet' or 'private' with user/av), show an orange Meet pill matching the row colour.
+  if(slot.type === 'meet' || (slot.type === 'private' && (slot.status === 'av' || slot.user))){
+    return `<span class="type-pill" style="background:var(--orangeLt);color:var(--orange);border:1px solid var(--orangeB)">🟠 20-min Meet</span>`;
+  }
+  return typePill(slot.type);
 }
 function typePill(type){
   const t=SLOT_TYPES[type]; if(!t||!t.pillCls) return '';
@@ -4834,16 +4891,30 @@ function renderPanel(dayNum){
       const isAv=slot.status==='av', isMine=slot.status==='mine';
       const isBlocked=slot.type==='blocked', isEvent=slot.type==='event';
       const isPrivate=slot.type==='private';
+      // v59 CAL-15: Detect TS1 (Training Session) — type='private' with no user and not av.
+      // This matches the isTrainingSession helper at line ~2861 used by desktop.
+      const isTraining=isPrivate && slot.status!=='av' && !slot.user;
       const sT=minToUser(slot.startMyt,tz.o), eT=minToUser(slot.endMyt,tz.o);
-      const label=makeLabel(slot);
+      const label=makePanelLabel(slot);
       const idx=SCHEDULE.indexOf(slot);
+      // v59 CAL-15: 7-state class assignment matching desktop chip palette (Chip Contract tab).
+      // Old logic mapped type='private' to .meet (orange) and type='meet' booked/mine fell through to .zoom (blue).
+      // New: Training=purple, Meet family=orange, Zoom family=blue/green per Phase 5 Review.
       let cls='slot-entry ';
-      if(isBlocked)      cls+='blocked';
-      else if(isEvent)   cls+='event-type';
-      else if(isPrivate) cls+=isMine?'mine-meet':'meet';
-      else if(isAv)      cls+='av zoom';
-      else if(isMine)    cls+='mine-zoom';
-      else               cls+='zoom';
+      if(isBlocked)         cls+='blocked';
+      else if(isEvent)      cls+='event-type';
+      else if(isTraining)   cls+='training';
+      else if(slot.type==='meet' || isPrivate){
+        // Meet family — AM1 / BM1 / mine-meet (orange)
+        if(isAv)        cls+='av-meet';
+        else if(isMine) cls+='mine-meet';
+        else            cls+='booked-meet';
+      } else {
+        // Zoom family — AZ1 / BZ1 / mine-zoom (blue/green) [default for type='zoom15']
+        if(isAv)        cls+='av-zoom';
+        else if(isMine) cls+='mine-zoom';
+        else            cls+='booked-zoom';
+      }
       let clickAttr='';
       if(isAdmin && !isBlocked && !isEvent){
         cls+=' panel-slot-admin';
@@ -4859,19 +4930,22 @@ function renderPanel(dayNum){
         const slotTypeKey = slot.type === 'zoom15' ? 'zoom15' : 'private';
         clickAttr=`onclick="selSlotDbId='${slot._id}';selSlotType='${slotTypeKey}';selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
       }
-      const pill=isBlocked?'':typePill(slot.type);
+      const pill=makePanelPill(slot);
       let badge='';
       if(isAdmin){
         badge=isBlocked
           ?`<button type="button" class="btn btn-ghost btn-xs" onclick="event.stopPropagation();unblockSlotByRef(${idx})">✕ Unblock</button>`
           :isAv
             ?`<span class="bdg" style="background:var(--greenLt);color:var(--green)">Open</span>`
-            :presenterBadge(slot.presenter, slot._presenterName);
+            :isTraining
+              ?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
+              :presenterBadge(slot.presenter, slot._presenterName);
       } else {
         badge=isAv      ?'<button type="button" class="btn btn-primary btn-sm">Book →</button>'
              :isMine    ?'<span class="bdg bdg-teal">Mine</span>'
              :isBlocked ?'<span class="bdg bdg-gray">🔒</span>'
              :isEvent   ?`<span class="bdg" style="background:var(--evtLt);color:var(--evt)">Event</span>`
+             :isTraining?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
              :presenterBadge(slot.presenter, slot._presenterName);
       }
       return `<div class="${cls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
