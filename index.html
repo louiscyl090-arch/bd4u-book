@@ -207,16 +207,18 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-av-meet{background:var(--orangeLt);border:1.5px dashed var(--orangeB);color:var(--orange)}.sc-av-meet:hover{background:#fbe2c4}
 .sc-booked-zoom{background:var(--zoomLt);border:1.5px solid var(--zoomB);color:var(--zoom)}
 .sc-av-manager{background:var(--amberLt);border:1.5px dashed var(--amberB);color:#7B4F00}.sc-av-manager:hover{background:#FFE0A0}
-/* ── Clean Mode: hide AZ1/AM1 (available 15-min Zoom / 20-min Meet) for less cluttered view ── */
-.clean-mode .sc-av-zoom, .clean-mode .sc-av-meet, .clean-mode .sc-av-manager { display:none !important }
-/* Clean Mode also hides admin cell-header counts ("✓ Available (3 open) 1 booked") and the compact occupancy summary ("1 booked · 3 open"). */
-.clean-mode .sc-open-hdr, .clean-mode .sc-occ { display:none !important }
-/* Clean Mode collapses empty hour rows entirely (no bookings, no events, no blocked time → row hidden including its time label). Uses CSS :has() — Chrome 105+/Firefox 121+/Safari 15.4+. */
-.clean-mode .blk-row:not(:has(.sc-booked-zoom, .sc-booked-meet, .sc-booked-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-full, .sc-event-block, .sc-blocked)) { display:none !important }
-.clean-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
-.clean-toggle:hover{border-color:var(--teal);color:var(--teal)}
-.clean-toggle.on{background:var(--teal);border-color:var(--teal);color:#fff}
-@media (max-width:480px){.clean-toggle{font-size:10.5px;padding:5px 10px}}
+/* ── v59 CAL-30: Focus Mode (renamed from Clean Mode) — focused booking view ── */
+/* Old behaviour: hide AV chips (declutter). NEW behaviour: show ONLY bookable AV + user's own bookings.
+   Hide booked-by-others, TS1, EV1, BL1, full. Applies to desktop chip grid + mobile slot list. */
+.focus-mode .sc-booked-zoom, .focus-mode .sc-booked-meet, .focus-mode .sc-booked-manager,
+.focus-mode .sc-event-block, .focus-mode .sc-blocked, .focus-mode .sc-full,
+.focus-mode .sc-private:not(.sc-private-mine){ display:none !important }
+/* Hide rows whose only remaining chips are types that Focus would hide. Keep the row if it has any AV or mine chip. */
+.focus-mode .blk-row:not(:has(.sc-av-zoom, .sc-av-meet, .sc-av-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-private-mine)){ display:none !important }
+.focus-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.focus-toggle:hover{border-color:var(--teal);color:var(--teal)}
+.focus-toggle.on{background:var(--teal);border-color:var(--teal);color:#fff}
+@media (max-width:480px){.focus-toggle{font-size:10.5px;padding:5px 10px}}
 .sc-booked-manager{background:#FFD580;border:1.5px solid #E8A000;color:#5A3500}
 .sc-mine-manager{background:#FFE5A0;border:1.5px solid #E8A000;color:#5A3500}
 /* ── PAST SLOTS ── */
@@ -377,6 +379,28 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .day-chip.has-event .dc-name{color:var(--evt)}
 .day-chip.on .dc-name{color:rgba(255,255,255,.75)}
 .dc-num{font-size:19px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
+/* v59 CAL-29: outlined today circle (was filled teal). Distinguishes today without fighting slot-count colours. */
+.dc-today-circle{background:#fff;color:var(--navy);width:30px;height:30px;border:2px solid var(--navy);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin-top:2px;box-sizing:border-box}
+.day-chip.on .dc-today-circle{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.85);color:#fff}
+.day-chip.is-today{border-color:var(--navy);border-width:2px}
+.day-chip.is-today .dc-name{color:var(--navy)}
+.day-chip.has-slots.is-today .dc-name{color:var(--green)}
+.day-chip.has-event.is-today .dc-name{color:var(--evt)}
+/* v59 CAL-29: Day-chip preview dots — Option 2 (dots + mini-counts). */
+.dc-dots{display:flex;gap:6px;justify-content:center;align-items:center;font-size:10px;font-weight:800;margin-top:4px;min-height:14px;flex-wrap:wrap}
+.dc-dot-item{display:inline-flex;align-items:center;gap:2px;line-height:1}
+.dc-dot-item .dc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dc-dot-item.dc-zoom{color:#1E6FCC}
+.dc-dot-item.dc-zoom .dc-dot{background:#1E6FCC}
+.dc-dot-item.dc-meet{color:#B8651A}
+.dc-dot-item.dc-meet .dc-dot{background:#E67E22}
+.dc-dot-item.dc-training{color:#4F46E5}
+.dc-dot-item.dc-training .dc-dot{background:#4F46E5}
+.dc-dot-item.dc-event{color:#791F1F}
+.dc-dot-item.dc-event .dc-dot{background:#C62828}
+.dc-dot-item.dc-blocked{color:#5F5E5A}
+.dc-dot-item.dc-blocked .dc-dot{background:#888780}
+.dc-no-slots{font-size:10px;color:var(--g300);font-weight:600;margin-top:4px}
 .day-chip.on .dc-num{color:#fff}
 .dc-today-circle{background:var(--teal);color:#fff;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin-top:2px}
 .day-chip.on .dc-today-circle{background:rgba(255,255,255,.25)}
@@ -874,21 +898,31 @@ tr:hover td{background:var(--g50)}
   .blk-row{grid-template-columns:72px repeat(7,minmax(0,1fr))}
   .profile-hero{flex-direction:column;text-align:center}
 
-  /* v59 M1 (item 3): Calendar toolbar nav button group wraps on mobile so Clean button no longer overflows the card.
-     Allow flex-wrap, give the week label a flex-grow so row 1 = ‹ label ›, row 2 = action buttons (Today/Quick Open/Clean). */
-  .cal-nav-btns{flex-wrap:wrap;row-gap:8px;width:100%}
-  .cal-nav-btns .cal-mo{flex:1 1 auto;text-align:center;white-space:nowrap;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* v59 CAL-31: Calendar toolbar layout — Today button moves to action row (centered between Quick Open and Focus).
+     Mobile-only. Uses flex order + ::after line-break pseudo to keep semantic HTML order on desktop. */
+  .cal-nav-btns{flex-wrap:wrap;row-gap:8px;width:100%;justify-content:center}
+  .cal-nav-btns .cal-mo{flex:1 1 auto;text-align:center;white-space:nowrap;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;order:2}
+  .cal-nav-btns .cal-nav-btn:first-of-type{order:1}
+  .cal-nav-btns .cal-nav-btn:nth-of-type(2){order:3}
+  /* Force line break between date row and action row */
+  .cal-nav-btns::after{content:"";flex-basis:100%;height:0;order:4}
+  /* Action row — Quick Open (left if admin), Today (centre), Focus (right) */
+  .cal-nav-btns .qopen-btn{order:5;flex:1}
+  .cal-nav-btns .cal-today-btn{order:6}
+  .cal-nav-btns .focus-toggle{order:7;flex:1}
 
   /* v59 M1 (item 6): Inputs must be >=16px font-size on mobile, else iOS Safari auto-zooms the page on focus. */
   .fc{font-size:16px}
 
-  /* v59 CAL-1: Clean Mode mobile coverage. Desktop's existing .clean-mode CSS targets .sc-av-zoom/.sc-av-meet etc.
-     Mobile's panel + strip use different classes — these 3 rules complete the coverage so Clean Mode actually
-     hides available slots, open hour chips, and the "X open" badge on day-chips. All selectors are mobile-only
-     (slot-entry, panel-hchip live in #day-panel; dc-badge-open lives in .day-chip — neither exists on desktop). */
-  .clean-mode .slot-entry.av,
-  .clean-mode .panel-hchip.open,
-  .clean-mode .dc-badge-open{display:none!important}
+  /* v59 CAL-30: Focus Mode mobile coverage (renamed from Clean Mode, filter INVERTED).
+     Hide booked-by-other + TS1 + EV1 + BL1 + admin hour grid. Keep visible: AV (zoom + meet) + mine.
+     3-day strip stays unchanged (per Louis spec — strip is a navigator, always shows the day overview). */
+  .focus-mode .slot-entry.booked-zoom,
+  .focus-mode .slot-entry.booked-meet,
+  .focus-mode .slot-entry.training,
+  .focus-mode .slot-entry.event-type,
+  .focus-mode .slot-entry.blocked{display:none!important}
+  .focus-mode .panel-admin-bar{display:none!important}
 
   /* v59 CAL-15: Day-panel row colors aligned with desktop chip palette. The 7-state matrix replaces the
      old logic where type='private' wrongly mapped to .meet (orange) instead of .private (purple), and
@@ -1206,9 +1240,9 @@ tr:hover td{background:var(--g50)}
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(-1)">‹</button>
             <span class="cal-mo" id="week-label">19–25 May 2025</span>
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(1)">›</button>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="jumpToday()">Today</button>
+            <button type="button" class="btn btn-ghost btn-sm cal-today-btn" onclick="jumpToday()">Today</button>
             <button type="button" class="qopen-btn" id="qopen-toolbar-btn" style="display:none" onclick="openQuickOpen()">⚡ Quick Open</button>
-            <button type="button" class="clean-toggle" id="clean-toggle-btn" onclick="toggleCleanMode()" title="Hide AZ1 (Available 15-min Zoom) and AM1 (Available 20-min Meet) chips">👁 Clean</button>
+            <button type="button" class="focus-toggle" id="focus-toggle-btn" onclick="toggleFocusMode()" title="Show only available slots and your own bookings">👁 Focus</button>
             <!-- v58 Phase 3b-ii: toolbar '+ Add' button removed per user request — Cell Popover is the proper entry point -->
           </div>
           <div class="legend">
@@ -2816,7 +2850,7 @@ function renderCalendar(){
     requestAnimationFrame(() => window.scrollTo(0, _savedScrollY));
   }
   // Apply Clean Mode persisted state (hide AZ1/AM1 if enabled)
-  if(typeof applyCleanModeState === 'function') applyCleanModeState();
+  if(typeof applyFocusModeState === 'function') applyFocusModeState();
 }
 function updateWeekLabel(){
   const first=WEEK_DAYS[0], last=WEEK_DAYS[6];
@@ -4254,37 +4288,37 @@ async function galleryDelete(bookingId, path, label){
 }
 // ═════ end ZL-8 ═════
 
-// ═════ Clean Mode: hide AZ1/AM1 available chips on calendar ═════
-function isCleanMode(){
-  try { return localStorage.getItem('bd4u_cleanMode') === '1'; } catch(e){ return false; }
+// ═════ v59 CAL-30: Focus Mode (renamed from Clean Mode, semantics INVERTED) ═════
+// Old behaviour was "hide AZ1/AM1 available chips" (declutter view). New behaviour: show ONLY bookable
+// AV chips + the current user's bookings. Hide booked-by-others, training, events, blocked. Both
+// desktop calendar grid and mobile day panel honour the class. localStorage key migrated to bd4u_focusMode
+// — old bd4u_cleanMode key is left orphaned (no migration) because the semantics differ.
+function isFocusMode(){
+  try { return localStorage.getItem('bd4u_focusMode') === '1'; } catch(e){ return false; }
 }
-function applyCleanModeState(){
-  // Apply class to desktop calendar AND mobile surfaces (3-day strip + day panel)
-  // v59 CAL-1 fix: '.mobile-cal' was a typo — actual element is '.mobile-cal-wrapper'. Also added
-  // '#day-panel' so the slide-up panel's slot list + admin hour grid honor Clean Mode.
+function applyFocusModeState(){
   const targets = [
     document.querySelector('.desktop-cal'),
     document.querySelector('.mobile-cal-wrapper'),
     document.getElementById('day-panel')
   ].filter(Boolean);
-  const on = isCleanMode();
-  targets.forEach(el => el.classList.toggle('clean-mode', on));
-  // Update button visual state
-  const btn = $id('clean-toggle-btn');
+  const on = isFocusMode();
+  targets.forEach(el => el.classList.toggle('focus-mode', on));
+  const btn = $id('focus-toggle-btn');
   if(btn){
     btn.classList.toggle('on', on);
-    btn.textContent = on ? '👁 Clean · on' : '👁 Clean';
+    btn.textContent = on ? '👁 Focus · on' : '👁 Focus';
   }
 }
-function toggleCleanMode(){
-  const next = !isCleanMode();
-  try { localStorage.setItem('bd4u_cleanMode', next ? '1' : '0'); } catch(e){ /* silent */ }
-  applyCleanModeState();
+function toggleFocusMode(){
+  const next = !isFocusMode();
+  try { localStorage.setItem('bd4u_focusMode', next ? '1' : '0'); } catch(e){ /* silent */ }
+  applyFocusModeState();
   if(typeof showToast === 'function'){
-    showToast(next ? 'Clean Mode on — available slots hidden' : 'Clean Mode off');
+    showToast(next ? 'Focus on — showing available + your bookings' : 'Focus off — showing all');
   }
 }
-// ═════ end Clean Mode ═════
+// ═════ end Focus Mode ═════
 
 // ═════ Dashboard "How unified calendar works" — dismissible (per browser via localStorage) ═════
 function isDashExplainerDismissed(){
@@ -4737,43 +4771,61 @@ function updateNavBtns(){
   const p=$id('day-prev-btn'), n=$id('day-next-btn');
   if(p) p.style.opacity=dayWindowStart===0?'0.3':'1';
   if(n) n.style.opacity=dayWindowStart>=max?'0.3':'1';
+  // v59 CAL-31: Today button disabled when already on current week. Stays visible (per spec) but
+  // grays out to signal it would do nothing. Find the .cal-today-btn (mobile-only class, also present
+  // on desktop button — both get the same visual state).
+  const todayBtn=document.querySelector('.cal-today-btn');
+  if(todayBtn){
+    const isOnCurrent = weekOffset === 0;
+    todayBtn.disabled = isOnCurrent;
+    todayBtn.style.opacity = isOnCurrent ? '0.4' : '1';
+    todayBtn.style.cursor = isOnCurrent ? 'default' : 'pointer';
+  }
 }
 function renderDayStrip(){
   const strip=$id('day-strip-snap'); if(!strip) return;
   strip.style.transition='opacity .18s';
   const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
   const vis=WEEK_DAYS.slice(dayWindowStart,dayWindowStart+3);
-  const todayIdx=WEEK_DAYS.findIndex(d=>d.d===TODAY_D);
   strip.innerHTML=vis.map(day=>{
     const di=WEEK_DAYS.findIndex(d=>d.d===day.d);
     const daySlots=weekSlots().filter(s=>s.dayIdx===di);
-    // MOB-2 fix: count all av slots + implicit open hours
-    const avCount=daySlots.filter(s=>s.status==='av').length;
-    const blockedCount=daySlots.filter(s=>s.type==='blocked'||s.type==='event').length;
-    const bookedCount=daySlots.filter(s=>s.status==='booked'||s.status==='mine').length;
-    const hasEvent=daySlots.some(s=>s.type==='event');
-    const rel=di-todayIdx;
-    // v59 CAL-23A: When the week being viewed doesn't include today (e.g. next-week view), todayIdx
-    // is -1 and `rel = di - (-1) = di + 1` — which wrongly labels the first day "Tomorrow". Guard
-    // against this by falling back to day name when today isn't in the visible week.
-    const relLabel=todayIdx<0?day.n:(rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day.n);
+    // v59 CAL-29: per-type counts for the new preview-dot row (replaces single "X open" badge).
+    // isTraining detection matches the existing helper (line ~2953) — type='private' && status!='av' && !user.
+    const zoomCount     = daySlots.filter(s=>s.type==='zoom15').length;
+    const meetCount     = daySlots.filter(s=>(s.type==='meet') || (s.type==='private' && !(s.status!=='av' && !s.user))).length;
+    const trainingCount = daySlots.filter(s=>s.type==='private' && s.status!=='av' && !s.user).length;
+    const eventCount    = daySlots.filter(s=>s.type==='event').length;
+    const blockedCount  = daySlots.filter(s=>s.type==='blocked').length;
+    const totalSlots    = zoomCount + meetCount + trainingCount + eventCount + blockedCount;
+    const hasEvent      = eventCount > 0;
+    const hasAv         = daySlots.some(s=>s.status==='av');
     const numEl=day.today
       ?`<span class="dc-today-circle">${day.d}</span>`
       :`<span class="dc-num">${day.d}</span>`;
-    let badge='';
-    if(avCount>0)
-      badge=`<span class="dc-badge-open" style="font-size:10px;font-weight:700;color:var(--green);background:var(--greenLt);border-radius:10px;padding:2px 8px;margin-top:4px;display:block">${avCount} open</span>`;
-    else if(hasEvent)
-      badge=`<span style="font-size:10px;font-weight:700;color:var(--evt);background:var(--evtLt);border-radius:10px;padding:2px 8px;margin-top:4px;display:block">🔴 Event</span>`;
-    else if(bookedCount>0)
-      badge=`<span style="font-size:10px;color:var(--g400);background:var(--g100);border-radius:10px;padding:2px 8px;margin-top:4px;display:block;font-weight:600">${bookedCount} booked</span>`;
-    else
-      badge=`<span style="font-size:10px;color:var(--g300);margin-top:4px;display:block">No slots</span>`;
-    const chipCls=avCount>0?'day-chip has-slots':hasEvent?'day-chip has-event':'day-chip';
+    // v59 CAL-29: preview-dot row instead of single badge. Only show dots for types present.
+    let dots='';
+    if(totalSlots === 0){
+      dots = `<div class="dc-no-slots">No slots</div>`;
+    } else {
+      const dotItems=[];
+      if(zoomCount>0)     dotItems.push(`<span class="dc-dot-item dc-zoom"><span class="dc-dot"></span>${zoomCount}</span>`);
+      if(meetCount>0)     dotItems.push(`<span class="dc-dot-item dc-meet"><span class="dc-dot"></span>${meetCount}</span>`);
+      if(trainingCount>0) dotItems.push(`<span class="dc-dot-item dc-training"><span class="dc-dot"></span>${trainingCount}</span>`);
+      if(eventCount>0)    dotItems.push(`<span class="dc-dot-item dc-event"><span class="dc-dot"></span>${eventCount}</span>`);
+      if(blockedCount>0)  dotItems.push(`<span class="dc-dot-item dc-blocked"><span class="dc-dot"></span>${blockedCount}</span>`);
+      dots = `<div class="dc-dots">${dotItems.join('')}</div>`;
+    }
+    // v59 CAL-29: chip class — has-slots when AV present (green tint), has-event when event present,
+    // is-today (new) when this day is today (outlined chip border + navy day name).
+    let chipCls = 'day-chip';
+    if(hasAv)       chipCls += ' has-slots';
+    else if(hasEvent) chipCls += ' has-event';
+    if(day.today)   chipCls += ' is-today';
     return `<div class="${chipCls}" onclick="openPanel(${day.d})"
-        role="button" aria-label="${relLabel} ${day.d} May">
-      <span class="dc-name">${relLabel.toUpperCase()}</span>
-      ${numEl}${badge}
+        role="button" aria-label="${day.n} ${day.d}">
+      <span class="dc-name">${day.n.toUpperCase()}</span>
+      ${numEl}${dots}
     </div>`;
   }).join('');
 }
@@ -4839,11 +4891,9 @@ function renderPanel(dayNum){
   const tz=TZ_DATA[activeTZ];
   const di=WEEK_DAYS.findIndex(d=>d.d===dayNum);
   const day=WEEK_DAYS[di];
-  const todayIdx=WEEK_DAYS.findIndex(d=>d.d===TODAY_D);
-  const rel=di-todayIdx;
-  // v59 CAL-23A: Same fix as renderDayStrip — when today isn't in the viewed week (todayIdx<0),
-  // fall back to day name rather than computing a misleading "Tomorrow" from negative todayIdx.
-  const relLabel=todayIdx<0?(day?day.n:''):(rel===0?'Today':rel===1?'Tomorrow':rel===-1?'Yesterday':day?day.n:'');
+  // v59 CAL-29: drop relative labels (Today/Tomorrow/Yesterday) in favour of day name to match
+  // the day strip. Today is signalled by the chip's is-today class on the strip, not text in the title.
+  const relLabel = day ? day.n : '';
   const monthStr=day?`${day.d} ${day.m||''}`.trim():String(dayNum);
   setText('panel-title',`${relLabel}, ${monthStr}`);
   setText('panel-sub', isAdmin
