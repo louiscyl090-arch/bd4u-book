@@ -932,8 +932,11 @@ tr:hover td{background:var(--g50)}
   .slot-entry.training{background:var(--indigoLt);border-color:var(--indigoB);color:var(--indigo)}
   .slot-entry.av-meet{background:var(--orangeLt);border:1px dashed var(--orangeB);color:var(--orange);cursor:pointer}
   .slot-entry.av-meet:hover{background:#fbe2c4}
-  .slot-entry.booked-meet{background:#FCD9A8;border-color:var(--orange);color:#8B4513}
-  .slot-entry.mine-meet{background:#FCD9A8;border-color:var(--orange);color:#8B4513}
+  /* v59 CAL-24: Mobile BM1 (Booked Meet by OTHER downline) → Option A — light orange fill + dark
+     orange border + dark orange text. Matches desktop sc-booked-meet. MM1 (Mine — my own booking)
+     keeps the darker #FCD9A8 fill so it stays visually distinct as the row I care about most. */
+  .slot-entry.booked-meet{background:var(--orangeLt);border-color:var(--orange);color:var(--orange)} /* BM1 */
+  .slot-entry.mine-meet{background:#FCD9A8;border-color:var(--orange);color:#8B4513}                   /* MM1 */
   .slot-entry.av-zoom{background:var(--greenLt);border:1px dashed var(--greenB);color:var(--green);cursor:pointer}
   .slot-entry.av-zoom:hover{background:#c0f0d8}
   .slot-entry.booked-zoom{background:var(--zoomLt);border-color:var(--zoomB);color:var(--zoom)}
@@ -943,8 +946,9 @@ tr:hover td{background:var(--g50)}
   .slot-entry.av-zoom .se-name{color:var(--green)}
   .slot-entry.av-meet .se-t,
   .slot-entry.av-meet .se-name{color:#B8651A}
+  /* v59 CAL-24: per-variant text colour. BM1 (light fill) needs dark orange text; MM1 (darker fill) keeps brown. */
   .slot-entry.booked-meet .se-t,
-  .slot-entry.booked-meet .se-name,
+  .slot-entry.booked-meet .se-name{color:var(--orange)}
   .slot-entry.mine-meet .se-t,
   .slot-entry.mine-meet .se-name{color:#5A3500}
   .slot-entry.booked-zoom .se-t,
@@ -7465,15 +7469,13 @@ async function bsheetPrivate(){
   }
   if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
 }
+// v59 CAL-22 (mobile Block parity): was auto-blocking the hour with a hardcoded "Unavailable" reason
+// and no fields. Now opens the Add Modal in 'blocked' mode — matching desktop cellPopBlock — so admin
+// can set Date/Start/End/Reason. Other bsheet handlers (Event, Training) already use this pattern.
 async function bsheetBlock(){
   const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
   if(di===null||sh===null) return;
-  const avSlots=SCHEDULE.filter(s=>s.dayIdx===di&&Math.floor(s.startMyt/60)===sh&&s.status==='av');
-  showAuthSpinner('Blocking…');
-  for(const s of avSlots){ if(s._id) await adminHardDelete(s._id); }
-  await adminInsertSlots([{type:'blocked',status:'blocked',dayIdx:di,startMyt:sh*60,endMyt:(sh+1)*60,reason:'Unavailable',user_id:null,presenter_id:null}]);
-  await reloadWeekSchedule(); hideAuthSpinner();
-  if(panelOpen&&panelDay) renderPanel(panelDay); renderDayStrip();
+  openAddModal('blocked', _getCellCtx(di,sh));
 }
 function bsheetEvent(){
   const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
@@ -8232,9 +8234,14 @@ function closeBSheetConfirm(){
 }
 
 async function bsheetClearAvailable(){
-  if(_bsDayIdx===undefined||_bsDayIdx===null||_bsStartH===undefined) return;
-  const day=WEEK_DAYS[_bsDayIdx]; if(!day) return;
-  const iso=day.iso, h=_bsStartH;
+  // v59 CAL-27 [fix]: capture state IMMEDIATELY before any closeBSheet call nulls _bsDayIdx/_bsStartH.
+  // Previously the HTML did onclick="closeBSheet();bsheetClearAvailable()" — the close nulled state, then
+  // this function's null guard returned early. Function appeared completely non-functional.
+  const di = _bsDayIdx, sh = _bsStartH;
+  if(di===undefined||di===null||sh===undefined||sh===null) return;
+  closeBSheet(); // close the main bsheet — confirm sheet will slide up over the dimmer
+  const day=WEEK_DAYS[di]; if(!day) return;
+  const iso=day.iso, h=sh;
   const toDelete=SCHEDULE.filter(s=>
     s.day_date===iso && s.startMyt>=h*60 && s.startMyt<(h+1)*60 && s.status==='av'
   );
@@ -8243,7 +8250,6 @@ async function bsheetClearAvailable(){
     else alert('No available slots to clear for this hour.');
     return;
   }
-  // v59 CAL-27: replaced native confirm() with styled bsheet confirm including a count chip.
   const n = toDelete.length;
   const timeLabel = fmtH(h);
   const dayLabel = `${day.n}, ${day.d} ${day.m||''}`.trim();
@@ -8721,7 +8727,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
       <span class="bsheet-item-icon">🔒</span>
       <div class="bsheet-item-info"><span>Block this slot</span><span class="bsheet-item-desc">Hide from downlines</span></div>
     </button>
-    <button type="button" class="bsheet-item" onclick="closeBSheet();bsheetClearAvailable()" style="color:var(--red)">
+    <button type="button" class="bsheet-item" onclick="bsheetClearAvailable()" style="color:var(--red)">
       <span class="bsheet-item-icon">🗑️</span>
       <div class="bsheet-item-info"><span style="color:var(--red)">Clear available slots</span><span class="bsheet-item-desc">Remove all unbooked slots this hour</span></div>
     </button>
