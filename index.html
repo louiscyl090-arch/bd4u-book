@@ -445,7 +445,15 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .panel-slot-admin{cursor:pointer}
 .panel-slot-admin:hover{filter:brightness(.96)}
 .panel-empty{text-align:center;padding:36px 20px;color:var(--g400)}
-.slot-entry{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rLg);border:1.5px solid var(--g200);cursor:default;transition:all .12s}
+.slot-entry{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rLg);border:1.5px solid var(--g200);cursor:default;transition:all .12s;position:relative}
+/* v59 CAL-14: Always-visible ✕ delete button on every admin slot row. Absolute top-right corner.
+   Content-aware confirm message rendered via showBSheetConfirm (no undo per Louis spec). */
+.slot-entry-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border:1px solid var(--g300);background:#fff;color:var(--g500);border-radius:50%;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;padding:0;font-family:var(--font);transition:all .12s}
+.slot-entry-x:hover{background:#FEF2F2;color:var(--red);border-color:var(--red)}
+.slot-entry-x:active{transform:scale(.92)}
+/* On mobile, shrink the badge area slightly so ✕ doesn't overlap text. The se-badge already
+   sits right-aligned; padding-right on the row gives the X room without changing the badge layout. */
+.slot-entry.has-x{padding-right:36px}
 .slot-entry.av{border-color:var(--greenB);background:var(--greenLt);cursor:pointer}.slot-entry.av:hover{background:#c0f0d8}
 .slot-entry.mine{border-color:var(--tealB);background:var(--tealLt)}
 .slot-entry.zoom{border-color:var(--zoomB)}
@@ -5063,8 +5071,10 @@ function renderPanel(dayNum){
       if(isAdmin){
         // v59 CAL-17: explicit isEvent branch BEFORE presenterBadge fallback. Event rows have no
         // presenter — falling through to presenterBadge wrongly showed amber "TBA" badge for admin.
+        // v59 CAL-14: inline "✕ Unblock" button removed — the new corner ✕ handles delete for ALL
+        // admin row types now. Blocked row gets a status badge matching the pattern of other types.
         badge=isBlocked
-          ?`<button type="button" class="btn btn-ghost btn-xs" onclick="event.stopPropagation();unblockSlotByRef(${idx})">✕ Unblock</button>`
+          ?`<span class="bdg bdg-gray">🔒 Blocked</span>`
           :isAv
             ?`<span class="bdg" style="background:var(--greenLt);color:var(--green)">Open</span>`
             :isEvent
@@ -5080,7 +5090,13 @@ function renderPanel(dayNum){
              :isTraining?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
              :presenterBadge(slot.presenter, slot._presenterName);
       }
-      return `<div class="${cls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
+      // v59 CAL-14: admin gets a corner ✕ delete button on every row. Content-aware confirm via confirmDeleteSlot.
+      const xBtn = isAdmin
+        ? `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`
+        : '';
+      const finalCls = isAdmin ? (cls + ' has-x') : cls;
+      return `<div class="${finalCls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
+        ${xBtn}
         <div class="se-time">
           <div class="se-t">${sanitize(sT)}</div>
           <div class="se-tz">→${sanitize(eT)}</div>
@@ -8261,7 +8277,70 @@ function closeBSheetConfirm(){
   _bsConfirmCb = null;
 }
 
-async function bsheetClearAvailable(){
+// v59 CAL-14: per-slot ✕ delete with content-aware confirm. Admin-only. No undo (per Louis spec).
+// Confirm message wording follows the Chip Contract X-Button-Admin column. Booked/Mine slots use
+// soft delete (sets cancelled status, matches existing saDeleteSlot behavior); everything else
+// hard deletes. Both flows refresh calendar + panel after completion.
+async function confirmDeleteSlot(idx){
+  const slot = SCHEDULE[idx];
+  if(!slot) return;
+  const isBooked  = slot.status === 'booked' || slot.status === 'mine';
+  const isEvent   = slot.type === 'event';
+  const isBlocked = slot.type === 'blocked';
+  const isTraining = slot.type === 'private' && slot.status !== 'av' && !slot.user;
+  let title, body, confirmLabel;
+  if(isBooked){
+    const booker = slot._bookerName || 'This downline';
+    title = 'Cancel this booking?';
+    body = `<strong>${sanitize(booker)}</strong>'s booking will be cancelled. This cannot be undone.`;
+    confirmLabel = 'Cancel booking';
+  } else if(isEvent){
+    title = 'Delete this event?';
+    body = `"${sanitize(slot.label||'Event')}" will be removed. This cannot be undone.`;
+    confirmLabel = 'Delete event';
+  } else if(isTraining){
+    title = 'Delete this training session?';
+    body = `This training session will be removed. This cannot be undone.`;
+    confirmLabel = 'Delete training';
+  } else if(isBlocked){
+    title = 'Unblock this slot?';
+    body = `The block on this slot will be removed. This cannot be undone.`;
+    confirmLabel = 'Unblock';
+  } else { // av
+    title = 'Delete this available slot?';
+    body = `This unbooked slot will be removed. This cannot be undone.`;
+    confirmLabel = 'Delete slot';
+  }
+  // Format date + time for the sub line — same pattern as bsheetClearAvailable
+  const tz  = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const sT  = minToUser(slot.startMyt, tz.o);
+  const eT  = minToUser(slot.endMyt,   tz.o);
+  const day = WEEK_DAYS[slot.dayIdx];
+  const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+  const sub = `${dayLabel} · ${sT}–${eT} ${tz.l||''}`.trim();
+  showBSheetConfirm({
+    title, sub, body, confirmLabel,
+    onConfirm: async () => {
+      showAuthSpinner(isBooked ? 'Cancelling…' : 'Deleting…');
+      if(slot._id){
+        if(isBooked) await adminSoftDelete(slot._id);
+        else         await adminHardDelete(slot._id);
+      }
+      if(isBooked){
+        // Soft delete — mark cancelled in memory so renderers can react
+        slot.status = 'cancelled'; slot.cancelled = true;
+      } else {
+        // Hard delete — remove from local SCHEDULE
+        const i = SCHEDULE.indexOf(slot);
+        if(i >= 0) SCHEDULE.splice(i, 1);
+      }
+      hideAuthSpinner();
+      renderCalendar();
+      if(panelOpen && panelDay !== null) renderPanel(panelDay);
+      if(typeof showToast === 'function') showToast(isBooked ? 'Booking cancelled' : 'Deleted');
+    }
+  });
+}
   // v59 CAL-27 [fix]: capture state IMMEDIATELY before any closeBSheet call nulls _bsDayIdx/_bsStartH.
   // Previously the HTML did onclick="closeBSheet();bsheetClearAvailable()" — the close nulled state, then
   // this function's null guard returned early. Function appeared completely non-functional.
