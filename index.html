@@ -4695,18 +4695,25 @@ function renderDayStrip(){
 }
 
 // ── Panel ────────────────────────────────────
-// v59 CAL-10: Pre-fill the booking form when arriving from the mobile day panel "+ Book a slot for this day"
-// button. Without this, the form rendered with empty placeholders ("—") because selBlock was never set.
-// We look up the first available block on the requested day and set selBlock so the form's auto-select
-// logic (renderHourBlocks line ~5186) picks it up. If no av blocks exist for the day, we leave selBlock
-// alone — the form will fall back to its default (first av block of the whole week) or empty state.
+// v59 CAL-10 [v2 fix]: The booking form was rebuilt in v58 Phase 4a (bkNewRender) — it uses selSlotDbId
+// to find a specific slot via SCHEDULE.find(s=>s._id===selSlotDbId), NOT the legacy selBlock variable.
+// My first attempt set selBlock + relied on renderHourBlocks (legacy path, no longer called per v58 Phase 5b
+// comment at line ~4940). The new form fell through to the "—" placeholder fallback.
+// Correct fix: pre-fill selSlotDbId with the FIRST available slot on the requested day. Also set selSlotType
+// so the type pill matches. Without a specific slot _id, the new form has no way to populate.
 function prefillBookFormForDay(dayIdx){
-  if(typeof getAvailableBlocks !== 'function') return;
   try {
-    const blocks = getAvailableBlocks();
-    const first = blocks.find(b => b.dayIdx === dayIdx);
-    if(first) selBlock = first.key;
-  } catch(e){ /* silent — fallback to default form behavior */ }
+    const avSlots = SCHEDULE
+      .filter(s => s.status === 'av' && s.dayIdx === dayIdx)
+      .sort((a,b) => a.startMyt - b.startMyt);
+    if(!avSlots.length) return; // no av slots — form will show "—" fallback (existing behavior)
+    const slot = avSlots[0];
+    selSlotDbId = slot._id;
+    selSlotType = (slot.type === 'zoom15') ? 'zoom15' : 'private';
+    // Keep selBlock in sync for any legacy code paths that may still read it.
+    const startH = Math.floor(slot.startMyt / 60);
+    selBlock = `d${dayIdx}_h${startH}`;
+  } catch(e){ /* silent — form will fall back to default empty state */ }
 }
 function openPanel(dayNum){
   panelDay=dayNum; renderPanel(dayNum);
