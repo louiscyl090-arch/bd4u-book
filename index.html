@@ -881,6 +881,14 @@ tr:hover td{background:var(--g50)}
 
   /* v59 M1 (item 6): Inputs must be >=16px font-size on mobile, else iOS Safari auto-zooms the page on focus. */
   .fc{font-size:16px}
+
+  /* v59 CAL-1: Clean Mode mobile coverage. Desktop's existing .clean-mode CSS targets .sc-av-zoom/.sc-av-meet etc.
+     Mobile's panel + strip use different classes — these 3 rules complete the coverage so Clean Mode actually
+     hides available slots, open hour chips, and the "X open" badge on day-chips. All selectors are mobile-only
+     (slot-entry, panel-hchip live in #day-panel; dc-badge-open lives in .day-chip — neither exists on desktop). */
+  .clean-mode .slot-entry.av,
+  .clean-mode .panel-hchip.open,
+  .clean-mode .dc-badge-open{display:none!important}
 }
 @media(min-width:641px){.mobile-cal-wrapper{display:none}}
 @media(max-width:400px){.stats-grid{grid-template-columns:1fr}}
@@ -944,6 +952,9 @@ tr:hover td{background:var(--g50)}
 .bsheet-item:last-of-type{border-bottom:none}
 .bsheet-item:hover{background:var(--g50)}
 .bsheet-item-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+/* v59 CAL-12: CREATE / MANAGE section labels inside the bottom sheet — visual hierarchy between
+   create-actions (open slots / event / training) and manage-actions (block / clear). */
+.bsheet-section-lbl{font-size:10px;font-weight:800;color:var(--g400);letter-spacing:.08em;text-transform:uppercase;padding:12px 18px 4px;background:var(--g50);border-bottom:1px solid var(--g100)}
 .bsheet-item-info{display:flex;flex-direction:column}
 .bsheet-item-desc{font-size:11px;color:var(--g400);font-weight:400;margin-top:1px}
 .bsheet-cancel{width:100%;padding:14px;font-size:14px;font-weight:700;color:var(--g500);background:var(--g50);border:none;border-top:1px solid var(--g200);cursor:pointer;font-family:var(--font);transition:background .12s}
@@ -4167,10 +4178,13 @@ function isCleanMode(){
   try { return localStorage.getItem('bd4u_cleanMode') === '1'; } catch(e){ return false; }
 }
 function applyCleanModeState(){
-  // Apply class to both desktop and mobile calendar containers (whichever exists)
+  // Apply class to desktop calendar AND mobile surfaces (3-day strip + day panel)
+  // v59 CAL-1 fix: '.mobile-cal' was a typo — actual element is '.mobile-cal-wrapper'. Also added
+  // '#day-panel' so the slide-up panel's slot list + admin hour grid honor Clean Mode.
   const targets = [
     document.querySelector('.desktop-cal'),
-    document.querySelector('.mobile-cal')
+    document.querySelector('.mobile-cal-wrapper'),
+    document.getElementById('day-panel')
   ].filter(Boolean);
   const on = isCleanMode();
   targets.forEach(el => el.classList.toggle('clean-mode', on));
@@ -4664,7 +4678,7 @@ function renderDayStrip(){
       :`<span class="dc-num">${day.d}</span>`;
     let badge='';
     if(avCount>0)
-      badge=`<span style="font-size:10px;font-weight:700;color:var(--green);background:var(--greenLt);border-radius:10px;padding:2px 8px;margin-top:4px;display:block">${avCount} open</span>`;
+      badge=`<span class="dc-badge-open" style="font-size:10px;font-weight:700;color:var(--green);background:var(--greenLt);border-radius:10px;padding:2px 8px;margin-top:4px;display:block">${avCount} open</span>`;
     else if(hasEvent)
       badge=`<span style="font-size:10px;font-weight:700;color:var(--evt);background:var(--evtLt);border-radius:10px;padding:2px 8px;margin-top:4px;display:block">🔴 Event</span>`;
     else if(bookedCount>0)
@@ -4681,6 +4695,19 @@ function renderDayStrip(){
 }
 
 // ── Panel ────────────────────────────────────
+// v59 CAL-10: Pre-fill the booking form when arriving from the mobile day panel "+ Book a slot for this day"
+// button. Without this, the form rendered with empty placeholders ("—") because selBlock was never set.
+// We look up the first available block on the requested day and set selBlock so the form's auto-select
+// logic (renderHourBlocks line ~5186) picks it up. If no av blocks exist for the day, we leave selBlock
+// alone — the form will fall back to its default (first av block of the whole week) or empty state.
+function prefillBookFormForDay(dayIdx){
+  if(typeof getAvailableBlocks !== 'function') return;
+  try {
+    const blocks = getAvailableBlocks();
+    const first = blocks.find(b => b.dayIdx === dayIdx);
+    if(first) selBlock = first.key;
+  } catch(e){ /* silent — fallback to default form behavior */ }
+}
 function openPanel(dayNum){
   panelDay=dayNum; renderPanel(dayNum);
   const ov=$id('panel-overlay'), pn=$id('day-panel');
@@ -4760,7 +4787,7 @@ function renderPanel(dayNum){
         <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="closePanel();goScreen('sc-settings')">⚙️ Settings</button>
       </div>`;
     } else {
-      foot.innerHTML=`<button type="button" class="btn btn-primary btn-full" onclick="closePanel();goScreen('sc-book')">+ Book a slot for this day</button>`;
+      foot.innerHTML=`<button type="button" class="btn btn-primary btn-full" onclick="prefillBookFormForDay(${di});closePanel();goScreen('sc-book')">+ Book a slot for this day</button>`;
     }
   }
 
@@ -7262,6 +7289,15 @@ function bsheetEvent(){
   if(di===null||sh===null) return;
   openAddModal('event', _getCellCtx(di,sh));
 }
+// v59 CAL-12: Mobile equivalent of desktop's cellPopPrivate — opens the Add Modal in 'training' mode so admin
+// can create a single training-session slot with custom details. Previously mobile only had bsheetPrivate
+// (which creates 3 bookable 20-min Meet slots) and was mislabeled "Training Session" — that misled admins
+// who wanted to create a single training block.
+function bsheetTraining(){
+  const di=_bsDayIdx, sh=_bsStartH; closeBSheet();
+  if(di===null||sh===null) return;
+  openAddModal('training', _getCellCtx(di,sh));
+}
 
 // ═══════════════════════════════════════════════
 //  QUICK OPEN PANEL
@@ -8429,21 +8465,29 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
       <div class="bsheet-title" id="bsheet-title">Tue, 26 May · 2pm</div>
       <div class="bsheet-sub" id="bsheet-sub">8pm WIB · 8pm SGT</div>
     </div>
+    <!-- v59 CAL-12: 6 items grouped CREATE / MANAGE. Matches desktop cell-pop's 5 items (Zoom/Meet/Block/Event/Training)
+         + keeps mobile's bulk "Clear available slots" under MANAGE. Icons & labels mirror desktop wording. -->
+    <div class="bsheet-section-lbl">Create</div>
     <button type="button" class="bsheet-item" onclick="bsheetZoom()">
-      <span class="bsheet-item-icon">🔵</span>
+      <span class="bsheet-item-icon">✅</span>
       <div class="bsheet-item-info"><span>Open for 15-min Zoom</span><span class="bsheet-item-desc">4 slots · :00 :15 :30 :45</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetPrivate()">
-      <span class="bsheet-item-icon" style="background:var(--indigoLt);border-radius:6px">🎓</span>
-      <div class="bsheet-item-info"><span style="color:var(--indigo)">Training Session</span><span class="bsheet-item-desc">20-min private slot</span></div>
-    </button>
-    <button type="button" class="bsheet-item" onclick="bsheetBlock()">
-      <span class="bsheet-item-icon">🔒</span>
-      <div class="bsheet-item-info"><span>Block this slot</span><span class="bsheet-item-desc">Hide from downlines</span></div>
+      <span class="bsheet-item-icon">🟠</span>
+      <div class="bsheet-item-info"><span>Open for 20min Meet</span><span class="bsheet-item-desc">3 slots · :00 :20 :40</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetEvent()">
       <span class="bsheet-item-icon">🔴</span>
-      <div class="bsheet-item-info"><span>Add Event here</span><span class="bsheet-item-desc">Business event or announcement</span></div>
+      <div class="bsheet-item-info"><span>Add event here</span><span class="bsheet-item-desc">Business event or announcement</span></div>
+    </button>
+    <button type="button" class="bsheet-item" onclick="bsheetTraining()">
+      <span class="bsheet-item-icon" style="background:var(--indigoLt);color:var(--indigo);border-radius:6px">🟣</span>
+      <div class="bsheet-item-info"><span style="color:var(--indigo)">Training session</span><span class="bsheet-item-desc">Single 20-min internal slot</span></div>
+    </button>
+    <div class="bsheet-section-lbl">Manage</div>
+    <button type="button" class="bsheet-item" onclick="bsheetBlock()">
+      <span class="bsheet-item-icon">🔒</span>
+      <div class="bsheet-item-info"><span>Block this slot</span><span class="bsheet-item-desc">Hide from downlines</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="closeBSheet();bsheetClearAvailable()" style="color:var(--red)">
       <span class="bsheet-item-icon">🗑️</span>
