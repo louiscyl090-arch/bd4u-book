@@ -1702,7 +1702,10 @@ tr:hover td{background:var(--g50)}
   </div>
   <div class="panel-body" id="panel-body"></div>
   <div class="panel-foot" id="panel-foot">
-    <button type="button" class="btn btn-primary btn-full" id="panel-book-btn" onclick="closePanel();goScreen('sc-book')">+ Book a slot for this day</button>
+    <!-- v59 CAL-10 [v3]: Placeholder content. renderPanel() always overwrites this on openPanel().
+         Kept as neutral text instead of the old "+ Book a slot for this day" button to prevent any
+         pre-render flash of the broken button. -->
+    <div style="text-align:center;padding:6px 8px;font-size:12px;font-weight:600;color:var(--g500)">Loading…</div>
   </div>
 </div>
 
@@ -4695,26 +4698,6 @@ function renderDayStrip(){
 }
 
 // ── Panel ────────────────────────────────────
-// v59 CAL-10 [v2 fix]: The booking form was rebuilt in v58 Phase 4a (bkNewRender) — it uses selSlotDbId
-// to find a specific slot via SCHEDULE.find(s=>s._id===selSlotDbId), NOT the legacy selBlock variable.
-// My first attempt set selBlock + relied on renderHourBlocks (legacy path, no longer called per v58 Phase 5b
-// comment at line ~4940). The new form fell through to the "—" placeholder fallback.
-// Correct fix: pre-fill selSlotDbId with the FIRST available slot on the requested day. Also set selSlotType
-// so the type pill matches. Without a specific slot _id, the new form has no way to populate.
-function prefillBookFormForDay(dayIdx){
-  try {
-    const avSlots = SCHEDULE
-      .filter(s => s.status === 'av' && s.dayIdx === dayIdx)
-      .sort((a,b) => a.startMyt - b.startMyt);
-    if(!avSlots.length) return; // no av slots — form will show "—" fallback (existing behavior)
-    const slot = avSlots[0];
-    selSlotDbId = slot._id;
-    selSlotType = (slot.type === 'zoom15') ? 'zoom15' : 'private';
-    // Keep selBlock in sync for any legacy code paths that may still read it.
-    const startH = Math.floor(slot.startMyt / 60);
-    selBlock = `d${dayIdx}_h${startH}`;
-  } catch(e){ /* silent — form will fall back to default empty state */ }
-}
 function openPanel(dayNum){
   panelDay=dayNum; renderPanel(dayNum);
   const ov=$id('panel-overlay'), pn=$id('day-panel');
@@ -4794,7 +4777,16 @@ function renderPanel(dayNum){
         <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="closePanel();goScreen('sc-settings')">⚙️ Settings</button>
       </div>`;
     } else {
-      foot.innerHTML=`<button type="button" class="btn btn-primary btn-full" onclick="prefillBookFormForDay(${di});closePanel();goScreen('sc-book')">+ Book a slot for this day</button>`;
+      // v59 CAL-10 [v3]: Removed "+ Book a slot for this day" button. It led to bkNewRender with no
+      // specific slot selected → form showed "—" placeholders. The button was also conceptually wrong
+      // because the new form has no time picker, so users couldn't change time after arriving.
+      // Replaced with conditional helper text. Real entry point is now the "Book →" button on each
+      // av slot row (which sets selSlotDbId correctly).
+      const dayHasAvSlots = weekSlots().some(s => s.status === 'av' && s.dayIdx === di);
+      const hintText = dayHasAvSlots
+        ? '👆 Tap a green time slot above to book'
+        : '🔒 No open slots this day — try another day';
+      foot.innerHTML=`<div style="text-align:center;padding:6px 8px;font-size:12px;font-weight:600;color:var(--g500)">${hintText}</div>`;
     }
   }
 
@@ -4861,7 +4853,11 @@ function renderPanel(dayNum){
         const tzOffsetMins=Math.round((tz.o-8)*60);
         const uStartMin=((slot.startMyt+tzOffsetMins)%1440+1440)%1440;
         const slotTimeStr=fmtMinutes(uStartMin);
-        clickAttr=`onclick="selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
+        // v59 CAL-10 [v2 fix extended]: also set selSlotDbId + selSlotType. Without these, the new
+        // bkNewRender form (v58 Phase 4a) can't find the slot and shows "—" placeholders. selBlock +
+        // selSlotTime are legacy v57 variables — kept for any code path that may still read them.
+        const slotTypeKey = slot.type === 'zoom15' ? 'zoom15' : 'private';
+        clickAttr=`onclick="selSlotDbId='${slot._id}';selSlotType='${slotTypeKey}';selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
       }
       const pill=isBlocked?'':typePill(slot.type);
       let badge='';
