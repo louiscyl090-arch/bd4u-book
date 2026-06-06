@@ -2078,7 +2078,7 @@ tr:hover td{background:var(--g50)}
 <div id="cell-pop" class="cell-pop" style="display:none">
   <div class="cell-pop-hdr" id="cell-pop-hdr" style="display:flex;justify-content:space-between;align-items:center"><span id="cell-pop-hdr-txt">Mon 10–11am MYT</span><button type="button" onclick="closeCellPop()" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:13px;padding:0;line-height:1">✕</button></div>
   <button type="button" class="cell-pop-btn" id="cell-pop-open" onclick="cellPopOpenForBooking()">
-    <span class="cp-icon">✅</span><span>Open for 15-min Zoom</span>
+    <span class="cp-icon">✅</span><span>Open for 15min Zoom</span>
   </button>
   <button type="button" class="cell-pop-btn" id="cell-pop-priv-open" onclick="cellPopOpenForPrivate()">
     <span class="cp-icon">🟠</span><span>Open for 20min Meet</span>
@@ -2278,10 +2278,13 @@ function makeLabel(slot){
   if(slot.status==='av'){  if(slot.type==='meet'||slot.type==='private') return 'Available - 20min PV';  return 'Available - 15min ZM'; }
   if(slot.status==='full')  return '🚫 Full';
 
-  // Use DB joined names if available, fall back to USERS lookup
+  // Use DB joined names if available, fall back to USERS lookup.
+  // v59 CAL-19: presenter defaults to '' (not 'TBA') so unassigned bookings drop the "& TBA" suffix
+  // entirely. The TBA state is already communicated via the amber Pending badge / presenter badge
+  // elsewhere — appending "& TBA" to the slot label was redundant noise.
   const prospect  = slot.prospect || '';
   const downline  = slot._bookerName || USERS[slot.user]?.name || slot.user || '';
-  const presenter = slot._presenterName || (slot.presenter ? (USERS[slot.presenter]?.name || slot.presenter) : 'TBA');
+  const presenter = slot._presenterName || (slot.presenter ? (USERS[slot.presenter]?.name || slot.presenter) : '');
 
   // Private bookings: [downline] & [presenter] (no prospect). Zoom: [prospect]_[downline] & [presenter]
   const leftPart = slot.type==='private'
@@ -2290,7 +2293,8 @@ function makeLabel(slot){
        : prospect ? prospect
        : downline ? downline
        : '—');
-  return `${leftPart} & ${presenter}`;
+  // v59 CAL-19: append "& presenter" only if presenter is set. Unassigned → just leftPart.
+  return presenter ? `${leftPart} & ${presenter}` : leftPart;
 }
 
 // Short label for calendar chips (truncated)
@@ -4771,15 +4775,21 @@ function updateNavBtns(){
   const p=$id('day-prev-btn'), n=$id('day-next-btn');
   if(p) p.style.opacity=dayWindowStart===0?'0.3':'1';
   if(n) n.style.opacity=dayWindowStart>=max?'0.3':'1';
-  // v59 CAL-31: Today button disabled when already on current week. Stays visible (per spec) but
-  // grays out to signal it would do nothing. Find the .cal-today-btn (mobile-only class, also present
-  // on desktop button — both get the same visual state).
-  const todayBtn=document.querySelector('.cal-today-btn');
+  // v59 CAL-31 [fix]: Today button — disable only when click would be a no-op.
+  // Mobile shows a 3-day window via dayWindowStart; weekOffset===0 alone isn't enough. Example: it's Sat
+  // but the strip is scrolled to MON/TUE/WED — clicking Today should still scroll the window to today.
+  // Desktop renders the full week regardless of dayWindowStart, so weekOffset===0 is sufficient there.
+  const todayBtn = document.querySelector('.cal-today-btn');
   if(todayBtn){
-    const isOnCurrent = weekOffset === 0;
-    todayBtn.disabled = isOnCurrent;
-    todayBtn.style.opacity = isOnCurrent ? '0.4' : '1';
-    todayBtn.style.cursor = isOnCurrent ? 'default' : 'pointer';
+    const isMobile = window.innerWidth <= 640;
+    const todayIdx = WEEK_DAYS.findIndex(d => d.d === TODAY_D);
+    const todayInWindow = todayIdx >= 0 && todayIdx >= dayWindowStart && todayIdx < dayWindowStart + 3;
+    const isNoOp = isMobile
+      ? (weekOffset === 0 && todayInWindow)   // mobile: also need today to be in the strip window
+      : (weekOffset === 0);                    // desktop: full week always visible
+    todayBtn.disabled = isNoOp;
+    todayBtn.style.opacity = isNoOp ? '0.4' : '1';
+    todayBtn.style.cursor  = isNoOp ? 'default' : 'pointer';
   }
 }
 function renderDayStrip(){
@@ -5806,14 +5816,15 @@ async function renderRecentCalls(scope){
     const presenterName = row.presenter_user?.name || '';
     const bookerName    = row.booker?.name || '';
     const prospect      = row.prospect || '';
-    // Label format mirrors Next 30 days / makeLabel
+    // Label format mirrors Next 30 days / makeLabel.
+    // v59 CAL-19: drop the "& TBA" suffix when presenter is unassigned — same logic as makeLabel.
     let label;
     if(row.type === 'private'){
-      label = row.label || `${bookerName} & ${presenterName || 'TBA'}`;
+      label = row.label || (presenterName ? `${bookerName} & ${presenterName}` : bookerName);
     } else if(prospect && bookerName){
-      label = `${prospect}_${bookerName} & ${presenterName || 'TBA'}`;
+      label = presenterName ? `${prospect}_${bookerName} & ${presenterName}` : `${prospect}_${bookerName}`;
     } else {
-      label = bookerName ? `${bookerName} & ${presenterName || 'TBA'}` : 'Booking';
+      label = bookerName ? (presenterName ? `${bookerName} & ${presenterName}` : bookerName) : 'Booking';
     }
     // Status badge (Q1=b): Confirmed (presenter assigned) / Pending (no presenter)
     const statusBdg = presenterName
@@ -8636,7 +8647,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
     <div class="bsheet-section-lbl">Create</div>
     <button type="button" class="bsheet-item" onclick="bsheetZoom()">
       <span class="bsheet-item-icon">✅</span>
-      <div class="bsheet-item-info"><span>Open for 15-min Zoom</span><span class="bsheet-item-desc">4 slots · :00 :15 :30 :45</span></div>
+      <div class="bsheet-item-info"><span>Open for 15min Zoom</span><span class="bsheet-item-desc">4 slots · :00 :15 :30 :45</span></div>
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetPrivate()">
       <span class="bsheet-item-icon">🟠</span>
