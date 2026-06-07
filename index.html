@@ -610,6 +610,10 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 /* On mobile, shrink the badge area slightly so ✕ doesn't overlap text. The se-badge already
    sits right-aligned; padding-right on the row gives the X room without changing the badge layout. */
 .slot-entry.has-x{padding-right:36px}
+/* v59 [Louis M6b] - downline mine rows get cursor:pointer + subtle hover, since tapping
+   opens the attachment upload modal. Applied in addition to type colours (mine-zoom/mine-meet). */
+.slot-entry.has-tap{cursor:pointer}
+.slot-entry.has-tap:active{transform:scale(.985)}
 .slot-entry.av{border-color:var(--greenB);background:var(--greenLt);cursor:pointer}.slot-entry.av:hover{background:#c0f0d8}
 .slot-entry.mine{border-color:var(--tealB);background:var(--tealLt)}
 .slot-entry.zoom{border-color:var(--zoomB)}
@@ -5636,6 +5640,12 @@ function renderPanel(dayNum){
         // selSlotTime are legacy v57 variables — kept for any code path that may still read them.
         const slotTypeKey = slot.type === 'zoom15' ? 'zoom15' : 'private';
         clickAttr=`onclick="selSlotDbId='${slot._id}';selSlotType='${slotTypeKey}';selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
+      } else if(!isAdmin && isMine && slot._id){
+        // v59 [Louis M6b] - downline tapping their own mine row (past OR future per Q1=β)
+        // opens the attachment modal in upload mode. Past mine has no ✕ (M6a Item 1); future
+        // mine has both ✕ cancel AND this tap-to-upload. Row gets cursor:pointer via .has-tap.
+        cls+=' has-tap';
+        clickAttr=`onclick="openMineUploadFromPanel(${idx})"`;
       }
       const pill=makePanelPill(slot);
       let badge='';
@@ -8967,6 +8977,24 @@ function closeBSheetConfirm(){
 // behaviour (slot reverts to AV, booker fields cleared, in-app notification) but uses bsheet-confirm
 // for proper mobile UX instead of the native confirm() dialog. Triggered by the ✕ button on a
 // downline's own MZ1/MM1 row in the mobile panel.
+// v59 [Louis M6b] - Downline-side attachment upload entry from the mobile day panel.
+// Tapping a downline's own mine row (past or future per Louis Q1=β) opens the existing
+// openAttachmentModal in upload mode. Modal already handles existing-attachment preview,
+// upload, delete, and RLS error messages. Past-mine rows get this via the panel tap
+// (no ✕ because cancel-past doesn't make sense — already enforced by M6a Item 1).
+// Future-mine rows get BOTH the ✕ cancel button AND this tap-to-upload affordance.
+function openMineUploadFromPanel(idx){
+  const slot = SCHEDULE[idx];
+  if(!slot || !slot._id) return;
+  const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const sT = minToUser(slot.startMyt, tz.o);
+  const day = WEEK_DAYS[slot.dayIdx];
+  const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+  const name = slot.prospect || slot.label || 'My booking';
+  const summary = `${name} · ${dayLabel} · ${sT} ${tz.l||''}`.trim();
+  openAttachmentModal(slot._id, summary);
+}
+
 async function confirmCancelMineMobile(idx){
   const slot = SCHEDULE[idx];
   if(!slot || !slot._id) return;
