@@ -215,7 +215,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .focus-mode .sc-private:not(.sc-private-mine){ display:none !important }
 /* Hide rows whose only remaining chips are types that Focus would hide. Keep the row if it has any AV or mine chip. */
 .focus-mode .blk-row:not(:has(.sc-av-zoom, .sc-av-meet, .sc-av-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-private-mine)){ display:none !important }
-.focus-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.focus-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
 
 /* v59 [Louis M4a] - Today button in day panel footer. Default = neutral. When viewing a non-today
    date, .is-not-today highlights yellow as a "shortcut home" affordance. Dims when already on today. */
@@ -1300,7 +1300,7 @@ tr:hover td{background:var(--g50)}
 .qopen-type.on-private{border-color:var(--meet);background:var(--meetLt);color:var(--meet)}
 .qopen-summary{background:var(--tealLt);border:1.5px solid var(--tealB);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--teal);font-weight:600;min-height:36px;line-height:1.5}
 .qopen-foot{padding:0 20px 18px;display:flex;gap:8px}
-.qopen-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid var(--tealB);background:var(--tealLt);color:var(--teal);transition:all .13s;white-space:nowrap}
+.qopen-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid var(--tealB);background:var(--tealLt);color:var(--teal);transition:all .13s;white-space:nowrap}
 .qopen-btn:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
 
 .auth-overlay{position:fixed;inset:0;background:rgba(13,31,51,.72);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -5580,8 +5580,27 @@ function renderPanel(dayNum){
       // v59 [Louis M5b] - mark past-day slot rows so CSS can apply the grey treatment (Option B —
       // grey row + main text, type pill keeps its colour). day.today flag is already set in
       // buildWeekDays; "past" = not today and earlier than today (uses fullDate).
+      // v59 [Louis M6a Item 3] - extended to also cover today's already-elapsed hours per Q5.
+      // Day-level isPastDay was binary (whole day grey or whole day fresh); now we compute slot-level
+      // isPastSlot so a 10am Mine row on today goes grey at 11am but the 4pm Mine row stays coloured.
+      //   • Past day (yesterday+) → all slots past
+      //   • Today                → slot past when its endMyt is earlier than current MYT minute
+      //   • Future day            → no slots past (early return)
+      // Option α scope — day chip (preview dots, "X open" count) intentionally unchanged.
       const _todayMid = (function(){const t=new Date();t.setHours(0,0,0,0);return t.getTime();})();
-      const isPastDay = day && day.fullDate && day.fullDate.getTime() < _todayMid;
+      const isPastDay  = day && day.fullDate && day.fullDate.getTime() < _todayMid;
+      const isTodayDay = day && day.today;
+      // Compute "now in MYT minutes since midnight" — endMyt is also in MYT minutes so the
+      // comparison is timezone-safe regardless of activeTZ display. Done per-slot but cheap;
+      // could be hoisted outside .map if perf becomes a concern (currently negligible).
+      let nowMytMin = 0;
+      if(isTodayDay){
+        const nowD = new Date();
+        // Convert local "now" → MYT (UTC+8) by using getUTC + 8h offset
+        const utcMins = nowD.getUTCHours()*60 + nowD.getUTCMinutes();
+        nowMytMin = (utcMins + 8*60) % 1440;
+      }
+      const isPastSlot = isPastDay || (isTodayDay && slot.endMyt <= nowMytMin);
       // v59 CAL-15: 7-state class assignment matching desktop chip palette (Chip Contract tab).
       // Old logic mapped type='private' to .meet (orange) and type='meet' booked/mine fell through to .zoom (blue).
       // New: Training=purple, Meet family=orange, Zoom family=blue/green per Phase 5 Review.
@@ -5639,11 +5658,19 @@ function renderPanel(dayNum){
              :isTraining?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
              :presenterBadge(slot.presenter, slot._presenterName);
       }
-      // v59 CAL-14: admin gets a corner ✕ delete button on every row. Content-aware confirm via confirmDeleteSlot.
-      const xBtn = isAdmin
-        ? `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`
-        : '';
-      const finalCls = (isAdmin ? (cls + ' has-x') : cls) + (isPastDay ? ' is-past' : '');
+      // v59 CAL-14 + M6a Item 1: ✕ corner button.
+      //  Admin → confirmDeleteSlot (content-aware: soft delete booked, hard delete others).
+      //  Downline on their own non-past booking → confirmCancelMineMobile (slot reverts to AV).
+      //  Mirrors the desktop showDL pattern (slot.status==='mine' && slot._id && !isPastWeek && !isCancelled).
+      //  v59 M6a Item 3 — use isPastSlot (per-slot, includes today's elapsed hours), not isPastDay.
+      const showDownlineX = !isAdmin && isMine && slot._id && !isPastSlot;
+      let xBtn = '';
+      if(isAdmin){
+        xBtn = `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`;
+      } else if(showDownlineX){
+        xBtn = `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmCancelMineMobile(${idx})" aria-label="Cancel booking" title="Cancel booking">✕</button>`;
+      }
+      const finalCls = ((isAdmin || showDownlineX) ? (cls + ' has-x') : cls) + (isPastSlot ? ' is-past' : '');
       return `<div class="${finalCls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
         ${xBtn}
         <div class="se-time">
@@ -7898,10 +7925,26 @@ async function adminHardDelete(dbId){
 // Soft delete a booked slot (mark cancelled=true)
 async function adminSoftDelete(dbId){
   _lastDeleteError = null;
-  const { data, error } = await sb.from('schedule')
+  let { data, error } = await sb.from('schedule')
     .update({ cancelled: true, status: 'cancelled' })
     .eq('id', dbId)
     .select();
+  // v59 [Louis M6a Item 4] - schedule_status_check fallback. If the Supabase CHECK constraint
+  // on schedule.status doesn't include 'cancelled' (older schema), the UPDATE above is rejected
+  // with: "new row for relation 'schedule' violates check constraint 'schedule_status_check'".
+  // Retry the UPDATE setting only cancelled=true, keeping the original status. The cancelled
+  // boolean is the canonical "is this row cancelled" flag everywhere downstream — status alone
+  // is informational once cancelled=true. App behaves identically; constraint upgrade still
+  // recommended but no longer blocking.
+  if(error && /schedule_status_check/i.test(error.message || error.hint || '')){
+    console.warn('adminSoftDelete: schedule_status_check rejected status=cancelled — falling back to cancelled-only update. Run the M5c SQL in Supabase to add cancelled to the allowed status list.');
+    const retry = await sb.from('schedule')
+      .update({ cancelled: true })
+      .eq('id', dbId)
+      .select();
+    data  = retry.data;
+    error = retry.error;
+  }
   if(error){
     console.error('adminSoftDelete error:', error);
     _lastDeleteError = error.message || error.hint || JSON.stringify(error).slice(0,120);
@@ -8917,6 +8960,53 @@ function closeBSheetConfirm(){
 // Confirm message wording follows the Chip Contract X-Button-Admin column. Booked/Mine slots use
 // soft delete (sets cancelled status, matches existing saDeleteSlot behavior); everything else
 // hard deletes. Both flows refresh calendar + panel after completion.
+// v59 [Louis M6a Item 1] - Mobile-friendly downline self-cancel. Mirrors desktop cancelMineFromCal
+// behaviour (slot reverts to AV, booker fields cleared, in-app notification) but uses bsheet-confirm
+// for proper mobile UX instead of the native confirm() dialog. Triggered by the ✕ button on a
+// downline's own MZ1/MM1 row in the mobile panel.
+async function confirmCancelMineMobile(idx){
+  const slot = SCHEDULE[idx];
+  if(!slot || !slot._id) return;
+  const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const sT  = minToUser(slot.startMyt, tz.o);
+  const eT  = minToUser(slot.endMyt,   tz.o);
+  const day = WEEK_DAYS[slot.dayIdx];
+  const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+  const sub = `${dayLabel} · ${sT}–${eT} ${tz.l||''}`.trim();
+  const prospect = slot.prospect || slot._bookerName || 'this booking';
+  showBSheetConfirm({
+    title: 'Cancel your booking?',
+    sub,
+    body: `Your booking for <strong>${sanitize(prospect)}</strong> will be cancelled and the slot will become available again.`,
+    confirmLabel: 'Cancel booking',
+    onConfirm: async () => {
+      showAuthSpinner('Cancelling…');
+      const ok = await cancelBookingInDB(slot._id);
+      if(!ok){
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast('Could not cancel — please try again', 'err');
+        return;
+      }
+      // Mirror desktop cancelMineFromCal local-state reset — slot becomes AV again at same time.
+      slot.status          = 'av';
+      slot.user            = '';
+      slot.prospect        = '';
+      slot.label           = '';
+      slot.presenter       = null;
+      slot._bookerName     = '';
+      slot._bookerInitials = '';
+      slot._presenterName  = '';
+      if(typeof addNotification === 'function'){
+        addNotification('Booking cancelled. Slot is now available again.', 'cancel');
+      }
+      hideAuthSpinner();
+      if(panelOpen && panelDay !== null) renderPanel(panelDay);
+      renderCalendar();
+      if(typeof showToast === 'function') showToast('Booking cancelled');
+    }
+  });
+}
+
 async function confirmDeleteSlot(idx){
   const slot = SCHEDULE[idx];
   if(!slot) return;
