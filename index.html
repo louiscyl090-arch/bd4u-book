@@ -72,7 +72,14 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
    Applied via .is-admin or .is-manager on #main-nav. Dark gold gradient base + bright gold
    border-bottom so the mode is unmissable. Badge to the right of logo adds explicit label. */
 .nav.is-admin,.nav.is-manager{background:linear-gradient(135deg,#8B6914,#5C4609);border-bottom:2px solid #FFD54F;box-shadow:0 2px 12px rgba(139,105,20,.35)}
-.role-badge{display:inline-flex;align-items:center;background:#FFD54F;color:#5C4609;padding:3px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:.6px;margin-left:8px;font-family:var(--font);text-transform:uppercase;flex-shrink:0;align-self:center}
+/* v59 [Louis M7a Q1c] - elevated view badge. Shows 'ADMIN' for admin view, 'MNGR' for manager view, hidden in downline view. Populated by updateRoleUI.
+   v59 [Louis M7b Item 3] - differentiated colours per Louis spec:
+     • ADMIN → Option A: navy bg + bright gold text + gold border (premium / elite look)
+     • MNGR  → Option B: pure white bg + dark gold/brown text (maximum contrast for readability)
+   updateRoleUI sets .is-admin or .is-mngr modifier class for the right palette. */
+.role-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:.6px;margin-left:8px;font-family:var(--font);text-transform:uppercase;flex-shrink:0;align-self:center;background:#FFD54F;color:#5C4609}
+.role-badge.is-admin{background:#0D1F33;color:#FFD54F;border:1px solid #FFD54F;padding:2px 7px}
+.role-badge.is-mngr{background:#fff;color:#5C4609;border:1px solid #fff}
 .nav::-webkit-scrollbar{display:none}
 .nav-logo{font-size:15px;font-weight:800;color:#fff;padding-right:14px;margin-right:6px;border-right:1px solid rgba(255,255,255,.15);flex-shrink:0;white-space:nowrap;letter-spacing:-.3px}
 .nav-logo span{color:#5BC8B0} /* lighter teal — better contrast on navy */
@@ -1141,7 +1148,15 @@ tr:hover td{background:var(--g50)}
   .ntab{padding:14px 9px;font-size:11.5px}
   .desktop-cal{display:none}
   .mobile-cal-wrapper{display:block}
-  .stats-grid{grid-template-columns:1fr 1fr}
+  /* v59 [Louis M7b Item 1] - keep 2x2 on mobile and shrink stat cards so they fit comfortably.
+     Was: 1x4 stack on <400px = ~480px tall just for stats. Now: 2x2 grid, compact cards = ~140px.
+     Numbers stay readable (20px), labels still scan ("DOWNLINES" fits). */
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat-card{padding:10px 12px}
+  .stat-lbl{font-size:9px;letter-spacing:.05em;margin-bottom:3px}
+  .stat-bar{width:3px;height:20px;margin-right:8px}
+  .stat-val{font-size:20px;letter-spacing:-.3px}
+  .stat-sub{font-size:9px;margin-top:2px}
   .slot-type-row{grid-template-columns:1fr 1fr}
   .stype-row{flex-direction:column}
   .bk-grid{grid-template-columns:1fr}
@@ -1213,7 +1228,9 @@ tr:hover td{background:var(--g50)}
   .slot-entry.training .se-name{color:var(--indigo)}
 }
 @media(min-width:641px){.mobile-cal-wrapper{display:none}}
-@media(max-width:400px){.stats-grid{grid-template-columns:1fr}}
+@media(max-width:400px){
+  /* v59 [Louis M7b Item 1] - removed forced 1-column for stats-grid (was making cards stack and use ~480px height). Compact 2x2 now works at any width. */
+}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--g200);border-radius:2px}
@@ -2186,16 +2203,11 @@ tr:hover td{background:var(--g50)}
         <button type="button" class="btn btn-primary btn-sm" onclick="goScreen('sc-cal')">Open Calendar →</button>
       </div>
 
-      <div class="explainer" id="dash-explainer" style="position:relative">
-        <button type="button" id="dash-explainer-dismiss" onclick="dismissDashExplainer()" title="Hide this guide (per browser)" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#fff;opacity:.55;cursor:pointer;font-size:14px;padding:4px 8px;line-height:1;border-radius:4px;font-weight:700;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✕</button>
-        <div class="exp-t">💡 How the unified calendar works</div>
-        <div class="exp-steps">
-          <div class="exp-step"><div class="exp-num">1</div><div class="exp-txt"><strong>Open blocks</strong>Click + on the calendar to open an hour block for booking.</div></div>
-          <div class="exp-step"><div class="exp-num">2</div><div class="exp-txt"><strong>Users book</strong>Each user sees the block in their own timezone and types their preferred minute.</div></div>
-          <div class="exp-step"><div class="exp-num">3</div><div class="exp-txt"><strong>Review here</strong>New bookings arrive below. MYT is the master reference time.</div></div>
-          <div class="exp-step"><div class="exp-num">4</div><div class="exp-txt"><strong>Assign upline</strong>Click Renee or Gus on any TBA booking to assign the presenter.</div></div>
-        </div>
-      </div>
+      <!-- v59 [Louis M7b Item 2] - Removed #dash-explainer ("How the unified calendar works" card
+           plus the "Click Renee or Gus..." step). Both admin and manager view it; permanent removal.
+           The dismissable-by-localStorage logic (isDashExplainerDismissed/applyDashExplainerState/
+           dismissDashExplainer/resetDashExplainer) still exists in JS as no-op when #dash-explainer
+           is absent — left intact to avoid breaking any external callers. -->
 
       <div class="stats-grid" id="stats-grid"></div>
 
@@ -3060,11 +3072,17 @@ function updateRoleUI(){
   if(roleBadge){
     if(isAdmin){
       roleBadge.textContent = 'ADMIN';
+      roleBadge.classList.add('is-admin');
+      roleBadge.classList.remove('is-mngr');
       roleBadge.style.display = 'inline-flex';
     } else if(isManager){
       roleBadge.textContent = 'MNGR';
+      roleBadge.classList.add('is-mngr');
+      roleBadge.classList.remove('is-admin');
       roleBadge.style.display = 'inline-flex';
     } else {
+      roleBadge.classList.remove('is-admin');
+      roleBadge.classList.remove('is-mngr');
       roleBadge.style.display = 'none';
     }
   }
