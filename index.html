@@ -241,6 +241,22 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-past *,.sc-past-admin *{color:var(--g600)!important}
 .blk-tc.tc-past{color:var(--g500)}
 .blk-row.row-past .blk-tc{color:var(--g500)}
+
+/* v59 [Louis M5b] - Mobile panel slot rows (Option B): grey row background + border + main text,
+   BUT type pill keeps its colour so user can still tell at a glance what kind of slot it was.
+   Status badges (Mine/Renee/Open etc) greyed for consistency. Book → button greyed and disabled
+   (past slots can't be booked). X delete button kept visible per Louis Q2 — admin still needs the
+   option for testing/cleanup. */
+.slot-entry.is-past{
+  background:var(--g100)!important;
+  border:1.5px solid var(--g200)!important;
+}
+.slot-entry.is-past .se-t,
+.slot-entry.is-past .se-tz,
+.slot-entry.is-past .se-name{color:var(--g600)!important}
+.slot-entry.is-past .bdg{background:var(--g200)!important;color:var(--g600)!important}
+.slot-entry.is-past .btn-primary{background:var(--g300)!important;color:var(--g500)!important;border-color:var(--g300)!important;pointer-events:none}
+/* type-pill kept in its native colour — Option B differentiator */
 /* v58: current-time red line indicator (only shown on today's column, current week) */
 /* v58 Phase 1.8: positioning now uses CSS calc() + percentages → auto-resilient to window resize */
 .blk-row{position:relative}
@@ -5561,6 +5577,11 @@ function renderPanel(dayNum){
       const sT=minToUser(slot.startMyt,tz.o), eT=minToUser(slot.endMyt,tz.o);
       const label=makePanelLabel(slot);
       const idx=SCHEDULE.indexOf(slot);
+      // v59 [Louis M5b] - mark past-day slot rows so CSS can apply the grey treatment (Option B —
+      // grey row + main text, type pill keeps its colour). day.today flag is already set in
+      // buildWeekDays; "past" = not today and earlier than today (uses fullDate).
+      const _todayMid = (function(){const t=new Date();t.setHours(0,0,0,0);return t.getTime();})();
+      const isPastDay = day && day.fullDate && day.fullDate.getTime() < _todayMid;
       // v59 CAL-15: 7-state class assignment matching desktop chip palette (Chip Contract tab).
       // Old logic mapped type='private' to .meet (orange) and type='meet' booked/mine fell through to .zoom (blue).
       // New: Training=purple, Meet family=orange, Zoom family=blue/green per Phase 5 Review.
@@ -5622,7 +5643,7 @@ function renderPanel(dayNum){
       const xBtn = isAdmin
         ? `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`
         : '';
-      const finalCls = isAdmin ? (cls + ' has-x') : cls;
+      const finalCls = (isAdmin ? (cls + ' has-x') : cls) + (isPastDay ? ' is-past' : '');
       return `<div class="${finalCls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
         ${xBtn}
         <div class="se-time">
