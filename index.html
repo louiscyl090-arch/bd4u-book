@@ -388,6 +388,9 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .day-chip.has-event.is-today .dc-name{color:var(--evt)}
 /* v59 CAL-29: Day-chip preview dots — Option 2 (dots + mini-counts). */
 .dc-dots{display:flex;gap:6px;justify-content:center;align-items:center;font-size:10px;font-weight:800;margin-top:4px;min-height:14px;flex-wrap:wrap}
+/* v59 [Louis] - "X open" balance under preview dots, only for available 15-min Zoom slots */
+.dc-av-zoom{font-size:10px;font-weight:700;color:var(--green);text-align:center;margin-top:2px;letter-spacing:0.2px}
+.day-chip.has-slots.on .dc-av-zoom{color:#fff;opacity:.9}
 .dc-dot-item{display:inline-flex;align-items:center;gap:2px;line-height:1}
 .dc-dot-item .dc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .dc-dot-item.dc-zoom{color:#1E6FCC}
@@ -2201,21 +2204,23 @@ function buildWeekDays(offset){
   const monday = new Date(now);
   monday.setDate(now.getDate() - (dow===0?6:dow-1) + offset*7);
   monday.setHours(0,0,0,0); // normalise to midnight
+  // v59 [today-circle bug fix]: day.today flag was never assigned — renderDayStrip checked it but
+  // every value was undefined → outlined circle never appeared. Compute by comparing date to midnight today.
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  const todayTs = today0.getTime();
   const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTH_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const days=[];
   for(let i=0;i<7;i++){
     const d=new Date(monday); d.setDate(monday.getDate()+i);
-    // v58 Phase 1.6: use LOCAL date components for iso (not UTC toISOString)
-    // Previous bug: d.toISOString().slice(0,10) returned UTC date which was 1 day behind
-    // for users east of UTC (e.g., Singapore UTC+8 → Thursday SGT became "Wed" iso).
     const isoLocal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     days.push({
       n: DAY_NAMES[d.getDay()],
       d: d.getDate(),
       m: MONTH_SHORT[d.getMonth()],
       fullDate: d,
-      iso: isoLocal
+      iso: isoLocal,
+      today: d.getTime() === todayTs
     });
   }
   return days;
@@ -4850,16 +4855,18 @@ function renderDayStrip(){
     const meetCount     = daySlots.filter(s=>(s.type==='meet') || (s.type==='private' && !(s.status!=='av' && !s.user))).length;
     const trainingCount = daySlots.filter(s=>s.type==='private' && s.status!=='av' && !s.user).length;
     const eventCount    = daySlots.filter(s=>s.type==='event').length;
-    const blockedCount  = daySlots.filter(s=>s.type==='blocked').length;
-    const totalSlots    = zoomCount + meetCount + trainingCount + eventCount + blockedCount;
+    // v59 [Louis] - blocked count removed from preview dots ("no need to show block in day tiles")
+    const totalShown    = zoomCount + meetCount + trainingCount + eventCount;
     const hasEvent      = eventCount > 0;
     const hasAv         = daySlots.some(s=>s.status==='av');
+    // v59 [Louis] - AV Zoom count for "balance" line below dots ("show balance Available for 15min Zoom only")
+    const avZoomCount   = daySlots.filter(s=>s.type==='zoom15' && s.status==='av').length;
     const numEl=day.today
       ?`<span class="dc-today-circle">${day.d}</span>`
       :`<span class="dc-num">${day.d}</span>`;
     // v59 CAL-29: preview-dot row instead of single badge. Only show dots for types present.
     let dots='';
-    if(totalSlots === 0){
+    if(totalShown === 0){
       dots = `<div class="dc-no-slots">No slots</div>`;
     } else {
       const dotItems=[];
@@ -4867,9 +4874,10 @@ function renderDayStrip(){
       if(meetCount>0)     dotItems.push(`<span class="dc-dot-item dc-meet"><span class="dc-dot"></span>${meetCount}</span>`);
       if(trainingCount>0) dotItems.push(`<span class="dc-dot-item dc-training"><span class="dc-dot"></span>${trainingCount}</span>`);
       if(eventCount>0)    dotItems.push(`<span class="dc-dot-item dc-event"><span class="dc-dot"></span>${eventCount}</span>`);
-      if(blockedCount>0)  dotItems.push(`<span class="dc-dot-item dc-blocked"><span class="dc-dot"></span>${blockedCount}</span>`);
       dots = `<div class="dc-dots">${dotItems.join('')}</div>`;
     }
+    // v59 [Louis] - AV Zoom balance: only show when there are AV Zoom slots, displays under the dot row
+    const avZoomEl = avZoomCount > 0 ? `<div class="dc-av-zoom">${avZoomCount} open</div>` : '';
     // v59 CAL-29: chip class — has-slots when AV present (green tint), has-event when event present,
     // is-today (new) when this day is today (outlined chip border + navy day name).
     let chipCls = 'day-chip';
@@ -4879,7 +4887,7 @@ function renderDayStrip(){
     return `<div class="${chipCls}" onclick="openPanel(${day.d})"
         role="button" aria-label="${day.n} ${day.d}">
       <span class="dc-name">${day.n.toUpperCase()}</span>
-      ${numEl}${dots}
+      ${numEl}${dots}${avZoomEl}
     </div>`;
   }).join('');
 }
