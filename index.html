@@ -369,6 +369,8 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* ── MOBILE CALENDAR ── */
 .day-strip-snap{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;transition:opacity .18s}
+/* v59 [Louis M3d] - 7-day layout in 3+3+1 pattern. Items 1-6 fill rows 1-2. Item 7 (SUN) goes to column 2 (center) on row 3. */
+.day-strip-snap > :nth-child(7){grid-column:2}
 .day-chip{display:flex;flex-direction:column;align-items:center;width:100%;padding:12px 8px;border-radius:var(--rLg);border:1.5px solid var(--g200);background:#fff;cursor:pointer;transition:all .15s;user-select:none;min-height:88px;justify-content:center}
 .day-chip.has-slots{border-color:var(--greenB);background:var(--greenLt)}
 .day-chip.has-event{border-color:var(--evtB);background:var(--evtLt)}
@@ -432,6 +434,9 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* v59 [Louis M3c] - Week navigator (9 circles, ±4 weeks). Mobile-only — desktop keeps its own ‹ › toolbar. */
 .week-nav-card{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+/* v59 [Louis M3d] - Buttons row inside the card (Quick Open / Today / Focus) */
+.week-nav-btns{display:flex;gap:8px;margin-bottom:12px}
+.week-nav-btns > button{flex:1;font-size:12px;padding:7px 4px;white-space:nowrap}
 .week-nav-circles{position:relative;display:flex;justify-content:space-between;align-items:center;padding:6px 4px}
 /* Vertical line through dead center (today position = circle 5 of 9, which space-between places at exact center) */
 .week-nav-circles::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--g300);transform:translateX(-50%);z-index:0;border-radius:1px}
@@ -948,6 +953,11 @@ tr:hover td{background:var(--g50)}
   /* v59 [Louis M3b] - hide redundant elements on mobile: the toolbar legend and the cal-prompt at bottom (mini-legend) are now redundant with the new dedicated mobile legend below the 3-day strip. */
   .cal-toolbar .legend{display:none!important}
   #cal-prompt{display:none!important}
+  /* v59 [Louis M3d] - hide page subtitle ("All times in MYT…"), new booking btn, cal-toolbar entirely, and the 3-day window header. All those bits are either moved into the week-nav-card or no longer needed (full week visible now). */
+  #cal-ph-s{display:none!important}
+  #new-booking-btn{display:none!important}
+  .cal-toolbar{display:none!important}
+  #day-prev-btn,#day-next-btn,#mob-week-label{display:none!important}
   .profile-nav-wrap{display:none!important}
   .ntab{padding:14px 9px;font-size:11.5px}
   .desktop-cal{display:none}
@@ -1355,8 +1365,13 @@ tr:hover td{background:var(--g50)}
         <div class="mobile-cal-wrapper">
           <!-- v59 [Louis M3b] - past-week banner — shown when weekOffset < 0 -->
           <div class="cal-past-banner" id="cal-past-banner">📜 Viewing a past week — read only</div>
-          <!-- v59 [Louis M3c] - 9-circle week navigator — replaces toolbar arrows on mobile -->
+          <!-- v59 [Louis M3c+d] - Week navigator card: buttons row + 9-circle nav + week label, all in one box -->
           <div class="week-nav-card" id="week-nav-card">
+            <div class="week-nav-btns">
+              <button type="button" class="qopen-btn" onclick="openQuickOpen()">⚡ Quick Open</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="jumpToday()">Today</button>
+              <button type="button" class="focus-toggle" onclick="toggleFocusMode()">👁 Focus</button>
+            </div>
             <div class="week-nav-circles" id="week-nav-circles"></div>
             <div class="week-nav-label" id="week-nav-label">1–7 Jun 2026</div>
           </div>
@@ -4987,7 +5002,8 @@ function renderDayStrip(){
   const strip=$id('day-strip-snap'); if(!strip) return;
   strip.style.transition='opacity .18s';
   const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
-  const vis=WEEK_DAYS.slice(dayWindowStart,dayWindowStart+3);
+  // v59 [Louis M3d] - render ALL 7 days (Mon-Sun) in 3+3+1 centered layout (CSS handles centering of SUN via nth-child(7)).
+  const vis=WEEK_DAYS;
   strip.innerHTML=vis.map(day=>{
     const di=WEEK_DAYS.findIndex(d=>d.d===day.d);
     const daySlots=weekSlots().filter(s=>s.dayIdx===di);
