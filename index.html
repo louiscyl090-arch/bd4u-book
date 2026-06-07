@@ -5053,7 +5053,7 @@ function renderPanel(dayNum){
   const monthStr=day?`${day.d} ${day.m||''}`.trim():String(dayNum);
   setText('panel-title',`${relLabel}, ${monthStr}`);
   setText('panel-sub', isAdmin
-    ? `🇲🇾 MYT · Admin mode`
+    ? `${tz.f} ${tz.l} · Admin mode`
     : `${tz.f} ${tz.l} · tap green to book`);
 
   // Update panel footer
@@ -5090,7 +5090,9 @@ function renderPanel(dayNum){
 
   // ── Admin: hour chip selector ──
   if(isAdmin){
-    const homeTZ = TZ_DATA[CURRENT_USER?.tz||'MY'];
+    // v59 [Louis M3b bug] - was reading CURRENT_USER.tz (home setting) — should follow activeTZ
+    // (TZ chip selection) so hour labels reflect the currently displayed TZ.
+    const homeTZ = TZ_DATA[activeTZ||'MY'];
     html+=`<div class="panel-admin-bar">
       <div class="panel-admin-lbl">Tap hour to open / manage</div>
       <div class="panel-hour-grid">`;
