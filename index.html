@@ -521,14 +521,20 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
   body{padding-bottom:64px}
   /* v59 [Louis M4b-hotfix] - Panels + More sheet now slide BEHIND the bottom nav. Reach bottom:0
      and use padding-bottom:64px so internal foot buttons stop just above the nav (which floats on
-     top at z:600). Slide animation reverts to standard translateY(100%). */
-  .panel{bottom:0;max-height:85vh;padding-bottom:64px}
+     top at z:600). Slide animation reverts to standard translateY(100%).
+     v59 [Louis M4c-2] - Day panel uses HEIGHT (fixed) not max-height — panel stays at 85vh
+     regardless of content, so swiping between days doesn't change the panel size. */
+  .panel{bottom:0;height:85vh;padding-bottom:64px}
   .more-sheet{bottom:0;max-height:80vh;padding-bottom:64px}
   /* v59 [Louis M4b] - Overlays end above the bottom nav so the nav is visible AND tappable while a
      panel/sheet is open. Tapping a tab triggers bnGo, which closes the open panel/sheet first then
      navigates. inset:0 from base CSS sets all four sides; we just override bottom. */
   .panel-overlay{bottom:64px}
   .more-sheet-overlay{bottom:64px}
+  /* v59 [Louis M4c-2] - Calendar page fits the visible area exactly (no scroll, no grey gap above
+     bottom nav). Scoped to #sc-cal only — other screens like Settings keep their natural scroll. */
+  #sc-cal .main-content{min-height:calc(100vh - 52px - 64px);display:flex;flex-direction:column}
+  #sc-cal .main-content > .main{flex:1}
   /* v59 [Louis M4a] - Calendar header pills now redundant on mobile (admin mode shown in More sheet
      username header; TZ chip shown in top nav). Hide both on mobile only — desktop keeps them. */
   #admin-badge{display:none!important}
@@ -895,6 +901,26 @@ tr:hover td{background:var(--g50)}
 .upc-z{font-size:10px;font-family:var(--mono);color:var(--g400);margin-top:2px}
 /* Phase 5.5 DB-5.5.3 — Next 30 days compact list (Option b: grouped by date) */
 .upc-list-v2{display:flex;flex-direction:column;gap:14px;padding:12px 0 6px}
+/* v59 [Louis M4d-A] - Recent Zoom rows restructure into a 2-row card on mobile so long names
+   don't truncate. Top row: name + status badge. Bottom row: time + Upload button. Dot spans both
+   rows on the left. Class added in renderRecentZoom; Next 30 days rows keep the plain layout. */
+@media(max-width:640px){
+  .upc-row-card{
+    display:grid !important;
+    grid-template-columns:auto 1fr auto;
+    grid-template-rows:auto auto;
+    gap:4px 10px;
+    align-items:center;
+    padding:11px 14px !important;
+    min-height:auto !important;
+  }
+  .upc-row-card > .upc-dot{grid-row:1/3;grid-column:1;align-self:center}
+  .upc-row-card > .upc-row-label{grid-row:1;grid-column:2;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upc-row-card > .upc-row-time{grid-row:2;grid-column:2;min-width:auto;font-size:11px;color:var(--g500);font-weight:600}
+  .upc-row-card > .bdg{grid-row:1;grid-column:3;justify-self:end}
+  .upc-row-card > .att-row-btn,
+  .upc-row-card > .att-row-btn-has{grid-row:2;grid-column:3;justify-self:end}
+}
 .upc-day-hd{font-size:10px;font-weight:700;color:var(--g400);letter-spacing:.1em;text-transform:uppercase;line-height:1.2;padding:0 14px 5px;border-bottom:1px solid var(--g100);margin-bottom:4px}
 .upc-day-items{display:flex;flex-direction:column;gap:6px;padding:0 14px}
 .upc-row{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.3;min-width:0}
@@ -967,7 +993,29 @@ tr:hover td{background:var(--g50)}
 .tz-sel-label{font-size:10px;font-weight:700;color:inherit}
 .tz-sel-opt:not(.on) .tz-sel-label{color:var(--g600)}
 
-/* ── TEAM MANAGEMENT (admin profile) ── */
+/* v59 [Louis M4d-B] - Team Management action sheet. Same slide-up pattern as More sheet but
+   independent z-index (550/551). Mobile-only — desktop keeps inline 3-button rows. */
+.team-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:550;backdrop-filter:blur(3px)}
+.team-sheet-overlay.on{display:block;animation:fadeIn .2s ease both}
+.team-sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;z-index:551;display:flex;flex-direction:column;box-shadow:0 -12px 40px rgba(13,31,51,.2);transform:translateY(100%);transition:transform .28s cubic-bezier(.32,0,.15,1);max-height:70vh;overflow:hidden}
+.team-sheet.on{transform:translateY(0)}
+.team-sheet-user{padding:6px 18px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--g100)}
+.team-sheet-av{width:42px;height:42px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.team-sheet-name{font-size:14px;font-weight:700;color:var(--navy)}
+.team-sheet-role{font-size:11px;color:var(--g400);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team-sheet-actions{padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.team-sheet-btn{padding:13px 14px;border-radius:8px;border:1px solid var(--g200);background:#fff;font-size:14px;font-weight:600;color:var(--g800);text-align:left;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font);transition:filter .12s}
+.team-sheet-btn:hover{filter:brightness(.97)}
+.team-sheet-btn.promote{background:var(--amberLt);color:#7B4F00;border-color:var(--amberB)}
+.team-sheet-btn.danger{background:#fef2f2;color:var(--red);border-color:var(--red)}
+.team-actions-mobile{display:none;width:36px;height:36px;border-radius:8px;background:var(--g50);border:1px solid var(--g200);align-items:center;justify-content:center;font-size:16px;color:var(--g600);cursor:pointer;font-family:var(--font);letter-spacing:1px;flex-shrink:0;padding:0;line-height:1}
+.team-actions-mobile:hover{background:var(--g100)}
+@media(max-width:640px){
+  .team-actions-desktop{display:none !important}
+  .team-actions-mobile{display:flex}
+  .team-sheet{bottom:0;max-height:70vh;padding-bottom:64px}
+  .team-sheet-overlay{bottom:64px}
+}
 .team-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)}
 .team-row:last-child{border-bottom:none}
 .team-av{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -1350,6 +1398,13 @@ tr:hover td{background:var(--g50)}
 <div class="more-sheet" id="more-sheet">
   <div class="panel-handle"><div class="panel-handle-bar"></div></div>
   <div class="more-scroll" id="more-sheet-body"></div>
+</div>
+
+<!-- v59 [Louis M4d-B] - Team Management action sheet. Opens from the ··· button per downline row. -->
+<div class="team-sheet-overlay" id="team-sheet-overlay" onclick="closeTeamSheet()"></div>
+<div class="team-sheet" id="team-sheet">
+  <div class="panel-handle"><div class="panel-handle-bar"></div></div>
+  <div id="team-sheet-body"></div>
 </div>
 <div class="tz-bar-row hidden" id="tz-bar-row" style="display:none!important">
   <span class="tz-bar-lbl">Viewing in:</span>
@@ -3952,10 +4007,15 @@ function showToast(msg, kind){
   // and lands within thumb reach. Desktop keeps top position unchanged.
   // v59 [issue 2]: when day panel is open on mobile, its footer buttons (Quick Open / Focus) sit
   // at the bottom — bump the toast above them so it doesn't overlap.
+  // v59 [Louis M4c-3]: bottom nav (M4) sits at the bottom 64px on mobile when logged in. Add a
+  // nav offset so the toast clears the nav. Login screen (nav hidden) gets the original 24px gap.
   const isMobile = window.innerWidth <= 640;
   const panelEl = document.getElementById('day-panel');
   const panelOpen = !!(panelEl && panelEl.classList.contains('on'));
-  const bottomGap = (isMobile && panelOpen) ? 90 : 24;
+  const bnav = document.getElementById('bottom-nav');
+  const navVisible = isMobile && !!(bnav && getComputedStyle(bnav).display !== 'none');
+  const navOffset = navVisible ? 64 : 0;
+  const bottomGap = (isMobile && panelOpen ? 90 : 24) + navOffset;
   const pos = isMobile
     ? `bottom:${bottomGap}px;left:50%;transform:translateX(-50%);`
     : 'top:24px;left:50%;transform:translateX(-50%);';
@@ -6363,7 +6423,7 @@ async function renderRecentCalls(scope){
     const attBtn = hasAtt
       ? `<button type="button" class="att-row-btn-has" title="View / replace screenshot" onclick="event.stopPropagation(); openAttachmentModal('${row.id}','${labelEsc}')">📷</button>`
       : `<button type="button" class="att-row-btn" title="Upload screenshot" onclick="event.stopPropagation(); openAttachmentModal('${row.id}','${labelEsc}')">+ Upload</button>`;
-    return `<div class="upc-row" ${tapAttr} style="${cursorStyle};padding:8px 14px;min-height:44px">
+    return `<div class="upc-row upc-row-card" ${tapAttr} style="${cursorStyle};padding:8px 14px;min-height:44px">
       <span class="upc-dot ${dotCls}"></span>
       <span class="upc-row-time">${sanitize(sT)}</span>
       <span class="upc-row-label"><span class="upc-name">${sanitize(label)}</span></span>
@@ -8406,6 +8466,49 @@ async function loadSettingsPrefs(){
 // ═══════════════════════════════════════════════
 //  SETTINGS — TEAM MANAGEMENT & MANAGERS
 // ═══════════════════════════════════════════════
+// v59 [Louis M4d-B] - Team action sheet open/close. Single mobile entry point — desktop uses the
+// inline buttons rendered alongside. Sheet shows downline name + 3 actions (Promote / Suspend or
+// Unsuspend / Delete). Each action closes the sheet first so confirm() dialogs aren't fighting it.
+let _teamSheetOpen = false;
+function openTeamSheet(id, name, email, suspended, role){
+  const body = document.getElementById('team-sheet-body'); if(!body) return;
+  const initials = (name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2) || '?';
+  const nameEsc = (name||'').replace(/'/g, "\\'");
+  const emailEsc = (email||'').replace(/'/g, "\\'");
+  body.innerHTML = `
+    <div class="team-sheet-user">
+      <div class="team-sheet-av">${initials}</div>
+      <div style="min-width:0;flex:1">
+        <div class="team-sheet-name">${name || '—'}</div>
+        <div class="team-sheet-role">${email || '—'}${suspended ? ' · 🔴 Suspended' : ''}</div>
+      </div>
+    </div>
+    <div class="team-sheet-actions">
+      <button type="button" class="team-sheet-btn promote" onclick="closeTeamSheet(); settingsPromoteDemote('${id}','manager','${nameEsc}')">⭐ Promote to Manager</button>
+      <button type="button" class="team-sheet-btn" onclick="closeTeamSheet(); settingsToggleSuspend('${id}', ${!suspended}, 'downline')">${suspended ? '✅ Unsuspend' : '⏸ Suspend'}</button>
+      <button type="button" class="team-sheet-btn danger" onclick="closeTeamSheet(); openDeleteUserModal('${id}','${nameEsc}','${emailEsc}','${role||'downline'}')">🗑 Delete user</button>
+    </div>
+  `;
+  const ov = document.getElementById('team-sheet-overlay');
+  const sh = document.getElementById('team-sheet');
+  if(ov) ov.classList.add('on');
+  if(sh) sh.classList.add('on');
+  _teamSheetOpen = true;
+  document.body.style.overflow = 'hidden';
+}
+function closeTeamSheet(){
+  if(!_teamSheetOpen) return;
+  const ov = document.getElementById('team-sheet-overlay');
+  const sh = document.getElementById('team-sheet');
+  if(ov) ov.classList.remove('on');
+  if(sh) sh.classList.remove('on');
+  _teamSheetOpen = false;
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS — TEAM MANAGEMENT & MANAGERS (original section follows)
+// ═══════════════════════════════════════════════
 async function settingsLoadTeam(){
   const container=$id('settings-team-list'); if(!container) return;
   container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
@@ -8413,7 +8516,12 @@ async function settingsLoadTeam(){
   if(error||!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">Failed to load team</div>'; return; }
   if(!data.length){ container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">No downlines yet.</div>'; return; }
   const tz=k=>TZ_DATA[k]?.l||k;
-  container.innerHTML=data.map(u=>`
+  container.innerHTML=data.map(u=>{
+    const nameEsc = sanitize(u.name||'');
+    const emailEsc = sanitize(u.email||'');
+    // v59 [Louis M4d-B] - Stash row data via dataset so the mobile ··· button can hand the user
+    // object to the action sheet without re-querying.
+    return `
     <div class="team-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)">
       <div class="team-av${u.suspended?' suspended':''}" style="width:36px;height:36px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
         ${sanitize((u.name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))}
@@ -8422,12 +8530,14 @@ async function settingsLoadTeam(){
         <div style="font-size:13px;font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}</div>
         <div style="font-size:11px;color:var(--g400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitize(u.email||'—')} · ${tz(u.timezone)}${u.suspended?' · 🔴 Suspended':''}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button type="button" class="btn btn-xs" style="background:var(--amberLt);color:#7B4F00;border:1px solid var(--amberB)" onclick="settingsPromoteDemote('${u.id}','manager','${sanitize(u.name||'')}')" >⭐ Promote</button>
+      <div class="team-actions-desktop" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn btn-xs" style="background:var(--amberLt);color:#7B4F00;border:1px solid var(--amberB)" onclick="settingsPromoteDemote('${u.id}','manager','${nameEsc}')" >⭐ Promote</button>
         <button type="button" class="btn btn-xs ${u.suspended?'btn-primary':'btn-outline'}" onclick="settingsToggleSuspend('${u.id}',${!u.suspended},'downline')">${u.suspended?'Unsuspend':'Suspend'}</button>
-        <button type="button" class="btn btn-xs" style="background:#fef2f2;color:var(--red,#dc2626);border:1px solid var(--red,#dc2626)" onclick="openDeleteUserModal('${u.id}','${sanitize(u.name||'')}','${sanitize(u.email||'')}','${u.role||'downline'}')" title="Permanently delete this user">🗑 Delete</button>
+        <button type="button" class="btn btn-xs" style="background:#fef2f2;color:var(--red,#dc2626);border:1px solid var(--red,#dc2626)" onclick="openDeleteUserModal('${u.id}','${nameEsc}','${emailEsc}','${u.role||'downline'}')" title="Permanently delete this user">🗑 Delete</button>
       </div>
-    </div>`).join('');
+      <button type="button" class="team-actions-mobile" onclick="openTeamSheet('${u.id}','${nameEsc}','${emailEsc}',${!!u.suspended},'${u.role||'downline'}')" aria-label="More actions for ${nameEsc}">···</button>
+    </div>`;
+  }).join('');
 }
 
 async function settingsLoadManagers(){
