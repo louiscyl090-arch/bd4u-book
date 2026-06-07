@@ -5505,7 +5505,10 @@ function renderPanel(dayNum){
     }
   }
 
-  const items=weekSlots().filter(s=>s.dayIdx===di).sort((a,b)=>a.startMyt-b.startMyt);
+  // v59 M6a-hotfix: exclude cancelled slots from mobile panel. The desktop calendar keeps them
+  // visible with .sc-cancelled (greyed audit-trail chip); mobile panel hides them entirely so
+  // tapping ✕ on a booked slot does what the user expects — the row disappears.
+  const items=weekSlots().filter(s=>s.dayIdx===di && !s.cancelled).sort((a,b)=>a.startMyt-b.startMyt);
   const body=$id('panel-body'); if(!body) return;
 
   let html='';
@@ -7806,7 +7809,7 @@ async function loadScheduleFromDB(){
         presenter:  row.presenter_id || null,
         label:      row.label     || '',
         reason:     row.reason    || '',
-        cancelled:  row.status === 'cancelled',
+        cancelled:  row.cancelled === true || row.status === 'cancelled',
         // v58 Phase 5b: load notes from DB
         notes:      row.notes     || '',
         // Friendly names from joins
