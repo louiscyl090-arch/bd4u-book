@@ -1089,10 +1089,15 @@ tr:hover td{background:var(--g50)}
 .login-left::after{content:'';position:absolute;bottom:-60px;left:-60px;width:200px;height:200px;border-radius:50%;background:rgba(91,200,176,.05)}
 .login-brand{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.5px}
 .login-brand span{color:#5BC8B0}
+/* v59 [Louis M7c] - sub-brand label + checkmark bullets per Option α refresh. login-tag/login-dot
+   rules kept for backward compatibility but no longer used in HTML. */
+.login-sub-brand{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.14em;text-transform:uppercase;margin-bottom:36px;font-weight:700}
+.login-feat-list{display:flex;flex-direction:column;gap:14px}
+.login-check{color:#5BC8B0;font-size:13px;font-weight:800;flex-shrink:0;width:14px;line-height:1}
 .login-tag{font-size:12.5px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:32px}
-.login-feat{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.login-feat{display:flex;align-items:flex-start;gap:10px;margin-bottom:0}
 .login-dot{width:5px;height:5px;border-radius:50%;background:#5BC8B0;flex-shrink:0}
-.login-ft{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
+.login-ft{font-size:12px;color:rgba(255,255,255,.6);line-height:1.55}
 .login-hosts{display:flex;align-items:center;gap:-8px;margin-bottom:24px}
 .login-host-av{width:40px;height:40px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--navy);flex-shrink:0}
 .login-host-av:not(:first-child){margin-left:-10px}
@@ -1486,12 +1491,18 @@ tr:hover td{background:var(--g50)}
 <div id="sc-login" class="screen on">
   <div class="login-wrap">
     <div class="login-left">
+      <!-- v59 [Louis M7c] - refresh per Q1 Option α + screenshot-sharing bullet. Brand + subtitle on
+           top, then 5 checkmark bullets. Replaced the rounded dots with teal ✓ glyphs for cleaner
+           hierarchy. Tagline removed (was redundant with the bullets). -->
       <div class="login-brand">BD4U <span>Book</span></div>
-      <div class="login-tag">Smart booking for your whole team — every timezone, one calendar.</div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Calendar shows times in your timezone by default</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Switch timezone anytime — all times update instantly</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">See who else is booked before you pick your time</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Book a 15-min Zoom or 20-min private meeting with Renee or Gus after booking</div></div>
+      <div class="login-sub-brand">Smart Scheduling</div>
+      <div class="login-feat-list">
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">All times in your local timezone</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">See who's booked before you pick a slot</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">15-min Zoom or 20-min Meet with Renee &amp; Gus</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Share Zoom screenshots with admin in one tap</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Mobile-first — works on any device</div></div>
+      </div>
     </div>
     <div class="login-right">
       <div class="login-box">
@@ -1505,6 +1516,11 @@ tr:hover td{background:var(--g50)}
           <div class="login-err" id="login-user-err"></div>
           <div class="fg"><label class="fl" for="user-username">Username</label><input class="fc" type="text" id="user-username" placeholder="e.g. ali" autocomplete="username"></div>
           <div class="fg"><label class="fl" for="user-pass">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
+          <!-- v59 [Louis M8a Item 2] - "Register here" link above Remember me, per Louis spec.
+               Tap → switches to the register form below. Replaces the old "Request an account" alert. -->
+          <div style="margin-bottom:10px;font-size:12px;color:var(--g600);">
+            New? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showRegisterForm()">Register here</a>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g600);cursor:pointer">
               <input type="checkbox" id="user-remember" checked style="accent-color:var(--teal);width:14px;height:14px"> Remember me
@@ -1512,8 +1528,6 @@ tr:hover td{background:var(--g50)}
             <a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600" onclick="forgotPasswordByUsername()">Forgot password?</a>
           </div>
           <button type="button" class="btn btn-primary btn-full" id="user-login-btn" onclick="loginAs('user')">Sign in →</button>
-          <div class="divider"><div class="divl"></div><div class="divt">or</div><div class="divl"></div></div>
-          <button type="button" class="btn btn-outline btn-full" onclick="alert('Contact Renee or Gus to get your account created.')">Request an account</button>
         </div>
         <div id="login-admin" class="role-form">
           <div class="login-err" id="login-admin-err"></div>
@@ -1534,6 +1548,46 @@ tr:hover td{background:var(--g50)}
           <div class="fg"><label class="fl" for="dev-email">Developer email</label><input class="fc" type="email" id="dev-email" placeholder="your@gmail.com" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="dev-pass">Password</label><input class="fc" type="password" id="dev-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('developer')"></div>
           <button type="button" class="btn btn-navy btn-full" id="dev-login-btn" onclick="loginAs('developer')">Developer Sign in →</button>
+        </div>
+        <!-- v59 [Louis M8a] - Register form. Hidden by default. Toggled into view by showRegisterForm()
+             from the User login form. Plan B per Louis Q2a — user sets own password during registration.
+             Username auto-generated from nickname per Q2b. Submit triggers supabase.auth.signUp +
+             INSERT pending_users. After admin accepts (M8b/c), user appears in Team Management. -->
+        <div id="login-register" class="role-form" style="display:none">
+          <div style="background:var(--tealLt);color:var(--teal);border-radius:var(--r);padding:10px 12px;font-size:11px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px">📝 Register for BD4U Book</div>
+          <div class="login-err" id="login-register-err"></div>
+          <div class="fg"><label class="fl" for="reg-fullname">Full name <span style="color:#d33">*</span></label><input class="fc" type="text" id="reg-fullname" placeholder="e.g. Ali Bin Ahmad" autocomplete="name"></div>
+          <div class="fg"><label class="fl" for="reg-nickname">Nickname <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(becomes your username)</span></label><input class="fc" type="text" id="reg-nickname" placeholder="e.g. ali" autocomplete="off"></div>
+          <div class="fg"><label class="fl" for="reg-phone">Phone <span style="color:#999;font-weight:400;font-size:10.5px">(optional)</span></label><input class="fc" type="tel" id="reg-phone" placeholder="e.g. +60 12 345 6789" autocomplete="tel"></div>
+          <div class="fg"><label class="fl" for="reg-email">Email <span style="color:#d33">*</span></label><input class="fc" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
+          <div class="fg"><label class="fl" for="reg-pass">Password <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(min 8 characters)</span></label><input class="fc" type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password"></div>
+          <div class="fg"><label class="fl" for="reg-pass2">Confirm password <span style="color:#d33">*</span></label><input class="fc" type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitRegister()"></div>
+          <button type="button" class="btn btn-primary btn-full" id="reg-submit-btn" onclick="submitRegister()">Register →</button>
+          <div style="margin-top:14px;font-size:12px;color:var(--g600);text-align:center">
+            Already have an account? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showLoginForm()">Sign in</a>
+          </div>
+        </div>
+        <!-- v59 [Louis M8a] - Post-register success message. Shown after successful submit. -->
+        <div id="login-register-success" class="role-form" style="display:none">
+          <div style="text-align:center;padding:18px 0">
+            <div style="font-size:48px;margin-bottom:14px">✉️</div>
+            <div style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px">Check your email</div>
+            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">We sent a confirmation link to <strong id="reg-success-email">your email</strong>. Click the link to verify your address.</div>
+            <div style="background:#fff8e1;border-left:3px solid #f4d35e;border-radius:4px;padding:10px 12px;margin-bottom:18px;text-align:left">
+              <div style="font-size:11.5px;color:#665a00;line-height:1.55"><strong>What happens next?</strong><br>After you confirm, an admin will review your registration. You'll get another email once approved (usually within 24 hours).</div>
+            </div>
+            <button type="button" class="btn btn-outline btn-full" onclick="showLoginForm()">← Back to sign in</button>
+          </div>
+        </div>
+        <!-- v59 [Louis M8a] - Post-email-confirmation landing message. Shown when an unapproved
+             user clicks the email confirmation link and lands on the app. -->
+        <div id="login-register-confirmed" class="role-form" style="display:none">
+          <div style="text-align:center;padding:18px 0">
+            <div style="font-size:48px;margin-bottom:14px">✓</div>
+            <div style="font-size:18px;font-weight:800;color:var(--green);margin-bottom:8px">Email confirmed</div>
+            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">Your email is verified. An admin will review your registration shortly. You'll get an email once approved.</div>
+            <button type="button" class="btn btn-outline btn-full" onclick="showLoginForm()">← Back to sign in</button>
+          </div>
         </div>
       </div>
   </div>
@@ -2817,6 +2871,208 @@ function switchLoginRole(role,el){
   el.classList.add('on');
   const fm=$id('login-'+role);
   if(fm){ fm.classList.add('on'); fm.style.display=''; }
+}
+
+// v59 [Louis M8a] - Show the register form (hides login + role tabs to avoid confusion).
+function showRegisterForm(){
+  // Hide all role forms + tabs
+  document.querySelectorAll('.role-form').forEach(f=>{
+    f.classList.remove('on');
+    f.style.display = 'none';
+  });
+  const tabs = document.querySelector('.role-tabs');
+  if(tabs) tabs.style.display = 'none';
+  // Show register form
+  const fm = $id('login-register');
+  if(fm){ fm.style.display = 'block'; fm.classList.add('on'); }
+  // Reset form fields + error
+  ['reg-fullname','reg-nickname','reg-phone','reg-email','reg-pass','reg-pass2'].forEach(id=>{
+    const el = $id(id); if(el) el.value = '';
+  });
+  setRegisterError('');
+  // Hide login screen header text (the "Welcome back" / "Sign in to your BD4U account" lines
+  // don't apply when registering); switch to a more relevant header is overkill — just leave them.
+}
+
+// v59 [Louis M8a] - Return to the user login form from any register-related sub-state.
+function showLoginForm(){
+  document.querySelectorAll('.role-form').forEach(f=>{
+    f.classList.remove('on');
+    f.style.display = '';
+  });
+  const tabs = document.querySelector('.role-tabs');
+  if(tabs) tabs.style.display = '';
+  // Reset tab selection to User + show user form
+  document.querySelectorAll('.role-tab').forEach((t,i)=>{
+    if(i===0) t.classList.add('on'); else t.classList.remove('on');
+  });
+  const fm = $id('login-user');
+  if(fm){ fm.classList.add('on'); fm.style.display = ''; }
+  setLoginError('user','');
+}
+
+function setRegisterError(msg){
+  const el = $id('login-register-err');
+  if(!el) return;
+  if(msg){ el.textContent = msg; el.classList.add('on'); }
+  else { el.textContent = ''; el.classList.remove('on'); }
+}
+
+// v59 [Louis M8a Item 3] - Submit register form. Validates locally, checks nickname/email
+// uniqueness against existing users + pending_users, calls supabase.auth.signUp (creates
+// auth.users row + sends Supabase email confirmation), then INSERTs pending_users with
+// the profile data so admin can review after the user confirms their email.
+async function submitRegister(){
+  setRegisterError('');
+  const fullName = ($id('reg-fullname')?.value || '').trim();
+  const nickname = ($id('reg-nickname')?.value || '').trim().toLowerCase();
+  const phone    = ($id('reg-phone')?.value    || '').trim();
+  const email    = ($id('reg-email')?.value    || '').trim().toLowerCase();
+  const pass     = ($id('reg-pass')?.value     || '');
+  const pass2    = ($id('reg-pass2')?.value    || '');
+  // ── Validation ──
+  if(!fullName || fullName.length < 2) return setRegisterError('Please enter your full name.');
+  if(!nickname || nickname.length < 2) return setRegisterError('Please enter a nickname (used as your username).');
+  if(!/^[a-z0-9_-]+$/.test(nickname))  return setRegisterError('Nickname can only contain lowercase letters, numbers, hyphens, and underscores.');
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setRegisterError('Please enter a valid email address.');
+  if(!pass || pass.length < 8)         return setRegisterError('Password must be at least 8 characters.');
+  if(pass !== pass2)                   return setRegisterError("Passwords don't match.");
+
+  const btn = $id('reg-submit-btn');
+  if(btn){ btn.classList.add('btn-loading'); btn.textContent = 'Registering…'; }
+
+  try {
+    // ── Uniqueness check: nickname (across users + pending_users) ──
+    // RLS-friendly: users table is publicly readable for username lookup (existing pattern).
+    // pending_users SELECT is admin-only, so this query may return 0 rows even if a duplicate
+    // exists — server-side INSERT will fail with UNIQUE constraint on email if so. Nickname
+    // collisions in pending_users won't be caught here, but admin will see them at review time.
+    const { data: existingUser } = await sb.from('users')
+      .select('id')
+      .or(`username.eq.${nickname},email.eq.${email}`)
+      .limit(1)
+      .maybeSingle();
+    if(existingUser){
+      _resetRegBtn();
+      return setRegisterError('That nickname or email is already in use. Try another or sign in.');
+    }
+
+    // ── Sign up with Supabase Auth (creates auth.users entry + sends confirmation email) ──
+    const { data: signUpData, error: signUpErr } = await sb.auth.signUp({
+      email: email,
+      password: pass,
+      options: {
+        emailRedirectTo: window.location.origin + window.location.pathname,
+        data: { full_name: fullName, nickname: nickname }
+      }
+    });
+    if(signUpErr){
+      _resetRegBtn();
+      const m = (signUpErr.message || '').toLowerCase();
+      if(m.includes('already registered') || m.includes('user already')) {
+        return setRegisterError('This email is already registered. Try signing in or resetting your password.');
+      }
+      return setRegisterError('Registration failed: ' + (signUpErr.message || 'unknown error'));
+    }
+
+    // ── INSERT pending_users for admin review ──
+    // password_hash kept null — actual password lives in auth.users (hashed by Supabase).
+    // We only need this row to track admin review status.
+    const { error: insErr } = await sb.from('pending_users').insert({
+      email: email,
+      full_name: fullName,
+      nickname: nickname,
+      phone: phone || null,
+      email_verified: false, // flips to true via M8a confirmation landing handler
+      status: 'pending'
+    });
+    if(insErr){
+      _resetRegBtn();
+      // Auth row was created but pending row failed — surface it. Admin can clean up auth.users via Supabase dashboard.
+      console.error('pending_users insert failed:', insErr);
+      return setRegisterError('Registration partially saved. Please contact admin: ' + (insErr.message || 'database error'));
+    }
+
+    // ── Sign out the just-created auth session so user has to wait for admin approval ──
+    // (signUp auto-signs in unless email confirmation is required, which it is by default —
+    // so this is belt-and-suspenders).
+    try { await sb.auth.signOut(); } catch(e){}
+
+    // ── Show success screen ──
+    _resetRegBtn();
+    document.querySelectorAll('.role-form').forEach(f=>{
+      f.classList.remove('on');
+      f.style.display = 'none';
+    });
+    const success = $id('login-register-success');
+    if(success){
+      success.style.display = 'block';
+      success.classList.add('on');
+    }
+    const emailLabel = $id('reg-success-email');
+    if(emailLabel) emailLabel.textContent = email;
+  } catch(e){
+    _resetRegBtn();
+    console.error('submitRegister exception:', e);
+    setRegisterError('Registration failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+function _resetRegBtn(){
+  const btn = $id('reg-submit-btn');
+  if(btn){ btn.classList.remove('btn-loading'); btn.textContent = 'Register →'; }
+}
+
+// v59 [Louis M8a Item 4] - Email confirmation landing handler. When a registered user clicks
+// the email confirmation link, Supabase verifies the token + redirects to the app with an active
+// session. But that user has no users-table row yet (waiting for admin approval). Detect this
+// "orphan session" state, flip pending_users.email_verified=true so admin sees the user in the
+// approval queue, sign out, and show the "Email confirmed — waiting for admin" message.
+async function handleRegistrationConfirmation(){
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(!session || !session.user) return false;
+    const userId = session.user.id;
+    const emailVal = (session.user.email || '').toLowerCase();
+    if(!emailVal) return false;
+    // Check if this auth user has a profile in users table → if yes, this is a normal sign-in, not a registration confirmation
+    const { data: userRow } = await sb.from('users')
+      .select('id').eq('id', userId).maybeSingle();
+    if(userRow) return false; // normal user — not a confirmation landing
+    // No users row → check pending_users by email
+    const { data: pending, error: pendingErr } = await sb.from('pending_users')
+      .select('id, email_verified, status').eq('email', emailVal).maybeSingle();
+    if(pendingErr || !pending){
+      // No pending row either — orphan auth session, sign out silently
+      try { await sb.auth.signOut(); } catch(e){}
+      return false;
+    }
+    // Mark email_verified=true if not already
+    if(!pending.email_verified){
+      await sb.from('pending_users')
+        .update({ email_verified: true })
+        .eq('id', pending.id);
+    }
+    // Sign out so the user isn't stuck in an unauthenticated state
+    try { await sb.auth.signOut(); } catch(e){}
+    // Show the "Email confirmed — waiting for admin" screen
+    document.querySelectorAll('.role-form').forEach(f=>{
+      f.classList.remove('on');
+      f.style.display = 'none';
+    });
+    const tabs = document.querySelector('.role-tabs');
+    if(tabs) tabs.style.display = 'none';
+    const confirmed = $id('login-register-confirmed');
+    if(confirmed){
+      confirmed.style.display = 'block';
+      confirmed.classList.add('on');
+    }
+    goScreen('sc-login');
+    return true;
+  } catch(e){
+    console.error('handleRegistrationConfirmation error:', e);
+    return false;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -9710,6 +9966,11 @@ window.addEventListener('load', async ()=>{
         // Load schedule for restored session
         setText('auth-spinner-txt', 'Loading calendar…');
         await loadScheduleFromDB();
+      } else if(!profile){
+        // v59 [Louis M8a Item 4] - Active auth session but no users row. This means the user
+        // just clicked an email confirmation link from registration but admin hasn't accepted
+        // them yet. Mark pending_users.email_verified=true, sign out, show the waiting screen.
+        try { await handleRegistrationConfirmation(); } catch(e){ /* fallthrough */ }
       }
     }
   } catch(e){ /* session check failed — show login */ }
