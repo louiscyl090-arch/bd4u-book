@@ -3670,9 +3670,14 @@ function showToast(msg, kind){
   t.textContent = msg;
   // v59 M1 (item 8): On mobile (≤640px) anchor at bottom so toast doesn't get cut off by Safari URL bar / notch
   // and lands within thumb reach. Desktop keeps top position unchanged.
+  // v59 [issue 2]: when day panel is open on mobile, its footer buttons (Quick Open / Focus) sit
+  // at the bottom — bump the toast above them so it doesn't overlap.
   const isMobile = window.innerWidth <= 640;
+  const panelEl = document.getElementById('day-panel');
+  const panelOpen = !!(panelEl && panelEl.classList.contains('on'));
+  const bottomGap = (isMobile && panelOpen) ? 90 : 24;
   const pos = isMobile
-    ? 'bottom:24px;left:50%;transform:translateX(-50%);'
+    ? `bottom:${bottomGap}px;left:50%;transform:translateX(-50%);`
     : 'top:24px;left:50%;transform:translateX(-50%);';
   t.style.cssText = 'position:fixed;' + pos
     + `background:${bg};color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;`
@@ -4954,7 +4959,7 @@ function renderPanel(dayNum){
       // (Quick Open / Focus). Block + Add event reachable via the per-hour bsheet; Settings reachable
       // from the burger menu. .focus-toggle class so applyFocusModeState keeps button text in sync.
       foot.innerHTML=`<div style="display:flex;gap:8px">
-        <button type="button" class="qopen-btn" style="flex:1" onclick="openQuickOpen()">⚡ Quick Open</button>
+        <button type="button" class="qopen-btn" style="flex:1" onclick="openQuickOpen(${di})">⚡ Quick Open</button>
         <button type="button" class="focus-toggle" style="flex:1" onclick="toggleFocusMode()">👁 Focus</button>
       </div>`;
       // Sync the newly-rendered Focus button with current mode state
@@ -7554,7 +7559,10 @@ const QOPEN_PRESETS = {
   fullday:   { start:'8am',  end:'10pm' },
 };
 
-function openQuickOpen(){
+// v59 [issue 4]: openQuickOpen now accepts optional preselectDayIdx — when called from the panel
+// footer (admin opened the panel for a specific day), pre-select that day in the picker. User can
+// still tap other days to include them. Toolbar call (no arg) keeps the original empty selection.
+function openQuickOpen(preselectDayIdx){
   _qoSelectedDays = new Set();
   _qoSlotType = 'zoom15';
   // Reset UI
@@ -7569,6 +7577,12 @@ function openQuickOpen(){
   const zt=$id('qt-zoom'), pt=$id('qt-private');
   if(zt) zt.className='qopen-type on-zoom';
   if(pt) pt.className='qopen-type';
+  // v59 [issue 4]: apply preselect after the reset
+  if(typeof preselectDayIdx === 'number' && preselectDayIdx >= 0 && preselectDayIdx < 7){
+    _qoSelectedDays.add(preselectDayIdx);
+    const el = $id('qd-' + preselectDayIdx);
+    if(el) el.classList.add('on');
+  }
   updateQOpenSummary();
   const ov=$id('qopen-overlay'); if(ov) ov.classList.add('on');
 }
@@ -8269,9 +8283,13 @@ function showBSheetConfirm({title, sub, body, confirmLabel, onConfirm}){
   _bsConfirmCb = onConfirm || null;
   if(okBtn){
     okBtn.onclick = () => {
+      // v59 [hotfix]: capture callback BEFORE closeBSheetConfirm() — that call nulls _bsConfirmCb,
+      // so the subsequent typeof check was always false and the callback NEVER fired. This single
+      // bug silently broke CAL-14 (X delete) and CAL-27 (Clear available slots). Both reported as
+      // "shows confirm but nothing happens after tapping the action button."
+      const cb = _bsConfirmCb;
       closeBSheetConfirm();
-      if(typeof _bsConfirmCb === 'function') _bsConfirmCb();
-      _bsConfirmCb = null;
+      if(typeof cb === 'function') cb();
     };
   }
   ov.classList.add('on');
@@ -8381,10 +8399,23 @@ async function bsheetClearAvailable(){
     confirmLabel: `Clear ${n} slot${n>1?'s':''}`,
     onConfirm: async () => {
       showAuthSpinner('Clearing…');
-      for(const s of toDelete){ if(s._id) await adminHardDelete(s._id); }
-      toDelete.forEach(s=>{ const i=SCHEDULE.indexOf(s); if(i>=0) SCHEDULE.splice(i,1); });
+      // v59 [hotfix]: check each delete's success, abort with error toast if any fail. Same pattern
+      // as confirmDeleteSlot — DB failures (RLS, network) silently lied as success before.
+      let allOk = true;
+      for(const s of toDelete){
+        if(s._id){
+          const ok = await adminHardDelete(s._id);
+          if(!ok){ allOk = false; break; }
+        }
+      }
+      if(!allOk){
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast('Some slots could not be cleared — please try again', 'err');
+        return;
+      }
+      // Reload from DB so the in-memory SCHEDULE matches what's actually stored
+      await reloadWeekSchedule();
       hideAuthSpinner();
-      renderCalendar();
       if(panelOpen && panelDay!==null) renderPanel(panelDay);
       if(typeof showToast === 'function') showToast(`Cleared ${n} slot${n>1?'s':''}`);
     }
