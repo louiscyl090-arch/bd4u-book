@@ -439,6 +439,19 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .week-nav-btns > button{flex:1;font-size:12px;padding:7px 4px;white-space:nowrap}
 /* v59 [Louis M3e] - "this week" label centered above the 9 circles */
 .week-nav-todaylabel{text-align:center;font-size:10px;font-weight:700;color:var(--g500);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase}
+
+/* v59 [Louis M3g] - Day nav row inside panel: prev/next day arrows + SWIPE label */
+.panel-day-nav{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--g100);border-radius:6px;margin:0 16px 8px;font-size:11px;font-weight:600;color:var(--g600)}
+.panel-day-nav-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;background:transparent;border:none;font-size:11px;font-weight:600;color:var(--g600);cursor:pointer;font-family:var(--font);border-radius:4px;transition:background .12s}
+.panel-day-nav-btn:hover,.panel-day-nav-btn:active{background:#fff}
+.panel-day-nav-hint{font-size:9.5px;letter-spacing:.6px;color:var(--g400);text-transform:uppercase}
+.panel-today-tag{font-size:11px;font-weight:600;color:var(--green);margin-left:6px}
+
+/* v59 [Louis M3g] - Day-change slide animations (250ms) */
+@keyframes panelSlideInRight{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes panelSlideInLeft{from{transform:translateX(-40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.panel-slide-in-right{animation:panelSlideInRight 250ms ease-out}
+.panel-slide-in-left{animation:panelSlideInLeft 250ms ease-out}
 .week-nav-circles{position:relative;display:flex;justify-content:space-between;align-items:center;padding:6px 4px}
 /* Vertical line through dead center (today position = circle 5 of 9, which space-between places at exact center) */
 .week-nav-circles::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--g300);transform:translateX(-50%);z-index:0;border-radius:1px}
@@ -1879,12 +1892,14 @@ tr:hover td{background:var(--g50)}
 <div class="panel" id="day-panel">
   <div class="panel-handle"><div class="panel-handle-bar"></div></div>
   <div class="panel-hdr">
-    <div>
+    <div style="flex:1;min-width:0">
       <div class="panel-title" id="panel-title">Tuesday, 20 May</div>
       <div class="panel-sub" id="panel-sub">🇮🇩 WIB · tap a slot to book</div>
     </div>
     <button type="button" class="panel-close" onclick="closePanel()">✕</button>
   </div>
+  <!-- v59 [Louis M3g] - Day navigation row: previous day (left) · SWIPE label · next day (right). Tappable arrows. -->
+  <div class="panel-day-nav" id="panel-day-nav"></div>
   <div class="panel-body" id="panel-body"></div>
   <div class="panel-foot" id="panel-foot">
     <!-- v59 CAL-10 [v3]: Placeholder content. renderPanel() always overwrites this on openPanel().
@@ -5128,7 +5143,18 @@ async function swipePanelDay(direction){
     newIdx = 6;
   }
   const newDayNum = WEEK_DAYS[newIdx]?.d;
-  if(newDayNum !== undefined) openPanel(newDayNum);
+  if(newDayNum !== undefined){
+    openPanel(newDayNum);
+    // v59 [Louis M3g] - trigger slide animation matching the swipe direction.
+    // swipe LEFT (direction=+1, next day) → new content slides in from the RIGHT
+    // swipe RIGHT (direction=-1, prev day) → new content slides in from the LEFT
+    const body = document.getElementById('panel-body');
+    if(body){
+      body.classList.remove('panel-slide-in-right', 'panel-slide-in-left');
+      void body.offsetWidth; // force reflow so the animation restarts
+      body.classList.add(direction > 0 ? 'panel-slide-in-right' : 'panel-slide-in-left');
+    }
+  }
 }
 // ── Admin panel helpers ──────────────────────────
 async function panelToggleHour(di, startH){
@@ -5179,12 +5205,48 @@ function renderPanel(dayNum){
   const day=WEEK_DAYS[di];
   // v59 CAL-29: drop relative labels (Today/Tomorrow/Yesterday) in favour of day name to match
   // the day strip. Today is signalled by the chip's is-today class on the strip, not text in the title.
+  // v59 [Louis M3g] - re-add a small (Today) tag in the title when viewing today's date.
   const relLabel = day ? day.n : '';
   const monthStr=day?`${day.d} ${day.m||''}`.trim():String(dayNum);
-  setText('panel-title',`${relLabel}, ${monthStr}`);
+  const titleEl = $id('panel-title');
+  if(titleEl){
+    const todayTag = (day && day.today) ? ' <span class="panel-today-tag">(Today)</span>' : '';
+    titleEl.innerHTML = `${relLabel}, ${monthStr}${todayTag}`;
+  }
   setText('panel-sub', isAdmin
     ? `${tz.f} ${tz.l} · Admin mode`
     : `${tz.f} ${tz.l} · tap green to book`);
+
+  // v59 [Louis M3g] - Populate the day-nav row with prev/next day labels (with week wrap).
+  // Arrows are tappable — same handler as swipe.
+  const dayNav = $id('panel-day-nav');
+  if(dayNav && di >= 0){
+    const prevIdx = di - 1, nextIdx = di + 1;
+    let prevLabel, nextLabel;
+    if(prevIdx < 0){
+      // need to look back into the previous week
+      const prevMonday = new Date(WEEK_DAYS[0].fullDate); prevMonday.setDate(prevMonday.getDate() - 1);
+      const sundayPrevWeek = prevMonday;
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      prevLabel = `${dayNames[sundayPrevWeek.getDay()].toUpperCase()} ${sundayPrevWeek.getDate()}`;
+    } else {
+      const p = WEEK_DAYS[prevIdx];
+      prevLabel = `${p.n.toUpperCase()} ${p.d}`;
+    }
+    if(nextIdx > 6){
+      const nextMonday = new Date(WEEK_DAYS[6].fullDate); nextMonday.setDate(nextMonday.getDate() + 1);
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      nextLabel = `${dayNames[nextMonday.getDay()].toUpperCase()} ${nextMonday.getDate()}`;
+    } else {
+      const n = WEEK_DAYS[nextIdx];
+      nextLabel = `${n.n.toUpperCase()} ${n.d}`;
+    }
+    dayNav.innerHTML = `
+      <button type="button" class="panel-day-nav-btn" onclick="swipePanelDay(-1)" aria-label="Previous day">‹ ${prevLabel}</button>
+      <span class="panel-day-nav-hint">swipe</span>
+      <button type="button" class="panel-day-nav-btn" onclick="swipePanelDay(1)" aria-label="Next day">${nextLabel} ›</button>
+    `;
+  }
 
   // Update panel footer
   const foot=$id('panel-foot');
