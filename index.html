@@ -471,6 +471,44 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .panel-overlay.on{display:block;animation:fadeIn .2s ease both}
 .panel{position:fixed;left:0;right:0;bottom:0;max-height:85vh;background:#fff;border-radius:20px 20px 0 0;z-index:401;display:flex;flex-direction:column;box-shadow:0 -12px 40px rgba(13,31,51,.2);transform:translateY(100%);transition:transform .28s cubic-bezier(.32,0,.15,1)}
 .panel.on{transform:translateY(0)}
+
+/* v59 [Louis M4] - Bottom nav bar (mobile only). 5 tabs always visible. */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--g200);z-index:399;padding:6px 0 max(8px,env(safe-area-inset-bottom));box-shadow:0 -2px 8px rgba(13,31,51,.04)}
+.bn-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;background:transparent;border:none;cursor:pointer;font-family:var(--font);color:var(--g500);transition:color .12s}
+.bn-icon{font-size:18px;line-height:1}
+.bn-label{font-size:9px;font-weight:600;letter-spacing:.2px}
+.bn-underline{width:18px;height:2px;background:transparent;border-radius:2px;margin-top:1px;transition:background .12s}
+.bn-tab.is-active{color:var(--teal)}
+.bn-tab.is-active .bn-label{font-weight:700}
+.bn-tab.is-active .bn-underline{background:var(--teal)}
+.bn-tab.is-disabled{opacity:.45;cursor:default}
+.bn-tab.is-disabled:active{background:transparent}
+
+/* v59 [Louis M4] - "More" slide-up sheet. Reuses panel pattern. */
+.more-sheet{position:fixed;left:0;right:0;bottom:0;max-height:80vh;background:#fff;border-radius:20px 20px 0 0;z-index:501;display:flex;flex-direction:column;box-shadow:0 -12px 40px rgba(13,31,51,.2);transform:translateY(100%);transition:transform .28s cubic-bezier(.32,0,.15,1);overflow:hidden}
+.more-sheet.on{transform:translateY(0)}
+.more-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:500;backdrop-filter:blur(3px)}
+.more-sheet-overlay.on{display:block;animation:fadeIn .2s ease both}
+.more-user{padding:6px 18px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--g100)}
+.more-user-av{width:42px;height:42px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}
+.more-user-name{font-size:14px;font-weight:700;color:var(--navy)}
+.more-user-role{font-size:11px;color:var(--g400);margin-top:2px}
+.more-section-hdr{padding:10px 18px 4px;color:var(--g400);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.more-section-hdr.has-border{border-top:1px solid var(--g100);margin-top:4px}
+.more-item{padding:13px 18px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;color:var(--g800);border-bottom:1px solid var(--g100);width:100%;background:transparent;border:none;border-bottom:1px solid var(--g100);text-align:left;font-family:var(--font);cursor:pointer}
+.more-item.danger{color:var(--red);border-bottom:none}
+.more-item-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.more-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+@media(max-width:640px){
+  .bottom-nav{display:flex}
+  /* Push content above the bottom nav (64px is the bar height incl safe-area padding floor) */
+  body{padding-bottom:64px}
+  /* Day panel sits above bottom nav, not over it (per Louis M4 Q4) */
+  .panel{bottom:64px;max-height:calc(85vh - 64px)}
+  /* More sheet ALSO sits above bottom nav so the nav remains visible+tappable */
+  .more-sheet{bottom:64px;max-height:calc(80vh - 64px)}
+}
 .panel-handle{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0}
 .panel-handle-bar{width:40px;height:4px;border-radius:2px;background:var(--g200)}
 .panel-hdr{padding:8px 16px 12px;border-bottom:1px solid var(--g100);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
@@ -963,8 +1001,10 @@ tr:hover td{background:var(--g50)}
 @media(max-width:640px){
   .login-left{display:none}
   #nav-tabs{display:none!important}
-  #mob-menu-btn{display:inline-flex!important}
-  #tz-nav-pill{display:none!important}
+  /* v59 [Louis M4] - top nav cleanup: TZ pill now visible (was hidden), mob-menu-btn hidden (moved to bottom nav More tab), role-toggle hidden (moved to More sheet) */
+  #mob-menu-btn{display:none!important}
+  #tz-nav-pill{display:inline-flex!important}
+  #role-toggle-btn{display:none!important}
   /* v59 [Louis M3b] - hide redundant elements on mobile: the toolbar legend and the cal-prompt at bottom (mini-legend) are now redundant with the new dedicated mobile legend below the 3-day strip. */
   .cal-toolbar .legend{display:none!important}
   #cal-prompt{display:none!important}
@@ -1258,6 +1298,33 @@ tr:hover td{background:var(--g50)}
 </nav>
 <div id="mob-menu" style="display:none;position:fixed;top:52px;left:0;right:0;background:var(--navy);z-index:500;border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.3)">
   <div style="padding:8px 0" id="mob-menu-items"></div>
+</div>
+
+<!-- v59 [Louis M4] - Mobile-only bottom nav bar. 5 tabs: Calendar | Bookings | Gallery | Dashboard | More.
+     Dashboard is greyed-non-tappable for non-admin users. Tap More opens the slide-up sheet below. -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button type="button" class="bn-tab" data-bn="sc-cal" onclick="bnGo('sc-cal')">
+    <span class="bn-icon">📅</span><span class="bn-label">Calendar</span><span class="bn-underline"></span>
+  </button>
+  <button type="button" class="bn-tab" data-bn="sc-mybk" onclick="bnGo('sc-mybk')">
+    <span class="bn-icon">📋</span><span class="bn-label">Bookings</span><span class="bn-underline"></span>
+  </button>
+  <button type="button" class="bn-tab" data-bn="sc-gallery" onclick="bnGo('sc-gallery')">
+    <span class="bn-icon">📷</span><span class="bn-label">Gallery</span><span class="bn-underline"></span>
+  </button>
+  <button type="button" class="bn-tab" data-bn="sc-admin" id="bn-tab-admin" onclick="bnGo('sc-admin')">
+    <span class="bn-icon">📊</span><span class="bn-label">Dashboard</span><span class="bn-underline"></span>
+  </button>
+  <button type="button" class="bn-tab" data-bn="more" onclick="openMoreSheet()">
+    <span class="bn-icon" style="letter-spacing:1px;line-height:1">···</span><span class="bn-label" style="margin-top:6px">More</span><span class="bn-underline"></span>
+  </button>
+</nav>
+
+<!-- v59 [Louis M4] - More slide-up sheet (replaces old top-dropdown mob-menu visually). -->
+<div class="more-sheet-overlay" id="more-sheet-overlay" onclick="closeMoreSheet()"></div>
+<div class="more-sheet" id="more-sheet">
+  <div class="panel-handle"><div class="panel-handle-bar"></div></div>
+  <div class="more-scroll" id="more-sheet-body"></div>
 </div>
 <div class="tz-bar-row hidden" id="tz-bar-row" style="display:none!important">
   <span class="tz-bar-lbl">Viewing in:</span>
@@ -2576,6 +2643,8 @@ function goScreen(id){
   if(id==='sc-dev')      renderDevConsole();
   if(id==='sc-settings') renderSettings();
   if(id==='sc-profile')  renderProfile();
+  // v59 [Louis M4] - sync mobile bottom nav active state
+  if(typeof syncBottomNav === 'function') syncBottomNav(id);
 }
 
 function switchLoginRole(role,el){
@@ -2768,6 +2837,9 @@ function updateRoleUI(){
   const tzStr = `${tz.f} ${tz.l}`;
   const roleLabel = isDev?'Developer':isAdmin?'Admin':isManager?'Manager':'Downline';
 
+  // v59 [Louis M4] - keep mobile bottom nav in sync (Dashboard greyed-state may flip on role change)
+  if(typeof syncBottomNav === 'function') syncBottomNav(window._lastScreenId || '');
+
   // Nav tabs
   const tabAdmin=$id('tab-admin'), tabDev=$id('tab-dev');
   if(tabAdmin) tabAdmin.className='ntab'+((isAdmin&&loggedIn)?' ':' hidden');
@@ -2814,6 +2886,10 @@ function updateRoleUI(){
   updateTZPill();
   const tzPill=$id('tz-nav-pill');
   if(tzPill) tzPill.style.display=loggedIn?'block':'none';
+
+  // v59 [Louis M4] - Bottom nav visibility: only when logged in. Hide on login screen.
+  const bnav = document.getElementById('bottom-nav');
+  if(bnav) bnav.style.display = loggedIn ? '' : 'none'; // '' lets the CSS media query take over (flex on mobile, none on desktop)
 
   // + Add / Quick Open buttons
   const addBtn=$id('add-toolbar-btn'), qoBtn=$id('qopen-toolbar-btn');
@@ -8755,49 +8831,99 @@ async function bsheetClearAvailable(){
 }
 
 // ═══════════════════════════════════════════════
-//  MOBILE MENU
+//  MOBILE BOTTOM NAV + MORE SHEET (v59 [Louis M4])
 // ═══════════════════════════════════════════════
-function renderMobMenu(){
-  const container=$id('mob-menu-items'); if(!container) return;
-  const loggedIn=!!CURRENT_USER;
-  const items=[];
-  if(!loggedIn){
-    items.push({label:'Sign in', icon:'🔑', action:"goScreen('sc-login');closeMobMenu()"});
-  } else {
-    items.push({label:'Calendar', icon:'📅', action:"goScreen('sc-cal');closeMobMenu()"});
-    items.push({label:'My Bookings', icon:'📋', action:"goScreen('sc-mybk');closeMobMenu()"});
-    items.push({label:'Gallery', icon:'📷', action:"goScreen('sc-gallery');closeMobMenu()"});
-    if(isAdmin) items.push({label:'Dashboard', icon:'📊', action:"goScreen('sc-admin');closeMobMenu()"});
-    if(isDev)   items.push({label:'Dev Console', icon:'🛠', action:"goScreen('sc-dev');closeMobMenu()"});
-    items.push({label:'My Profile', icon:'👤', action:"goScreen('sc-profile');closeMobMenu()"});
-    items.push({label:'Settings', icon:'⚙️', action:"goScreen('sc-settings');closeMobMenu()"});
-    // TZ switcher — moved to just before Sign out
-    const tz=TZ_DATA[activeTZ]||TZ_DATA['MY'];
-    items.push({label:`Timezone: ${tz.f} ${tz.l}`, icon:'🌐', action:"toggleMobTZPicker()"});
-    if(CURRENT_USER?.role==='admin')
-      items.push({label:isAdmin?'Downline view':'Admin view', icon:'🔄', action:"toggleAdminMode();closeMobMenu()"});
-    items.push({label:'Sign out', icon:'⏏', action:"logout()", danger:true});
+// Bottom nav has 5 tabs. Dashboard tab is greyed + non-tappable for non-admin users.
+// "More" tab opens a slide-up sheet (same style as day panel) with:
+//   - Username block at top (avatar + name + role)
+//   - Account section: My Profile, Settings, Switch to Admin/Downline view
+//   - Developer section (if isDev): Dev Console
+//   - Sign out (danger, no border)
+// Timezone deliberately NOT in More sheet — it's now in the top nav TZ chip (visible everywhere).
+function bnGo(screenId){
+  // Dashboard tab is greyed for non-admins — short-circuit before goScreen
+  if(screenId === 'sc-admin' && !isAdmin){ return; }
+  closeMoreSheet();
+  goScreen(screenId);
+}
+function syncBottomNav(activeScreenId){
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
+  // Update active state on each tab
+  nav.querySelectorAll('.bn-tab').forEach(t => {
+    const sid = t.getAttribute('data-bn');
+    t.classList.toggle('is-active', sid === activeScreenId);
+  });
+  // Greyed Dashboard for non-admins
+  const dashTab = document.getElementById('bn-tab-admin');
+  if(dashTab){
+    dashTab.classList.toggle('is-disabled', !isAdmin);
+    dashTab.setAttribute('aria-disabled', !isAdmin ? 'true' : 'false');
   }
-  container.innerHTML=items.map(item=>`
-    <button type="button" onclick="${item.action}"
-      style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;border:none;background:transparent;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;color:${item.danger?'var(--red)':'rgba(255,255,255,.9)'};text-align:left;transition:background .1s;border-bottom:1px solid rgba(255,255,255,.06)"
-      onmouseover="this.style.background='rgba(255,255,255,.08)'"
-      onmouseout="this.style.background='transparent'">
-      <span style="font-size:18px;width:24px;text-align:center">${item.icon}</span>${item.label}
-    </button>`).join('');
 }
+let _moreSheetOpen = false;
+function openMoreSheet(){
+  if(_moreSheetOpen) return;
+  renderMoreSheet();
+  const ov = document.getElementById('more-sheet-overlay');
+  const sh = document.getElementById('more-sheet');
+  if(ov) ov.classList.add('on');
+  if(sh) sh.classList.add('on');
+  _moreSheetOpen = true;
+  document.body.style.overflow = 'hidden';
+}
+function closeMoreSheet(){
+  if(!_moreSheetOpen) return;
+  const ov = document.getElementById('more-sheet-overlay');
+  const sh = document.getElementById('more-sheet');
+  if(ov) ov.classList.remove('on');
+  if(sh) sh.classList.remove('on');
+  _moreSheetOpen = false;
+  document.body.style.overflow = '';
+}
+function renderMoreSheet(){
+  const body = document.getElementById('more-sheet-body'); if(!body) return;
+  const loggedIn = !!CURRENT_USER;
+  if(!loggedIn){
+    body.innerHTML = `<button type="button" class="more-item" onclick="goScreen('sc-login');closeMoreSheet()"><span class="more-item-icon">🔑</span>Sign in</button>`;
+    return;
+  }
+  const name = CURRENT_USER.name || CURRENT_USER.email || 'User';
+  const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+  const roleRaw = (CURRENT_USER.role || '').toLowerCase();
+  const roleLabel = roleRaw === 'admin' ? 'Admin' : roleRaw === 'manager' ? 'Manager' : roleRaw === 'downline' ? 'Downline' : (roleRaw ? roleRaw.charAt(0).toUpperCase()+roleRaw.slice(1) : '');
+  const modeNote = isAdmin ? ' · Admin view' : (CURRENT_USER.role === 'admin' ? ' · Downline view' : '');
+  let html = `
+    <div class="more-user">
+      <div class="more-user-av">${initials}</div>
+      <div style="min-width:0">
+        <div class="more-user-name">${name}</div>
+        <div class="more-user-role">${roleLabel}${modeNote}</div>
+      </div>
+    </div>
+    <div class="more-section-hdr">Account</div>
+    <button type="button" class="more-item" onclick="goScreen('sc-profile');closeMoreSheet()"><span class="more-item-icon">👤</span>My Profile</button>
+    <button type="button" class="more-item" onclick="goScreen('sc-settings');closeMoreSheet()"><span class="more-item-icon">⚙️</span>Settings</button>`;
+  if(CURRENT_USER.role === 'admin'){
+    html += `<button type="button" class="more-item" onclick="toggleAdminMode();closeMoreSheet()"><span class="more-item-icon">🔄</span>${isAdmin?'Switch to Downline view':'Switch to Admin view'}</button>`;
+  }
+  if(isDev){
+    html += `
+      <div class="more-section-hdr has-border">Developer</div>
+      <button type="button" class="more-item" onclick="goScreen('sc-dev');closeMoreSheet()"><span class="more-item-icon">🛠</span>Dev Console</button>`;
+  }
+  html += `
+    <div class="more-section-hdr has-border">&nbsp;</div>
+    <button type="button" class="more-item danger" onclick="logout()"><span class="more-item-icon">⏏</span>Sign out</button>`;
+  body.innerHTML = html;
+}
+
+// Legacy mob-menu functions kept as thin wrappers — anything still calling toggleMobMenu /
+// closeMobMenu just routes into the new More sheet so we don't break older call sites.
+function renderMobMenu(){ /* deprecated — see renderMoreSheet */ }
 let _mobMenuOpen=false;
-function toggleMobMenu(){
-  _mobMenuOpen=!_mobMenuOpen;
-  const menu=$id('mob-menu');
-  if(menu) menu.style.display=_mobMenuOpen?'block':'none';
-  if(_mobMenuOpen) renderMobMenu();
-}
-function closeMobMenu(){
-  _mobMenuOpen=false;
-  const menu=$id('mob-menu');
-  if(menu) menu.style.display='none';
-}
+function toggleMobMenu(){ _moreSheetOpen ? closeMoreSheet() : openMoreSheet(); }
+function closeMobMenu(){ closeMoreSheet(); }
 function toggleMobTZPicker(){
   closeMobMenu();
   toggleTZDropdown();
