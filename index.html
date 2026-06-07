@@ -434,8 +434,8 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* v59 [Louis M3c] - Week navigator (9 circles, ±4 weeks). Mobile-only — desktop keeps its own ‹ › toolbar. */
 .week-nav-card{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:14px}
-/* v59 [Louis M3d] - Buttons row inside the card (Quick Open / Focus — Today removed in M3e since 9-circle's center already jumps to current week) */
-.week-nav-btns{display:flex;gap:8px;margin-bottom:12px}
+/* v59 [Louis M3d/M3f] - Buttons row inside the card. M3f: now sits between circles and date label. */
+.week-nav-btns{display:flex;gap:8px;margin:10px 0 0}
 .week-nav-btns > button{flex:1;font-size:12px;padding:7px 4px;white-space:nowrap}
 /* v59 [Louis M3e] - "this week" label centered above the 9 circles */
 .week-nav-todaylabel{text-align:center;font-size:10px;font-weight:700;color:var(--g500);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase}
@@ -1367,15 +1367,14 @@ tr:hover td{background:var(--g50)}
         <div class="mobile-cal-wrapper">
           <!-- v59 [Louis M3b] - past-week banner — shown when weekOffset < 0 -->
           <div class="cal-past-banner" id="cal-past-banner">📜 Viewing a past week — read only</div>
-          <!-- v59 [Louis M3c+d] - Week navigator card: buttons row + 9-circle nav + week label, all in one box -->
+          <!-- v59 [Louis M3c+d+e+f] - Week navigator card. Layout: label → circles → buttons → date -->
           <div class="week-nav-card" id="week-nav-card">
+            <div class="week-nav-todaylabel">this week</div>
+            <div class="week-nav-circles" id="week-nav-circles"></div>
             <div class="week-nav-btns">
               <button type="button" class="qopen-btn" onclick="openQuickOpen()">⚡ Quick Open</button>
               <button type="button" class="focus-toggle" onclick="toggleFocusMode()">👁 Focus</button>
             </div>
-            <!-- v59 [Louis M3e] - "this week" label centered above the 9 circles — visual indicator that the middle circle = current week. Replaces the removed Today button. -->
-            <div class="week-nav-todaylabel">this week</div>
-            <div class="week-nav-circles" id="week-nav-circles"></div>
             <div class="week-nav-label" id="week-nav-label">1–7 Jun 2026</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
@@ -5064,12 +5063,72 @@ function openPanel(dayNum){
   if(ov)ov.classList.add('on'); if(pn)pn.classList.add('on');
   panelOpen=true; document.body.style.overflow='hidden';
   const cp=$id('cal-prompt'); if(cp)cp.style.display='none';
+  if(typeof _initPanelSwipe === 'function') _initPanelSwipe(); // v59 [Louis M3f] - swipe-to-navigate-days
 }
 function closePanel(){
   const ov=$id('panel-overlay'), pn=$id('day-panel');
   if(ov)ov.classList.remove('on'); if(pn)pn.classList.remove('on');
   panelOpen=false; panelDay=null; document.body.style.overflow='';
   const cp=$id('cal-prompt'); if(cp)cp.style.display='block';
+}
+
+// v59 [Louis M3f] - Swipe-in-panel to navigate between days. Swipe LEFT = next day,
+// swipe RIGHT = previous day. Wraps across weeks (Sun→next Mon, Mon→prev Sun). One-time
+// init on first openPanel so the DOM element is guaranteed to exist. Threshold + vertical
+// guard ensures normal vertical scrolling inside the panel isn't hijacked.
+let _panelSwipeInited = false;
+let _swipeStartX = 0, _swipeStartY = 0, _swipeActive = false;
+function _initPanelSwipe(){
+  if(_panelSwipeInited) return;
+  const panel = document.getElementById('day-panel');
+  if(!panel) return;
+  _panelSwipeInited = true;
+  panel.addEventListener('touchstart', (e) => {
+    if(e.touches.length !== 1) return;
+    // Skip if user is touching inside a slide-up bsheet (covering the panel) — those have their own UX
+    const t = e.target;
+    if(t && t.closest && (t.closest('#bsheet-overlay') || t.closest('#bsheet-confirm-overlay'))) {
+      _swipeActive = false; return;
+    }
+    _swipeStartX = e.touches[0].clientX;
+    _swipeStartY = e.touches[0].clientY;
+    _swipeActive = true;
+  }, {passive: true});
+  panel.addEventListener('touchend', (e) => {
+    if(!_swipeActive) return;
+    _swipeActive = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - _swipeStartX;
+    const dy = t.clientY - _swipeStartY;
+    if(Math.abs(dx) < 60) return; // not enough horizontal travel
+    if(Math.abs(dy) > Math.abs(dx) * 0.6) return; // too vertical — let scroll win
+    swipePanelDay(dx < 0 ? +1 : -1);
+  }, {passive: true});
+}
+async function swipePanelDay(direction){
+  if(panelDay === null || panelDay === undefined) return;
+  const currIdx = WEEK_DAYS.findIndex(d => d.d === panelDay);
+  if(currIdx < 0) return;
+  let newIdx = currIdx + direction;
+  if(newIdx > 6){
+    // wrap forward → next week's Monday (index 0)
+    weekOffset++;
+    _persistWeekOffset();
+    WEEK_DAYS = buildWeekDays(weekOffset);
+    if(typeof updatePastBanner === 'function') updatePastBanner();
+    await reloadWeekSchedule();
+    newIdx = 0;
+  } else if(newIdx < 0){
+    // wrap back → previous week's Sunday (index 6)
+    weekOffset--;
+    _persistWeekOffset();
+    WEEK_DAYS = buildWeekDays(weekOffset);
+    if(typeof updatePastBanner === 'function') updatePastBanner();
+    await reloadWeekSchedule();
+    newIdx = 6;
+  }
+  const newDayNum = WEEK_DAYS[newIdx]?.d;
+  if(newDayNum !== undefined) openPanel(newDayNum);
 }
 // ── Admin panel helpers ──────────────────────────
 async function panelToggleHour(di, startH){
