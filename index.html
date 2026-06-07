@@ -430,6 +430,22 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .cal-tz-chip:hover,.cal-tz-chip:active{background:var(--g100)}
 @media(max-width:640px){.cal-tz-chip{display:inline-flex}}
 
+/* v59 [Louis M3c] - Week navigator (9 circles, ±4 weeks). Mobile-only — desktop keeps its own ‹ › toolbar. */
+.week-nav-card{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.week-nav-circles{position:relative;display:flex;justify-content:space-between;align-items:center;padding:6px 4px}
+/* Vertical line through dead center (today position = circle 5 of 9, which space-between places at exact center) */
+.week-nav-circles::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--g300);transform:translateX(-50%);z-index:0;border-radius:1px}
+.wnc-circle{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--g300);background:#fff;cursor:pointer;position:relative;z-index:1;padding:0;flex-shrink:0;transition:all .12s;font-size:0}
+.wnc-circle:hover,.wnc-circle:active{border-color:var(--green)}
+.wnc-circle.current{background:var(--red);border-color:var(--red)}
+.week-nav-label{text-align:center;font-weight:700;font-size:14px;color:var(--navy);margin-top:6px;padding-top:8px;border-top:1px solid var(--g100)}
+
+/* v59 [Louis M3c] - hide the cal-toolbar ‹ ›  arrows + date label on mobile (9-circle nav replaces them) — keep Today/Quick Open/Focus buttons. */
+@media(max-width:640px){
+  .cal-nav-btns .cal-nav-btn,
+  .cal-nav-btns #week-label{display:none!important}
+}
+
 /* ── SLIDE-UP PANEL ── */
 .panel-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:400;backdrop-filter:blur(3px)}
 .panel-overlay.on{display:block;animation:fadeIn .2s ease both}
@@ -1339,6 +1355,11 @@ tr:hover td{background:var(--g50)}
         <div class="mobile-cal-wrapper">
           <!-- v59 [Louis M3b] - past-week banner — shown when weekOffset < 0 -->
           <div class="cal-past-banner" id="cal-past-banner">📜 Viewing a past week — read only</div>
+          <!-- v59 [Louis M3c] - 9-circle week navigator — replaces toolbar arrows on mobile -->
+          <div class="week-nav-card" id="week-nav-card">
+            <div class="week-nav-circles" id="week-nav-circles"></div>
+            <div class="week-nav-label" id="week-nav-label">1–7 Jun 2026</div>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
             <button type="button" class="cal-nav-btn" id="day-prev-btn" onclick="shiftDayWindow(-1)" style="width:36px;height:36px;font-size:16px">‹</button>
             <span class="cal-mo" id="mob-week-label" style="flex:1;text-align:center;font-size:13.5px">19–25 May</span>
@@ -2941,12 +2962,43 @@ function shiftWeek(delta){
   if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
   reloadWeekSchedule();
 }
-function jumpToday(){
-  weekOffset = 0;
-  _persistWeekOffset(); // v59 CAL-23
+// v59 [Louis M3c] - absolute jump (set weekOffset directly). Used by the 9-circle nav.
+function jumpToWeek(offset){
+  weekOffset = offset;
+  _persistWeekOffset();
   dayWindowStart = 0;
-  WEEK_DAYS = buildWeekDays(0);
-  if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
+  WEEK_DAYS = buildWeekDays(offset);
+  if(typeof updatePastBanner === 'function') updatePastBanner();
+  reloadWeekSchedule();
+}
+// v59 [Louis M3c] - 9-circle week navigator. ±4 weeks from today (offsets -4 to +4).
+// Current weekOffset gets red fill. Date label below the circles shows the currently-viewed week range.
+function renderWeekCircles(){
+  const wrap = document.getElementById('week-nav-circles');
+  const label = document.getElementById('week-nav-label');
+  if(!wrap) return;
+  let html = '';
+  for(let off = -4; off <= 4; off++){
+    const isCurrent = off === weekOffset;
+    const ariaLabel = off === 0 ? 'This week' : (off > 0 ? `${off} week${off>1?'s':''} ahead` : `${-off} week${-off>1?'s':''} back`);
+    html += `<button type="button" class="wnc-circle${isCurrent?' current':''}" onclick="jumpToWeek(${off})" aria-label="${ariaLabel}" title="${ariaLabel}"></button>`;
+  }
+  wrap.innerHTML = html;
+  // Update the date label below the circles
+  if(label && WEEK_DAYS && WEEK_DAYS.length === 7){
+    const a = WEEK_DAYS[0], b = WEEK_DAYS[6];
+    const yr = a.fullDate ? a.fullDate.getFullYear() : '';
+    if(a.m === b.m){
+      label.textContent = `${a.d}–${b.d} ${b.m} ${yr}`;
+    } else {
+      label.textContent = `${a.d} ${a.m} – ${b.d} ${b.m} ${yr}`;
+    }
+  }
+}
+function jumpToday(){
+  jumpToWeek(0);
+  // v59: after jumping to current week, scroll the 3-day strip to start at today's index
+  // so today is the first visible day (rather than Monday).
   const now = new Date();
   const todayIdx = WEEK_DAYS.findIndex(d =>
     d.fullDate.getDate()===now.getDate() &&
@@ -2954,12 +3006,12 @@ function jumpToday(){
     d.fullDate.getFullYear()===now.getFullYear()
   );
   if(todayIdx >= 0) dayWindowStart = Math.min(todayIdx, WEEK_DAYS.length - 3);
-  reloadWeekSchedule();
 }
 function renderCalendar(){
   // v58 polish: preserve scroll position across re-renders — fixes "yank to top" after every chip change
   const _savedScrollY = window.scrollY || window.pageYOffset || 0;
   if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
+  if(typeof renderWeekCircles === 'function') renderWeekCircles(); // v59 [Louis M3c]
   try {
     updateWeekLabel(); renderDesktopCal(); renderDayStrip(); updateNavBtns();
     updatePastSlots();
