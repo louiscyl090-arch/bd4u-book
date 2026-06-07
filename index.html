@@ -378,6 +378,16 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .day-chip.has-slots .dc-name{color:var(--green)}
 .day-chip.has-event .dc-name{color:var(--evt)}
 .day-chip.on .dc-name{color:rgba(255,255,255,.75)}
+/* v59 [Louis M3b] - Past day theme: grey override regardless of has-slots/has-event. Still clickable (panel opens read-only). */
+.day-chip.is-past{background:var(--g100);border-color:var(--g200);opacity:.75}
+.day-chip.is-past .dc-name{color:var(--g500)}
+.day-chip.is-past .dc-num{color:var(--g600)}
+.day-chip.is-past .dc-dot-item{color:var(--g500)!important}
+.day-chip.is-past .dc-dot-item .dc-dot{background:var(--g400)!important}
+.day-chip.is-past.on{background:var(--g500);border-color:var(--g500)}
+.day-chip.is-past.on .dc-name,.day-chip.is-past.on .dc-num{color:#fff}
+.day-chip.is-past.on .dc-dot-item{color:#fff!important}
+.day-chip.is-past.on .dc-dot-item .dc-dot{background:rgba(255,255,255,.85)!important}
 .dc-num{font-size:19px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
 /* v59 [Louis] - Today indicator: filled green circle on date, no special navy chip border.
    Chip border inherits has-slots green (or default when no slots). Day name stays normal color. */
@@ -919,6 +929,9 @@ tr:hover td{background:var(--g50)}
   #nav-tabs{display:none!important}
   #mob-menu-btn{display:inline-flex!important}
   #tz-nav-pill{display:none!important}
+  /* v59 [Louis M3b] - hide redundant elements on mobile: the toolbar legend and the cal-prompt at bottom (mini-legend) are now redundant with the new dedicated mobile legend below the 3-day strip. */
+  .cal-toolbar .legend{display:none!important}
+  #cal-prompt{display:none!important}
   .profile-nav-wrap{display:none!important}
   .ntab{padding:14px 9px;font-size:11.5px}
   .desktop-cal{display:none}
@@ -1165,8 +1178,9 @@ tr:hover td{background:var(--g50)}
       <button type="button" id="tz-pill-btn" onclick="toggleTZDropdown()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap" title="Switch timezone">
         <span id="tz-pill-flag">🇲🇾</span><span id="tz-pill-code">MYT</span><span style="font-size:9px;opacity:.7">▾</span>
       </button>
-      <div id="tz-dropdown" style="display:none;position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)"></div>
     </div>
+    <!-- v59 [Louis M3b hotfix] - tz-dropdown moved OUT of #tz-nav-pill — that parent has display:none!important on mobile which cascaded to children, hiding the dropdown even when JS set its display:block. -->
+    <div id="tz-dropdown" style="display:none;position:fixed;background:#fff;border-radius:var(--rLg);box-shadow:var(--sh-lg);min-width:180px;overflow:hidden;z-index:9999;border:1px solid var(--g200)"></div>
     <div id="profile-nav-wrap" style="display:none;position:relative">
       <button type="button" id="profile-nav-btn" onclick="toggleProfileDropdown()" style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap">
         <div id="profile-nav-av" style="width:22px;height:22px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0">?</div>
@@ -2868,6 +2882,9 @@ function closeTZDropdown(){
 }
 function _tzDDOutside(e){
   const pill=$id('tz-nav-pill');
+  const dd  =$id('tz-dropdown');
+  // v59 [Louis M3b hotfix]: dd is no longer a child of pill — also exempt dd clicks from closing.
+  if(dd && dd.contains(e.target)) return;
   if(pill&&!pill.contains(e.target)) closeTZDropdown();
 }
 
@@ -4922,6 +4939,9 @@ function renderDayStrip(){
   strip.innerHTML=vis.map(day=>{
     const di=WEEK_DAYS.findIndex(d=>d.d===day.d);
     const daySlots=weekSlots().filter(s=>s.dayIdx===di);
+    // v59 [Louis M3b] - detect past days (date < today midnight). Past day chips get grey theme,
+    // no "X open" line. Still clickable to open panel (read-only mode).
+    const isPastDay = day.fullDate && day.fullDate.getTime() < (function(){const t=new Date();t.setHours(0,0,0,0);return t.getTime();})();
     // v59 CAL-29: per-type counts for the new preview-dot row (replaces single "X open" badge).
     // isTraining detection matches the existing helper (line ~2953) — type='private' && status!='av' && !user.
     const zoomCount     = daySlots.filter(s=>s.type==='zoom15').length;
@@ -4949,14 +4969,15 @@ function renderDayStrip(){
       if(eventCount>0)    dotItems.push(`<span class="dc-dot-item dc-event"><span class="dc-dot"></span>${eventCount}</span>`);
       dots = `<div class="dc-dots">${dotItems.join('')}</div>`;
     }
-    // v59 [Louis] - AV Zoom balance: only show when there are AV Zoom slots, displays under the dot row
-    const avZoomEl = avZoomCount > 0 ? `<div class="dc-av-zoom">${avZoomCount} open</div>` : '';
+    // v59 [Louis] - AV Zoom balance: only show when there are AV Zoom slots AND not a past day
+    const avZoomEl = (avZoomCount > 0 && !isPastDay) ? `<div class="dc-av-zoom">${avZoomCount} open</div>` : '';
     // v59 CAL-29: chip class — has-slots when AV present (green tint), has-event when event present,
     // is-today (new) when this day is today (outlined chip border + navy day name).
     let chipCls = 'day-chip';
     if(hasAv)       chipCls += ' has-slots';
     else if(hasEvent) chipCls += ' has-event';
     if(day.today)   chipCls += ' is-today';
+    if(isPastDay)   chipCls += ' is-past'; // v59 [Louis M3b]
     return `<div class="${chipCls}" onclick="openPanel(${day.d})"
         role="button" aria-label="${day.n} ${day.d}">
       <span class="dc-name">${day.n.toUpperCase()}</span>
