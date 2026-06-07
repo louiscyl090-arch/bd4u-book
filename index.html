@@ -4997,9 +4997,11 @@ function renderPanel(dayNum){
       // Show in user's HOME TZ
       const uH=m2u(row.startH,homeTZ.o);
       const chipLabel=fmtH(uH);
-      // v59 [issue 3]: MYT label now shows the hour RANGE (start-end) instead of just the start hour.
-      // Old: "11amMYT" / New: "11am-12pmMYT". Tile is also narrower (5 per row vs 4) so font fits closely.
-      const mytLabel=`${fmtH(row.startH)}-${fmtH(row.endH)}`;
+      // v59 [issue 1 redo]: bottom MYT label is now just "-endHour" prefix (e.g. "-12pm"). Combined
+      // with the "MYT" suffix in the template, renders as "-12pmMYT". Top line shows user-TZ start
+      // hour. For MYT admins this avoids redundant "11am / 11am-12pmMYT" — for other-TZ users, top
+      // shows their start, bottom shows MYT end so slot duration is still inferable.
+      const mytLabel=`-${fmtH(row.endH)}`;
       // v59 CAL-16: detect every type present in this hour (Louis spec — colour reflects content).
       const isTrainingFn = (s) => s.type==='private' && s.status!=='av' && !s.user;
       const hasEvent    = hourItems.some(s => s.type==='event');
@@ -8928,7 +8930,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
           <button type="button" class="qopen-preset" id="qp-morning" onclick="applyPreset('morning')">
             <div class="qopen-preset-icon">🌅</div>
             <span class="qopen-preset-name">Morning</span>
-            <span class="qopen-preset-time">8am – 12pm</span>
+            <span class="qopen-preset-time">9am – 12pm</span>
           </button>
           <button type="button" class="qopen-preset" id="qp-afternoon" onclick="applyPreset('afternoon')">
             <div class="qopen-preset-icon">☀️</div>
@@ -8943,7 +8945,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
           <button type="button" class="qopen-preset" id="qp-fullday" onclick="applyPreset('fullday')">
             <div class="qopen-preset-icon">📅</div>
             <span class="qopen-preset-name">Full Day</span>
-            <span class="qopen-preset-time">8am – 10pm</span>
+            <span class="qopen-preset-time">9am – 10pm</span>
           </button>
         </div>
       </div>
