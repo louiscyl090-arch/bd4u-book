@@ -434,9 +434,11 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* v59 [Louis M3c] - Week navigator (9 circles, ±4 weeks). Mobile-only — desktop keeps its own ‹ › toolbar. */
 .week-nav-card{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:12px 14px;margin-bottom:14px}
-/* v59 [Louis M3d] - Buttons row inside the card (Quick Open / Today / Focus) */
+/* v59 [Louis M3d] - Buttons row inside the card (Quick Open / Focus — Today removed in M3e since 9-circle's center already jumps to current week) */
 .week-nav-btns{display:flex;gap:8px;margin-bottom:12px}
 .week-nav-btns > button{flex:1;font-size:12px;padding:7px 4px;white-space:nowrap}
+/* v59 [Louis M3e] - "this week" label centered above the 9 circles */
+.week-nav-todaylabel{text-align:center;font-size:10px;font-weight:700;color:var(--g500);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase}
 .week-nav-circles{position:relative;display:flex;justify-content:space-between;align-items:center;padding:6px 4px}
 /* Vertical line through dead center (today position = circle 5 of 9, which space-between places at exact center) */
 .week-nav-circles::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--g300);transform:translateX(-50%);z-index:0;border-radius:1px}
@@ -1369,9 +1371,10 @@ tr:hover td{background:var(--g50)}
           <div class="week-nav-card" id="week-nav-card">
             <div class="week-nav-btns">
               <button type="button" class="qopen-btn" onclick="openQuickOpen()">⚡ Quick Open</button>
-              <button type="button" class="btn btn-ghost btn-sm" onclick="jumpToday()">Today</button>
               <button type="button" class="focus-toggle" onclick="toggleFocusMode()">👁 Focus</button>
             </div>
+            <!-- v59 [Louis M3e] - "this week" label centered above the 9 circles — visual indicator that the middle circle = current week. Replaces the removed Today button. -->
+            <div class="week-nav-todaylabel">this week</div>
             <div class="week-nav-circles" id="week-nav-circles"></div>
             <div class="week-nav-label" id="week-nav-label">1–7 Jun 2026</div>
           </div>
