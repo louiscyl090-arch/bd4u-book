@@ -5090,16 +5090,17 @@ function renderPanel(dayNum){
 
   // ── Admin: hour chip selector ──
   if(isAdmin){
-    // v59 [Louis M3b bug] - was reading CURRENT_USER.tz (home setting) — should follow activeTZ
-    // (TZ chip selection) so hour labels reflect the currently displayed TZ.
-    const homeTZ = TZ_DATA[activeTZ||'MY'];
+    // v59 [Louis M3b spec] - Hour grid is ALWAYS in MYT regardless of TZ chip selection. Admin
+    // reasons in MYT as the system's source-of-truth timezone. Renamed homeTZ → mytTZ to reflect
+    // that this is NOT the user's home setting and NOT the active display TZ — it's hard-locked MYT.
+    const mytTZ = TZ_DATA['MY'];
     html+=`<div class="panel-admin-bar">
       <div class="panel-admin-lbl">Tap hour to open / manage</div>
       <div class="panel-hour-grid">`;
     ALL_HOUR_ROWS.forEach(row=>{
       const hourItems=weekSlots().filter(s=>s.dayIdx===di&&s.startMyt<row.endH*60&&s.endMyt>row.startH*60);
-      // Show in user's HOME TZ
-      const uH=m2u(row.startH,homeTZ.o);
+      // Top label in MYT (locked — hour grid is admin-only and admin always thinks in MYT)
+      const uH=m2u(row.startH,mytTZ.o);
       const chipLabel=fmtH(uH);
       // v59 [issue 1 redo]: bottom MYT label is now just "-endHour" prefix (e.g. "-12pm"). Combined
       // with the "MYT" suffix in the template, renders as "-12pmMYT". Top line shows user-TZ start
