@@ -68,6 +68,11 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* ── NAV ── FIX NAV-1: contrast raised, FIX NAV-3: logo white */
 .nav{background:var(--navy);display:flex;align-items:stretch;padding:0 14px;position:sticky;top:0;z-index:300;min-height:52px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:0;box-shadow:0 2px 8px rgba(13,31,51,.3);overflow-y:visible}
+/* v59 [Louis M7a Q1a Option 2] - golden top nav when in elevated view (admin OR manager).
+   Applied via .is-admin or .is-manager on #main-nav. Dark gold gradient base + bright gold
+   border-bottom so the mode is unmissable. Badge to the right of logo adds explicit label. */
+.nav.is-admin,.nav.is-manager{background:linear-gradient(135deg,#8B6914,#5C4609);border-bottom:2px solid #FFD54F;box-shadow:0 2px 12px rgba(139,105,20,.35)}
+.role-badge{display:inline-flex;align-items:center;background:#FFD54F;color:#5C4609;padding:3px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:.6px;margin-left:8px;font-family:var(--font);text-transform:uppercase;flex-shrink:0;align-self:center}
 .nav::-webkit-scrollbar{display:none}
 .nav-logo{font-size:15px;font-weight:800;color:#fff;padding-right:14px;margin-right:6px;border-right:1px solid rgba(255,255,255,.15);flex-shrink:0;white-space:nowrap;letter-spacing:-.3px}
 .nav-logo span{color:#5BC8B0} /* lighter teal — better contrast on navy */
@@ -792,6 +797,22 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .att-action-btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
 .att-action-btn.primary:hover{background:var(--teal);color:#fff;opacity:0.92}
 /* State B — drop zone */
+/* v59 [Louis M6c] - Edit booking details section. Toggle row collapses/expands the form;
+   chevron rotates 90° when open. Form uses standard input styling matching app form patterns. */
+.att-edit-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;background:#F5F7FA;border:1px solid #E5EAF1;border-radius:8px;font-size:12px;font-weight:600;color:#435061;cursor:pointer;font-family:var(--font);transition:background .12s}
+.att-edit-toggle:hover{background:#EEF1F6}
+.att-edit-toggle .att-edit-chev{font-size:14px;color:#888;transition:transform .15s;display:inline-block}
+.att-edit-toggle.is-open .att-edit-chev{transform:rotate(90deg)}
+.att-edit-form{margin-top:8px;padding:12px;background:#fafbfc;border:1px solid #E5EAF1;border-radius:8px}
+.att-edit-label{display:block;font-size:11px;font-weight:600;color:#637283;margin-bottom:3px}
+.att-edit-input{width:100%;padding:8px 10px;background:#fff;border:1px solid #D8DFE9;border-radius:6px;font-size:13px;color:#0D1F33;font-family:var(--font);margin-bottom:10px;box-sizing:border-box}
+.att-edit-input:focus{outline:none;border-color:var(--teal,#0B6B55)}
+.att-edit-actions{display:flex;gap:8px;margin-top:4px}
+.att-edit-cancel{flex:1;padding:9px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:12px;font-weight:600;color:#666;cursor:pointer;font-family:var(--font)}
+.att-edit-cancel:hover{background:#f5f7fa}
+.att-edit-save{flex:1;padding:9px;background:var(--teal,#0B6B55);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:opacity .12s}
+.att-edit-save:disabled{background:#cbd5e1;color:#888;cursor:not-allowed}
+.att-edit-save:not(:disabled):hover{opacity:.92}
 .att-drop-zone{border:2px dashed var(--g300,#cbd5e1);border-radius:10px;padding:32px 16px;
   text-align:center;cursor:pointer;transition:all .15s ease;background:var(--g50)}
 .att-drop-zone:hover{border-color:var(--teal);background:var(--tealLt,#e6f7f5)}
@@ -1349,6 +1370,8 @@ tr:hover td{background:var(--g50)}
       <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-.2px">BD4U Book</span>
       <span style="font-size:8.5px;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;margin-top:1px">Smart Scheduling</span>
     </div>
+    <!-- v59 [Louis M7a Q1c] - elevated view badge. Shows 'ADMIN' for admin view, 'MNGR' for manager view, hidden in downline view. Populated by updateRoleUI. -->
+    <span class="role-badge" id="role-badge" style="display:none">ADMIN</span>
   </div>
   <div class="nav-tabs" id="nav-tabs" style="display:flex;align-items:stretch;margin-left:8px">
     <div class="ntab" data-screen="sc-cal" onclick="goScreen('sc-cal')">Calendar</div>
@@ -2301,6 +2324,25 @@ tr:hover td{background:var(--g50)}
       <button type="button" class="att-modal-close" onclick="closeAttachmentModal()" aria-label="Close">✕</button>
     </div>
     <div class="att-modal-body">
+      <!-- v59 [Louis M6c] - collapsible edit-details section. Default collapsed (Q1=β). Tap toggle row
+           to reveal name + phone inputs + Save button. Past + future mine both editable (Q2). Title
+           stays "Add screenshot" (Q3). No field validation (Q4). Explicit Save trigger (Q5). -->
+      <div id="att-edit-section" style="margin-bottom:12px">
+        <button type="button" id="att-edit-toggle" class="att-edit-toggle" onclick="attachmentToggleEdit()">
+          <span>✏️ Edit booking details</span>
+          <span class="att-edit-chev" id="att-edit-chev">›</span>
+        </button>
+        <div id="att-edit-form" class="att-edit-form" style="display:none">
+          <label class="att-edit-label" for="att-edit-name">Prospect name</label>
+          <input type="text" id="att-edit-name" class="att-edit-input" placeholder="Enter prospect name" oninput="attachmentEditDirty()">
+          <label class="att-edit-label" for="att-edit-phone">Phone <span style="color:#999;font-weight:400">(optional)</span></label>
+          <input type="tel" id="att-edit-phone" class="att-edit-input" placeholder="Enter phone number" oninput="attachmentEditDirty()">
+          <div class="att-edit-actions">
+            <button type="button" class="att-edit-cancel" onclick="attachmentEditCancel()">Cancel</button>
+            <button type="button" id="att-edit-save" class="att-edit-save" disabled onclick="attachmentSaveEdit()">Save changes</button>
+          </div>
+        </div>
+      </div>
       <!-- State A — Preview (when attachment exists). Shown OR State B, never both. -->
       <div id="att-state-a" style="display:none">
         <div class="att-state-a">
@@ -2928,7 +2970,18 @@ async function logout(){
 }
 
 function toggleAdminMode(){
-  isAdmin = !isAdmin;
+  if(!CURRENT_USER) return;
+  // v59 [Louis M7a Q2a] - extended to managers. Admin/Developer profiles toggle isAdmin;
+  // manager profiles toggle isManager. Downlines have no elevated mode so toggle is a no-op
+  // (UI also hides the button for them).
+  const r = CURRENT_USER.role;
+  if(r === 'admin' || r === 'developer'){
+    isAdmin = !isAdmin;
+  } else if(r === 'manager'){
+    isManager = !isManager;
+  } else {
+    return; // downline — no toggle
+  }
   updateRoleUI();
   renderCalendar();
 }
@@ -2948,8 +3001,9 @@ function updateRoleUI(){
   if(typeof syncBottomNav === 'function') syncBottomNav(window._lastScreenId || '');
 
   // Nav tabs
+  // v59 [Louis M7a] - Dashboard tab now visible for managers too (in manager view).
   const tabAdmin=$id('tab-admin'), tabDev=$id('tab-dev');
-  if(tabAdmin) tabAdmin.className='ntab'+((isAdmin&&loggedIn)?' ':' hidden');
+  if(tabAdmin) tabAdmin.className='ntab'+(((isAdmin||isManager)&&loggedIn)?' ':' hidden');
   if(tabDev)   tabDev.className='ntab'+((isDev&&loggedIn)?' ':' hidden');
 
   // Nav tabs visibility — hide on mobile (replaced by ··· menu)
@@ -2981,11 +3035,38 @@ function updateRoleUI(){
   setText('pd-role', roleLabel);
 
   // Admin toggle — only for actual admin (not developer)
+  // v59 [Louis M7a Q2a/Q2b] - extended to managers. Admin profile gets Admin/Downline view labels;
+  // manager profile gets Manager/Downline view labels. Downline profiles still hide the button.
   const btn=$id('role-toggle-btn');
   if(btn){
-    btn.style.display=(loggedIn&&CURRENT_USER?.role==='admin')?'inline-flex':'none';
-    btn.textContent=isAdmin?'→ Downline view':'→ Admin view';
-    btn.className=isAdmin?'role-toggle admin-on':'role-toggle';
+    const role = CURRENT_USER?.role;
+    const canToggle = loggedIn && (role==='admin' || role==='manager');
+    btn.style.display = canToggle ? 'inline-flex' : 'none';
+    const elevated = isAdmin || isManager;
+    const targetView = role === 'manager' ? 'Manager' : 'Admin';
+    btn.textContent = elevated ? '→ Downline view' : `→ ${targetView} view`;
+    btn.className = elevated ? 'role-toggle admin-on' : 'role-toggle';
+  }
+
+  // v59 [Louis M7a Q1a/Q1c] - golden nav class + role badge for elevated views.
+  // .is-admin / .is-manager on #main-nav drives the gold gradient background.
+  // #role-badge shows ADMIN or MNGR inline next to the logo. Both hidden in downline view.
+  const navEl = $id('main-nav');
+  if(navEl){
+    navEl.classList.toggle('is-admin',   isAdmin);
+    navEl.classList.toggle('is-manager', isManager && !isAdmin); // mutually exclusive class hygiene
+  }
+  const roleBadge = $id('role-badge');
+  if(roleBadge){
+    if(isAdmin){
+      roleBadge.textContent = 'ADMIN';
+      roleBadge.style.display = 'inline-flex';
+    } else if(isManager){
+      roleBadge.textContent = 'MNGR';
+      roleBadge.style.display = 'inline-flex';
+    } else {
+      roleBadge.style.display = 'none';
+    }
   }
 
   // TZ pill
@@ -4067,6 +4148,97 @@ const ATT_MAX_BYTES = 2.5 * 1024 * 1024;            // 2.5 MB
 const ATT_ALLOWED_TYPES = ['image/jpeg','image/png','image/webp'];
 let _attBookingId = null;
 let _attUploading = false;
+// v59 [Louis M6c] - edit section state. _attEditOriginal stores the unmodified values when
+// the modal opens so attachmentEditDirty can compute dirty status against a stable baseline.
+let _attEditOpen = false;
+let _attEditOriginal = { prospect: '', phone: '' };
+function attachmentToggleEdit(){
+  _attEditOpen = !_attEditOpen;
+  const toggle = $id('att-edit-toggle');
+  const form   = $id('att-edit-form');
+  if(!toggle || !form) return;
+  if(_attEditOpen){
+    toggle.classList.add('is-open');
+    form.style.display = 'block';
+    // Auto-focus the name field when expanding for fast edit flow
+    setTimeout(()=>{ const n = $id('att-edit-name'); if(n) n.focus(); }, 50);
+  } else {
+    toggle.classList.remove('is-open');
+    form.style.display = 'none';
+  }
+}
+function attachmentEditDirty(){
+  const nameEl  = $id('att-edit-name');
+  const phoneEl = $id('att-edit-phone');
+  const saveBtn = $id('att-edit-save');
+  if(!nameEl || !phoneEl || !saveBtn) return;
+  const dirty = (nameEl.value !== _attEditOriginal.prospect) || (phoneEl.value !== _attEditOriginal.phone);
+  saveBtn.disabled = !dirty;
+}
+function attachmentEditCancel(){
+  // Revert inputs to original values and collapse the section.
+  const nameEl  = $id('att-edit-name');
+  const phoneEl = $id('att-edit-phone');
+  if(nameEl)  nameEl.value  = _attEditOriginal.prospect;
+  if(phoneEl) phoneEl.value = _attEditOriginal.phone;
+  attachmentEditDirty(); // disables Save
+  _attEditOpen = true;   // toggle will flip to false below
+  attachmentToggleEdit();
+}
+async function attachmentSaveEdit(){
+  if(!_attBookingId) return;
+  const name  = ($id('att-edit-name')?.value  || '').trim();
+  const phone = ($id('att-edit-phone')?.value || '').trim();
+  showAuthSpinner('Saving…');
+  try {
+    const { data, error } = await sb.from('schedule')
+      .update({ prospect: name, prospect_phone: phone })
+      .eq('id', _attBookingId)
+      .select();
+    if(error){
+      hideAuthSpinner();
+      console.error('attachmentSaveEdit error:', error);
+      if(typeof showToast === 'function') showToast(`Save failed: ${error.message || 'unknown'}`, 'err');
+      return;
+    }
+    if(!data || data.length === 0){
+      hideAuthSpinner();
+      if(typeof showToast === 'function') showToast('Save failed — permission denied', 'err');
+      return;
+    }
+    // Update local SCHEDULE row so the panel + calendar reflect the new name immediately.
+    const slot = SCHEDULE.find(s => s._id === _attBookingId);
+    if(slot){
+      slot.prospect = name;
+      slot.prospect_phone = phone;
+    }
+    _attEditOriginal = { prospect: name, phone: phone };
+    attachmentEditDirty(); // re-disables Save now that values match original
+    // Refresh the modal sub-line so the new prospect name shows immediately. Same format
+    // as openMineUploadFromPanel ("name · day, date · time TZ"). Falls back gracefully.
+    if(slot){
+      try {
+        const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+        const sT = minToUser(slot.startMyt, tz.o);
+        const day = WEEK_DAYS[slot.dayIdx];
+        const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+        const newSummary = `${name || 'My booking'} · ${dayLabel} · ${sT} ${tz.l||''}`.trim();
+        setText('att-modal-sub', newSummary);
+      } catch(e){ /* sub-line refresh is best-effort */ }
+    }
+    hideAuthSpinner();
+    if(typeof showToast === 'function') showToast('Changes saved ✓');
+    // Collapse the section after a successful save.
+    if(_attEditOpen) attachmentToggleEdit();
+    // Refresh the panel + calendar so the new name appears on the slot row.
+    if(panelOpen && panelDay !== null){ try { renderPanel(panelDay); } catch(e){} }
+    try { renderCalendar(); } catch(e){}
+  } catch(e){
+    hideAuthSpinner();
+    console.error('attachmentSaveEdit exception:', e);
+    if(typeof showToast === 'function') showToast('Save failed — please try again', 'err');
+  }
+}
 
 function openAttachmentModal(bookingId, summaryText){
   _attBookingId = bookingId;
@@ -4078,6 +4250,18 @@ function openAttachmentModal(bookingId, summaryText){
   const progEl = $id('att-progress'); if(progEl) progEl.style.display = 'none';
   const fileEl = $id('att-file-input'); if(fileEl) fileEl.value = '';
   setText('att-modal-sub', summaryText || '');
+  // v59 [Louis M6c] - reset edit section to collapsed and populate inputs with current slot values.
+  // _attEditOriginal tracks the unmodified values so dirty detection works correctly.
+  _attEditOpen = false;
+  const slot = SCHEDULE.find(s => s._id === bookingId);
+  const origName  = slot?.prospect       || '';
+  const origPhone = slot?.prospect_phone || '';
+  _attEditOriginal = { prospect: origName, phone: origPhone };
+  const nameEl  = $id('att-edit-name');  if(nameEl)  nameEl.value  = origName;
+  const phoneEl = $id('att-edit-phone'); if(phoneEl) phoneEl.value = origPhone;
+  const editToggle = $id('att-edit-toggle'); if(editToggle) editToggle.classList.remove('is-open');
+  const editForm   = $id('att-edit-form');   if(editForm)   editForm.style.display = 'none';
+  const saveBtn    = $id('att-edit-save');   if(saveBtn)    saveBtn.disabled = true;
   // v59 M1 (item 7): Drop zone copy is desktop-centric ("Drag screenshot here / or click to browse"). On mobile,
   // drag-and-drop and Ctrl+V both don't exist — swap to "Tap to select photo" and hide the paste hint.
   // Read viewport every time the modal opens, so rotation / different devices behave correctly.
@@ -9174,8 +9358,9 @@ async function bsheetClearAvailable(){
 //   - Sign out (danger, no border)
 // Timezone deliberately NOT in More sheet — it's now in the top nav TZ chip (visible everywhere).
 function bnGo(screenId){
-  // Dashboard tab is greyed for non-admins — short-circuit before goScreen
-  if(screenId === 'sc-admin' && !isAdmin){ return; }
+  // v59 [Louis M7a] - Dashboard tab greyed for non-elevated users (downline view OR true downline).
+  // Manager-in-Manager-view + admin both allowed.
+  if(screenId === 'sc-admin' && !isAdmin && !isManager){ return; }
   closeMoreSheet();
   // v59 [Louis M4b] - also close the day panel if open, so tapping a bottom nav tab dismisses it
   if(typeof closePanel === 'function' && typeof panelOpen !== 'undefined' && panelOpen) closePanel();
@@ -9189,11 +9374,12 @@ function syncBottomNav(activeScreenId){
     const sid = t.getAttribute('data-bn');
     t.classList.toggle('is-active', sid === activeScreenId);
   });
-  // Greyed Dashboard for non-admins
+  // v59 [Louis M7a] - Greyed Dashboard only for non-elevated views (downline + admin/manager in downline view)
   const dashTab = document.getElementById('bn-tab-admin');
   if(dashTab){
-    dashTab.classList.toggle('is-disabled', !isAdmin);
-    dashTab.setAttribute('aria-disabled', !isAdmin ? 'true' : 'false');
+    const greyed = !isAdmin && !isManager;
+    dashTab.classList.toggle('is-disabled', greyed);
+    dashTab.setAttribute('aria-disabled', greyed ? 'true' : 'false');
   }
 }
 let _moreSheetOpen = false;
@@ -9239,8 +9425,14 @@ function renderMoreSheet(){
     <div class="more-section-hdr">Account</div>
     <button type="button" class="more-item" onclick="goScreen('sc-profile');closeMoreSheet()"><span class="more-item-icon">👤</span>My Profile</button>
     <button type="button" class="more-item" onclick="goScreen('sc-settings');closeMoreSheet()"><span class="more-item-icon">⚙️</span>Settings</button>`;
-  if(CURRENT_USER.role === 'admin'){
-    html += `<button type="button" class="more-item" onclick="toggleAdminMode();closeMoreSheet()"><span class="more-item-icon">🔄</span>${isAdmin?'Switch to Downline view':'Switch to Admin view'}</button>`;
+  // v59 [Louis M7a] - View-mode toggle now available to managers too (was admin-only).
+  // Wording mirrors the top-nav role-toggle button (Admin/Manager based on profile, Downline otherwise).
+  const _r = CURRENT_USER.role;
+  if(_r === 'admin' || _r === 'manager'){
+    const _elevated = isAdmin || isManager;
+    const _targetView = _r === 'manager' ? 'Manager' : 'Admin';
+    const _label = _elevated ? 'Switch to Downline view' : `Switch to ${_targetView} view`;
+    html += `<button type="button" class="more-item" onclick="toggleAdminMode();closeMoreSheet()"><span class="more-item-icon">🔄</span>${_label}</button>`;
   }
   if(isDev){
     html += `
@@ -9515,8 +9707,8 @@ window.addEventListener('load', async ()=>{
       const last = localStorage.getItem('bd4u_lastScreen');
       const PERSIST_SCREENS = ['sc-cal','sc-mybk','sc-gallery','sc-admin','sc-settings','sc-profile','sc-dev'];
       if(last && PERSIST_SCREENS.includes(last)){
-        // Don't restore admin/dev screens for non-privileged users (safety)
-        if(last === 'sc-admin' && !isAdmin) restored = null;
+        // v59 [Louis M7a] - Don't restore admin screen for users without elevated access (admin OR manager).
+        if(last === 'sc-admin' && !isAdmin && !isManager) restored = null;
         else if(last === 'sc-dev' && !isDev) restored = null;
         else restored = last;
       }
