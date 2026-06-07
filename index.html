@@ -379,13 +379,10 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .day-chip.has-event .dc-name{color:var(--evt)}
 .day-chip.on .dc-name{color:rgba(255,255,255,.75)}
 .dc-num{font-size:19px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
-/* v59 CAL-29: outlined today circle (was filled teal). Distinguishes today without fighting slot-count colours. */
-.dc-today-circle{background:#fff;color:var(--navy);width:30px;height:30px;border:2px solid var(--navy);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin-top:2px;box-sizing:border-box}
-.day-chip.on .dc-today-circle{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.85);color:#fff}
-.day-chip.is-today{border-color:var(--navy);border-width:2px}
-.day-chip.is-today .dc-name{color:var(--navy)}
-.day-chip.has-slots.is-today .dc-name{color:var(--green)}
-.day-chip.has-event.is-today .dc-name{color:var(--evt)}
+/* v59 [Louis] - Today indicator: filled green circle on date, no special navy chip border.
+   Chip border inherits has-slots green (or default when no slots). Day name stays normal color. */
+.dc-today-circle{background:var(--green);color:#fff;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin-top:2px;box-sizing:border-box}
+.day-chip.on .dc-today-circle{background:rgba(255,255,255,.25);color:#fff}
 /* v59 CAL-29: Day-chip preview dots — Option 2 (dots + mini-counts). */
 .dc-dots{display:flex;gap:6px;justify-content:center;align-items:center;font-size:10px;font-weight:800;margin-top:4px;min-height:14px;flex-wrap:wrap}
 /* v59 [Louis] - "X open" balance under preview dots, only for available 15-min Zoom slots */
@@ -405,8 +402,23 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .dc-dot-item.dc-blocked .dc-dot{background:#888780}
 .dc-no-slots{font-size:10px;color:var(--g300);font-weight:600;margin-top:4px}
 .day-chip.on .dc-num{color:#fff}
-.dc-today-circle{background:var(--teal);color:#fff;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin-top:2px}
-.day-chip.on .dc-today-circle{background:rgba(255,255,255,.25)}
+
+/* v59 [Louis M3b] - Past-week amber banner (shows when weekOffset < 0) */
+.cal-past-banner{display:none;background:#FFF7E6;border:1px solid #F59E0B;color:#92400E;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;margin-bottom:12px;text-align:center}
+.cal-past-banner.on{display:block}
+
+/* v59 [Louis M3b] - Mobile legend BELOW 3-day strip */
+.mobile-legend{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
+.mobile-legend-row{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;align-items:center}
+.mobile-legend-item{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--g600)}
+.mobile-legend-item .mleg-d{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.mobile-legend-foot{font-size:11px;color:var(--g500);text-align:center;font-weight:500}
+.mobile-legend-foot .green{color:var(--green);font-weight:700}
+
+/* v59 [Louis M3b] - TZ chip in calendar header (mobile only — desktop uses the top-nav TZ pill) */
+.cal-tz-chip{background:#fff;border:1px solid var(--g300);border-radius:14px;padding:5px 12px;font-size:11.5px;font-weight:700;color:var(--g700);cursor:pointer;display:none;align-items:center;gap:5px;font-family:var(--font);transition:background .12s}
+.cal-tz-chip:hover,.cal-tz-chip:active{background:var(--g100)}
+@media(max-width:640px){.cal-tz-chip{display:inline-flex}}
 
 /* ── SLIDE-UP PANEL ── */
 .panel-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:400;backdrop-filter:blur(3px)}
@@ -1268,6 +1280,10 @@ tr:hover td{background:var(--g50)}
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span id="admin-badge" style="display:none;background:var(--amberLt);color:var(--amber);border:1px solid var(--amberB);border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700">👑 Admin view</span>
+            <!-- v59 [Louis M3b] - Mobile TZ chip — opens existing tz-dropdown picker -->
+            <button type="button" id="cal-tz-chip" class="cal-tz-chip" onclick="openCalTZPicker(event)">
+              <span id="cal-tz-flag">🇲🇾</span> <span id="cal-tz-code">MYT</span>
+            </button>
             <button type="button" class="btn btn-primary btn-sm" id="new-booking-btn" onclick="goScreen('sc-cal')" style="display:none">+ New Booking</button>
           </div>
         </div>
@@ -1307,12 +1323,24 @@ tr:hover td{background:var(--g50)}
 
         <!-- MOBILE calendar -->
         <div class="mobile-cal-wrapper">
+          <!-- v59 [Louis M3b] - past-week banner — shown when weekOffset < 0 -->
+          <div class="cal-past-banner" id="cal-past-banner">📜 Viewing a past week — read only</div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
             <button type="button" class="cal-nav-btn" id="day-prev-btn" onclick="shiftDayWindow(-1)" style="width:36px;height:36px;font-size:16px">‹</button>
             <span class="cal-mo" id="mob-week-label" style="flex:1;text-align:center;font-size:13.5px">19–25 May</span>
             <button type="button" class="cal-nav-btn" id="day-next-btn" onclick="shiftDayWindow(1)" style="width:36px;height:36px;font-size:16px">›</button>
           </div>
           <div class="day-strip-snap" id="day-strip-snap"></div>
+          <!-- v59 [Louis M3b] - Legend below 3-day strip (mobile only) -->
+          <div class="mobile-legend">
+            <div class="mobile-legend-row">
+              <span class="mobile-legend-item"><span class="mleg-d" style="background:#1E6FCC"></span>15-min Zoom</span>
+              <span class="mobile-legend-item"><span class="mleg-d" style="background:#E67E22"></span>20-min Meet</span>
+              <span class="mobile-legend-item"><span class="mleg-d" style="background:#4F46E5"></span>Training</span>
+              <span class="mobile-legend-item"><span class="mleg-d" style="background:#C62828"></span>Event</span>
+            </div>
+            <div class="mobile-legend-foot"><span class="green">Green</span> = still available to book</div>
+          </div>
           <div class="cal-prompt" id="cal-prompt">
             <div class="cal-prompt-icon">📅</div>
             <div class="cal-prompt-t">Tap a day to see all slots</div>
@@ -2791,6 +2819,11 @@ function updateTZPill(){
   const flag=$id('tz-pill-flag');
   const code=$id('tz-pill-code');
   const dd=$id('tz-dropdown');
+  // v59 [Louis M3b] - also sync the new mobile cal-tz-chip
+  const calFlag=document.getElementById('cal-tz-flag');
+  const calCode=document.getElementById('cal-tz-code');
+  if(calFlag) calFlag.textContent = tz.f;
+  if(calCode) calCode.textContent = tz.l;
   if(!pill) return;
   // Show pill only when logged in
   pill.style.display = CURRENT_USER ? 'block' : 'none';
@@ -2838,6 +2871,43 @@ function _tzDDOutside(e){
   if(pill&&!pill.contains(e.target)) closeTZDropdown();
 }
 
+// v59 [Louis M3b] - mobile TZ chip in calendar header. Reuses the existing tz-dropdown built by
+// updateTZPill(); just positions it relative to the chip and uses a separate outside-click handler.
+function openCalTZPicker(e){
+  if(e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  const chip = document.getElementById('cal-tz-chip');
+  const dd   = document.getElementById('tz-dropdown');
+  if(!chip || !dd) return;
+  if(typeof updateTZPill === 'function') updateTZPill(); // rebuild dropdown items
+  const isOpen = dd.style.display === 'block';
+  if(isOpen){ dd.style.display = 'none'; return; }
+  const rect = chip.getBoundingClientRect();
+  dd.style.display = 'block';
+  dd.style.top   = (rect.bottom + 6) + 'px';
+  dd.style.left  = Math.max(8, rect.left) + 'px';
+  dd.style.right = 'auto';
+  setTimeout(()=>document.addEventListener('click', _calTZOutside, {once:true}), 10);
+}
+function _calTZOutside(e){
+  const chip = document.getElementById('cal-tz-chip');
+  const dd   = document.getElementById('tz-dropdown');
+  if(!dd) return;
+  // If click is inside dropdown, keep listening; if outside both chip + dropdown, close.
+  if(dd.contains(e.target)){
+    setTimeout(()=>document.addEventListener('click', _calTZOutside, {once:true}), 10);
+    return;
+  }
+  if(chip && chip.contains(e.target)) return; // chip handles its own toggle
+  dd.style.display = 'none';
+}
+
+// v59 [Louis M3b] - past-week amber banner. Show when current weekOffset < 0 (viewing a past week).
+function updatePastBanner(){
+  const el = document.getElementById('cal-past-banner');
+  if(!el) return;
+  el.classList.toggle('on', weekOffset < 0);
+}
+
 function renderNavFlags(){
   // Legacy function — now handled by updateTZPill
   updateTZPill();
@@ -2851,6 +2921,7 @@ function shiftWeek(delta){
   _persistWeekOffset(); // v59 CAL-23
   dayWindowStart = 0;
   WEEK_DAYS = buildWeekDays(weekOffset);
+  if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
   reloadWeekSchedule();
 }
 function jumpToday(){
@@ -2858,6 +2929,7 @@ function jumpToday(){
   _persistWeekOffset(); // v59 CAL-23
   dayWindowStart = 0;
   WEEK_DAYS = buildWeekDays(0);
+  if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
   const now = new Date();
   const todayIdx = WEEK_DAYS.findIndex(d =>
     d.fullDate.getDate()===now.getDate() &&
@@ -2870,6 +2942,7 @@ function jumpToday(){
 function renderCalendar(){
   // v58 polish: preserve scroll position across re-renders — fixes "yank to top" after every chip change
   const _savedScrollY = window.scrollY || window.pageYOffset || 0;
+  if(typeof updatePastBanner === 'function') updatePastBanner(); // v59 [Louis M3b]
   try {
     updateWeekLabel(); renderDesktopCal(); renderDayStrip(); updateNavBtns();
     updatePastSlots();
