@@ -242,21 +242,21 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .blk-tc.tc-past{color:var(--g500)}
 .blk-row.row-past .blk-tc{color:var(--g500)}
 
-/* v59 [Louis M5b] - Mobile panel slot rows (Option B): grey row background + border + main text,
-   BUT type pill keeps its colour so user can still tell at a glance what kind of slot it was.
-   Status badges (Mine/Renee/Open etc) greyed for consistency. Book → button greyed and disabled
-   (past slots can't be booked). X delete button kept visible per Louis Q2 — admin still needs the
-   option for testing/cleanup. */
+/* v59 [Louis M5c] - Mobile panel slot rows (Option A · switched from Option B per Louis): full grey
+   treatment matching desktop M5a. Every past row gets uniform grey background + border + text.
+   Type pill ALSO greyed (Option A differentiator vs M5b — previously kept its colour).
+   X delete button stays visible per Louis Q2. Click handlers preserved per Louis Q3 (testing). */
 .slot-entry.is-past{
   background:var(--g100)!important;
   border:1.5px solid var(--g200)!important;
+  color:var(--g600)!important;
 }
 .slot-entry.is-past .se-t,
 .slot-entry.is-past .se-tz,
 .slot-entry.is-past .se-name{color:var(--g600)!important}
-.slot-entry.is-past .bdg{background:var(--g200)!important;color:var(--g600)!important}
+.slot-entry.is-past .bdg{background:var(--g200)!important;color:var(--g600)!important;border-color:var(--g300)!important}
+.slot-entry.is-past .type-pill{background:var(--g200)!important;color:var(--g600)!important;border-color:var(--g300)!important}
 .slot-entry.is-past .btn-primary{background:var(--g300)!important;color:var(--g500)!important;border-color:var(--g300)!important;pointer-events:none}
-/* type-pill kept in its native colour — Option B differentiator */
 /* v58: current-time red line indicator (only shown on today's column, current week) */
 /* v58 Phase 1.8: positioning now uses CSS calc() + percentages → auto-resilient to window resize */
 .blk-row{position:relative}
@@ -7873,22 +7873,44 @@ async function adminInsertSlots(slots){
 }
 
 // Hard delete a slot from DB (for av/blocked/event slots)
+// v59 [Louis M5c] - Capture the most recent delete/update failure reason so confirmDeleteSlot can
+// surface it in the user-visible toast. Helps diagnose RLS policy blocks, schema mismatches,
+// network errors etc. without forcing the user into DevTools.
+let _lastDeleteError = null;
 async function adminHardDelete(dbId){
-  const { error } = await sb.from('schedule').delete().eq('id', dbId);
-  if(error){ console.error('adminHardDelete error:', error); return false; }
+  _lastDeleteError = null;
+  // v59 [Louis M5c] - added .select() so we get the deleted rows back; lets us detect
+  // RLS-silent failures (no error but no row affected).
+  const { data, error } = await sb.from('schedule').delete().eq('id', dbId).select();
+  if(error){
+    console.error('adminHardDelete error:', error);
+    _lastDeleteError = error.message || error.hint || JSON.stringify(error).slice(0,120);
+    return false;
+  }
+  if(!data || data.length === 0){
+    console.warn('adminHardDelete: 0 rows deleted — RLS policy may be blocking this delete.');
+    _lastDeleteError = 'No rows deleted (RLS policy blocked)';
+    return false;
+  }
   return true;
 }
 
 // Soft delete a booked slot (mark cancelled=true)
 async function adminSoftDelete(dbId){
+  _lastDeleteError = null;
   const { data, error } = await sb.from('schedule')
     .update({ cancelled: true, status: 'cancelled' })
     .eq('id', dbId)
     .select();
-  if(error){ console.error('adminSoftDelete error:', error); return false; }
+  if(error){
+    console.error('adminSoftDelete error:', error);
+    _lastDeleteError = error.message || error.hint || JSON.stringify(error).slice(0,120);
+    return false;
+  }
   // RLS-silent failure detection: if no rows came back, the policy blocked the update
   if(!data || data.length === 0){
     console.warn('adminSoftDelete: 0 rows updated — RLS policy may be blocking this update.');
+    _lastDeleteError = 'No rows updated (RLS policy blocked)';
     return false;
   }
   return true;
@@ -8952,7 +8974,10 @@ async function confirmDeleteSlot(idx){
       }
       if(!dbOk){
         hideAuthSpinner();
-        if(typeof showToast === 'function') showToast('Could not delete — please try again', 'err');
+        // v59 [Louis M5c] - show the actual error reason in the toast so Louis can identify
+        // RLS issues / schema mismatches / network errors without DevTools.
+        const errReason = _lastDeleteError ? `: ${_lastDeleteError}` : '';
+        if(typeof showToast === 'function') showToast(`Could not delete${errReason}`, 'err');
         return;
       }
       // Reload from DB so the in-memory SCHEDULE matches what's actually stored
