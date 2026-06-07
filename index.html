@@ -421,8 +421,8 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 /* Admin panel action bar */
 .panel-admin-bar{background:var(--g50);border:1px solid var(--g200);border-radius:var(--rLg);padding:12px;margin-bottom:4px;flex-shrink:0}
 .panel-admin-lbl{font-size:10px;font-weight:800;color:var(--g400);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
-.panel-hour-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
-.panel-hchip{padding:6px 4px;border-radius:var(--r);border:1.5px solid var(--g200);background:#fff;font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer;text-align:center;transition:all .12s;color:var(--g600);line-height:1.2;position:relative}
+.panel-hour-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:10px}
+.panel-hchip{flex:0 0 calc((100% - 20px)/5);padding:5px 2px;border-radius:var(--r);border:1.5px solid var(--g200);background:#fff;font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer;text-align:center;transition:all .12s;color:var(--g600);line-height:1.2;position:relative;box-sizing:border-box;min-width:0}
 /* v59 CAL-16: Hour chip palette now reflects what's INSIDE the hour (Louis spec), not just availability.
    Priority order: Event > Blocked > Training > Meet (any state) > Zoom (any state) > empty.
    Mixed hours: dominant colour wins; corner dot(s) indicate other types present (max 2 dots). */
@@ -1078,8 +1078,11 @@ tr:hover td{background:var(--g50)}
 .qopen-time-row{display:flex;align-items:center;gap:10px}
 .qopen-time-row .fc{flex:1}
 .qopen-time-sep{font-size:13px;color:var(--g400);font-weight:600;flex-shrink:0}
-.qopen-days{display:flex;gap:6px;flex-wrap:wrap}
-.qopen-day{width:40px;height:40px;border-radius:50%;border:2px solid var(--g200);background:#fff;font-size:11px;font-weight:700;color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;font-family:var(--font)}
+/* v59 [issue 4]: Days picker — was flex with fixed 40px width + wrap, which forced Sun onto a 2nd
+   row at narrow modal widths. Now flex:1 per day with smaller height so all 7 fit on a single row
+   regardless of modal width. */
+.qopen-days{display:flex;gap:4px;flex-wrap:nowrap}
+.qopen-day{flex:1;min-width:0;height:36px;border-radius:50%;border:2px solid var(--g200);background:#fff;font-size:10.5px;font-weight:700;color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;font-family:var(--font);padding:0}
 .qopen-day:hover{border-color:var(--teal);color:var(--teal)}
 .qopen-day.on{border-color:var(--teal);background:var(--teal);color:#fff}
 .qopen-types{display:flex;gap:8px}
@@ -4994,7 +4997,9 @@ function renderPanel(dayNum){
       // Show in user's HOME TZ
       const uH=m2u(row.startH,homeTZ.o);
       const chipLabel=fmtH(uH);
-      const mytLabel=fmtH(row.startH);
+      // v59 [issue 3]: MYT label now shows the hour RANGE (start-end) instead of just the start hour.
+      // Old: "11amMYT" / New: "11am-12pmMYT". Tile is also narrower (5 per row vs 4) so font fits closely.
+      const mytLabel=`${fmtH(row.startH)}-${fmtH(row.endH)}`;
       // v59 CAL-16: detect every type present in this hour (Louis spec — colour reflects content).
       const isTrainingFn = (s) => s.type==='private' && s.status!=='av' && !s.user;
       const hasEvent    = hourItems.some(s => s.type==='event');
@@ -7552,11 +7557,13 @@ function bsheetTraining(){
 // ═══════════════════════════════════════════════
 let _qoSelectedDays = new Set();
 let _qoSlotType = 'zoom15';
+// v59 [issue 4]: Morning + Full Day start changed from 8am → 9am per Louis spec. The earliest
+// admin opens slots for is 9am, so 8am was meaningless and just created an unused slot.
 const QOPEN_PRESETS = {
-  morning:   { start:'8am',  end:'12pm' },
+  morning:   { start:'9am',  end:'12pm' },
   afternoon: { start:'12pm', end:'6pm'  },
   evening:   { start:'6pm',  end:'10pm' },
-  fullday:   { start:'8am',  end:'10pm' },
+  fullday:   { start:'9am',  end:'10pm' },
 };
 
 // v59 [issue 4]: openQuickOpen now accepts optional preselectDayIdx — when called from the panel
@@ -8307,10 +8314,14 @@ function closeBSheetConfirm(){
 async function confirmDeleteSlot(idx){
   const slot = SCHEDULE[idx];
   if(!slot) return;
-  const isBooked  = slot.status === 'booked' || slot.status === 'mine';
-  const isEvent   = slot.type === 'event';
-  const isBlocked = slot.type === 'blocked';
+  // v59 [issue 1 fix]: Training rows are stored with status='booked' even though they're admin-managed
+  // internal slots, not real user bookings. Old isBooked check matched them and routed to adminSoftDelete
+  // which fails because training has no booker to cancel. Detect training/event/blocked/av FIRST, treat
+  // ONLY true user bookings (with a downline user_id) as isBooked.
+  const isEvent    = slot.type === 'event';
+  const isBlocked  = slot.type === 'blocked';
   const isTraining = slot.type === 'private' && slot.status !== 'av' && !slot.user;
+  const isBooked   = !isTraining && !isEvent && !isBlocked && (slot.status === 'booked' || slot.status === 'mine');
   let title, body, confirmLabel;
   if(isBooked){
     const booker = slot._bookerName || 'This downline';
@@ -8872,7 +8883,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
     </button>
     <button type="button" class="bsheet-item" onclick="bsheetTraining()">
       <span class="bsheet-item-icon" style="background:var(--indigoLt);color:var(--indigo);border-radius:6px">🟣</span>
-      <div class="bsheet-item-info"><span style="color:var(--indigo)">Training session</span><span class="bsheet-item-desc">Single 20-min internal slot</span></div>
+      <div class="bsheet-item-info"><span style="color:var(--indigo)">Training session</span><span class="bsheet-item-desc">Internal private slot</span></div>
     </button>
     <div class="bsheet-section-lbl">Manage</div>
     <button type="button" class="bsheet-item" onclick="bsheetBlock()">
