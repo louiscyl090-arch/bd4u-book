@@ -1051,7 +1051,24 @@ tr:hover td{background:var(--g50)}
 .tz-sel-label{font-size:10px;font-weight:700;color:inherit}
 .tz-sel-opt:not(.on) .tz-sel-label{color:var(--g600)}
 
-/* v59 [Louis M4d-B] - Team Management action sheet. Same slide-up pattern as More sheet but
+/* v59 [Louis M8-rebuild] - Pending Users card row. Same layout on mobile + desktop —
+   stacked detail block + action button row. WhatsApp opens wa.me link for admin verification. */
+.pending-user-row{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.pending-user-row:last-child{margin-bottom:0}
+.pending-user-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pending-user-name{font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.3}
+.pending-user-nick{font-size:11.5px;color:var(--g500);font-weight:500;margin-left:4px}
+.pending-user-meta{font-size:11px;color:var(--g600);line-height:1.55;margin-top:4px}
+.pending-user-ago{font-size:10.5px;color:var(--g400);flex-shrink:0;white-space:nowrap}
+.pending-user-actions{display:flex;gap:6px;flex-wrap:wrap}
+.pending-user-actions > *{flex:1;min-width:100px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;font-family:var(--font);text-decoration:none;border:1px solid transparent;transition:all .12s;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.pending-user-wa{background:#25D366;color:#fff;border-color:#25D366}
+.pending-user-wa:hover{background:#1ea958}
+.pending-user-approve{background:var(--teal);color:#fff;border-color:var(--teal)}
+.pending-user-approve:hover{opacity:.92}
+.pending-user-reject{background:#fff;color:#d33;border:1px solid #d33}
+.pending-user-reject:hover{background:#fff0f0}
+.pending-user-empty{text-align:center;padding:20px 10px;font-size:12px;color:var(--g500)}
    independent z-index (550/551). Mobile-only — desktop keeps inline 3-button rows. */
 .team-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:550;backdrop-filter:blur(3px)}
 .team-sheet-overlay.on{display:block;animation:fadeIn .2s ease both}
@@ -1562,30 +1579,27 @@ tr:hover td{background:var(--g50)}
           <div class="fg"><label class="fl" for="reg-email">Email <span style="color:#d33">*</span></label><input class="fc" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="reg-pass">Password <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(min 8 characters)</span></label><input class="fc" type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password"></div>
           <div class="fg"><label class="fl" for="reg-pass2">Confirm password <span style="color:#d33">*</span></label><input class="fc" type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitRegister()"></div>
-          <button type="button" class="btn btn-primary btn-full" id="reg-submit-btn" onclick="submitRegister()">Register →</button>
+          <!-- v59 [Louis M8-rebuild Q1] - confirmation checkbox. Submit button stays disabled until checked.
+               Ensures user double-checks all fields before submission — admin can't fix typos later. -->
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--g600);cursor:pointer;margin-bottom:14px;line-height:1.5">
+            <input type="checkbox" id="reg-confirm-chk" oninput="updateRegSubmitState()" style="accent-color:var(--teal);width:16px;height:16px;margin-top:2px;flex-shrink:0">
+            <span>I confirm all the information I've filled in is correct.</span>
+          </label>
+          <button type="button" class="btn btn-primary btn-full" id="reg-submit-btn" onclick="submitRegister()" disabled style="opacity:.5;cursor:not-allowed">Register →</button>
           <div style="margin-top:14px;font-size:12px;color:var(--g600);text-align:center">
             Already have an account? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showLoginForm()">Sign in</a>
           </div>
         </div>
-        <!-- v59 [Louis M8a] - Post-register success message. Shown after successful submit. -->
+        <!-- v59 [Louis M8-rebuild] - Post-register success message. New flow doesn't send an email
+             at registration — admin reviews directly. Amber note nudges user to ping their upline. -->
         <div id="login-register-success" class="role-form" style="display:none">
           <div style="text-align:center;padding:18px 0">
-            <div style="font-size:48px;margin-bottom:14px">✉️</div>
-            <div style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px">Check your email</div>
-            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">We sent a confirmation link to <strong id="reg-success-email">your email</strong>. Click the link to verify your address.</div>
-            <div style="background:#fff8e1;border-left:3px solid #f4d35e;border-radius:4px;padding:10px 12px;margin-bottom:18px;text-align:left">
-              <div style="font-size:11.5px;color:#665a00;line-height:1.55"><strong>What happens next?</strong><br>After you confirm, an admin will review your registration. You'll get another email once approved (usually within 24 hours).</div>
+            <div style="font-size:48px;margin-bottom:14px">📝</div>
+            <div style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px">Registration submitted</div>
+            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">Your registration has been sent to admin for review.</div>
+            <div style="background:#fff8e1;border-left:3px solid #f4d35e;border-radius:4px;padding:11px 13px;margin-bottom:18px;text-align:left">
+              <div style="font-size:12px;color:#665a00;line-height:1.55"><strong>📲 Important:</strong> Please contact your upline on WhatsApp to inform them of your registration so they can approve you faster.</div>
             </div>
-            <button type="button" class="btn btn-outline btn-full" onclick="showLoginForm()">← Back to sign in</button>
-          </div>
-        </div>
-        <!-- v59 [Louis M8a] - Post-email-confirmation landing message. Shown when an unapproved
-             user clicks the email confirmation link and lands on the app. -->
-        <div id="login-register-confirmed" class="role-form" style="display:none">
-          <div style="text-align:center;padding:18px 0">
-            <div style="font-size:48px;margin-bottom:14px">✓</div>
-            <div style="font-size:18px;font-weight:800;color:var(--green);margin-bottom:8px">Email confirmed</div>
-            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">Your email is verified. An admin will review your registration shortly. You'll get an email once approved.</div>
             <button type="button" class="btn btn-outline btn-full" onclick="showLoginForm()">← Back to sign in</button>
           </div>
         </div>
@@ -2050,6 +2064,20 @@ tr:hover td{background:var(--g50)}
         <div class="card" style="margin-bottom:16px" id="notif-prefs-card">
           <div class="card-b" id="notif-prefs-container">
             <!-- populated by renderSettings() -->
+          </div>
+        </div>
+
+        <!-- v59 [Louis M8-rebuild] - Pending Users card. Shows verified registrations awaiting
+             admin review. Placed above Team Management per Louis spec. Auto-hidden when empty.
+             Approve creates the auth user + users row via the existing add-downline pattern.
+             Reject deletes the pending row. WhatsApp button opens wa.me/{phone} for verification. -->
+        <div class="card" id="settings-pending-card" style="display:none;margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>📋 Pending for approval <span id="pending-count-badge" style="background:#FFE082;color:#5C4609;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;margin-left:6px">0</span></span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="renderPendingUsers()" title="Refresh list">↻</button>
+            </div>
+            <div id="settings-pending-list"></div>
           </div>
         </div>
 
@@ -2889,6 +2917,8 @@ function showRegisterForm(){
   ['reg-fullname','reg-nickname','reg-phone','reg-email','reg-pass','reg-pass2'].forEach(id=>{
     const el = $id(id); if(el) el.value = '';
   });
+  const chk = $id('reg-confirm-chk'); if(chk) chk.checked = false;
+  updateRegSubmitState(); // re-disable Register button
   setRegisterError('');
   // Hide login screen header text (the "Welcome back" / "Sign in to your BD4U account" lines
   // don't apply when registering); switch to a more relevant header is overkill — just leave them.
@@ -2918,10 +2948,25 @@ function setRegisterError(msg){
   else { el.textContent = ''; el.classList.remove('on'); }
 }
 
-// v59 [Louis M8a Item 3] - Submit register form. Validates locally, checks nickname/email
-// uniqueness against existing users + pending_users, calls supabase.auth.signUp (creates
-// auth.users row + sends Supabase email confirmation), then INSERTs pending_users with
-// the profile data so admin can review after the user confirms their email.
+// v59 [Louis M8-rebuild Q1] - Submit button is disabled until "I confirm" checkbox is ticked.
+// Called from the checkbox oninput. Also called from showRegisterForm to reset state on every open.
+function updateRegSubmitState(){
+  const chk = $id('reg-confirm-chk');
+  const btn = $id('reg-submit-btn');
+  if(!chk || !btn) return;
+  const ok = chk.checked;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+  btn.style.cursor  = ok ? 'pointer' : 'not-allowed';
+}
+
+// v59 [Louis M8-rebuild] - Submit register form. NEW FLOW (no email confirmation):
+// 1) Validate locally
+// 2) Check nickname/email uniqueness against users + pending_users
+// 3) INSERT into pending_users with all fields + plaintext password
+// 4) Show success screen
+// No supabase.auth.signUp here — admin's approve action will do that. This avoids the entire
+// email-deliverability dependency and aligns the flow with Louis's new spec.
 async function submitRegister(){
   setRegisterError('');
   const fullName = ($id('reg-fullname')?.value || '').trim();
@@ -2930,6 +2975,8 @@ async function submitRegister(){
   const email    = ($id('reg-email')?.value    || '').trim().toLowerCase();
   const pass     = ($id('reg-pass')?.value     || '');
   const pass2    = ($id('reg-pass2')?.value    || '');
+  const chk      = $id('reg-confirm-chk');
+  if(!chk || !chk.checked) return setRegisterError('Please tick the confirmation box to submit.');
   // ── Validation ──
   if(!fullName || fullName.length < 2) return setRegisterError('Please enter your full name.');
   if(!nickname || nickname.length < 2) return setRegisterError('Please enter a nickname (used as your username).');
@@ -2939,65 +2986,44 @@ async function submitRegister(){
   if(pass !== pass2)                   return setRegisterError("Passwords don't match.");
 
   const btn = $id('reg-submit-btn');
-  if(btn){ btn.classList.add('btn-loading'); btn.textContent = 'Registering…'; }
+  if(btn){ btn.classList.add('btn-loading'); btn.textContent = 'Submitting…'; btn.disabled = true; }
 
   try {
-    // ── Uniqueness check: nickname (across users + pending_users) ──
-    // RLS-friendly: users table is publicly readable for username lookup (existing pattern).
-    // pending_users SELECT is admin-only, so this query may return 0 rows even if a duplicate
-    // exists — server-side INSERT will fail with UNIQUE constraint on email if so. Nickname
-    // collisions in pending_users won't be caught here, but admin will see them at review time.
+    // ── Uniqueness: existing users (by username or email) ──
     const { data: existingUser } = await sb.from('users')
       .select('id')
-      .or(`username.eq.${nickname},email.eq.${email}`)
+      .or(`name.eq.${nickname},email.eq.${email}`)
       .limit(1)
       .maybeSingle();
     if(existingUser){
       _resetRegBtn();
       return setRegisterError('That nickname or email is already in use. Try another or sign in.');
     }
-
-    // ── Sign up with Supabase Auth (creates auth.users entry + sends confirmation email) ──
-    const { data: signUpData, error: signUpErr } = await sb.auth.signUp({
-      email: email,
-      password: pass,
-      options: {
-        emailRedirectTo: window.location.origin + window.location.pathname,
-        data: { full_name: fullName, nickname: nickname }
-      }
-    });
-    if(signUpErr){
+    // ── Uniqueness: pending registrations by email (nickname uniqueness in pending is OK to skip
+    // since admin sees collisions at review time and can resolve manually) ──
+    const { data: existingPending } = await sb.from('pending_users')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+      .maybeSingle();
+    if(existingPending){
       _resetRegBtn();
-      const m = (signUpErr.message || '').toLowerCase();
-      if(m.includes('already registered') || m.includes('user already')) {
-        return setRegisterError('This email is already registered. Try signing in or resetting your password.');
-      }
-      return setRegisterError('Registration failed: ' + (signUpErr.message || 'unknown error'));
+      return setRegisterError('A registration with this email is already pending review.');
     }
-
-    // ── INSERT pending_users for admin review ──
-    // password_hash kept null — actual password lives in auth.users (hashed by Supabase).
-    // We only need this row to track admin review status.
+    // ── INSERT pending_users (no signUp call) ──
     const { error: insErr } = await sb.from('pending_users').insert({
       email: email,
       full_name: fullName,
       nickname: nickname,
       phone: phone || null,
-      email_verified: false, // flips to true via M8a confirmation landing handler
+      password: pass,             // plaintext per Q4 — admin's approve action uses this for signUp
       status: 'pending'
     });
     if(insErr){
       _resetRegBtn();
-      // Auth row was created but pending row failed — surface it. Admin can clean up auth.users via Supabase dashboard.
       console.error('pending_users insert failed:', insErr);
-      return setRegisterError('Registration partially saved. Please contact admin: ' + (insErr.message || 'database error'));
+      return setRegisterError('Registration failed: ' + (insErr.message || 'database error'));
     }
-
-    // ── Sign out the just-created auth session so user has to wait for admin approval ──
-    // (signUp auto-signs in unless email confirmation is required, which it is by default —
-    // so this is belt-and-suspenders).
-    try { await sb.auth.signOut(); } catch(e){}
-
     // ── Show success screen ──
     _resetRegBtn();
     document.querySelectorAll('.role-form').forEach(f=>{
@@ -3009,8 +3035,6 @@ async function submitRegister(){
       success.style.display = 'block';
       success.classList.add('on');
     }
-    const emailLabel = $id('reg-success-email');
-    if(emailLabel) emailLabel.textContent = email;
   } catch(e){
     _resetRegBtn();
     console.error('submitRegister exception:', e);
@@ -3020,60 +3044,17 @@ async function submitRegister(){
 
 function _resetRegBtn(){
   const btn = $id('reg-submit-btn');
-  if(btn){ btn.classList.remove('btn-loading'); btn.textContent = 'Register →'; }
-}
-
-// v59 [Louis M8a Item 4] - Email confirmation landing handler. When a registered user clicks
-// the email confirmation link, Supabase verifies the token + redirects to the app with an active
-// session. But that user has no users-table row yet (waiting for admin approval). Detect this
-// "orphan session" state, flip pending_users.email_verified=true so admin sees the user in the
-// approval queue, sign out, and show the "Email confirmed — waiting for admin" message.
-async function handleRegistrationConfirmation(){
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if(!session || !session.user) return false;
-    const userId = session.user.id;
-    const emailVal = (session.user.email || '').toLowerCase();
-    if(!emailVal) return false;
-    // Check if this auth user has a profile in users table → if yes, this is a normal sign-in, not a registration confirmation
-    const { data: userRow } = await sb.from('users')
-      .select('id').eq('id', userId).maybeSingle();
-    if(userRow) return false; // normal user — not a confirmation landing
-    // No users row → check pending_users by email
-    const { data: pending, error: pendingErr } = await sb.from('pending_users')
-      .select('id, email_verified, status').eq('email', emailVal).maybeSingle();
-    if(pendingErr || !pending){
-      // No pending row either — orphan auth session, sign out silently
-      try { await sb.auth.signOut(); } catch(e){}
-      return false;
-    }
-    // Mark email_verified=true if not already
-    if(!pending.email_verified){
-      await sb.from('pending_users')
-        .update({ email_verified: true })
-        .eq('id', pending.id);
-    }
-    // Sign out so the user isn't stuck in an unauthenticated state
-    try { await sb.auth.signOut(); } catch(e){}
-    // Show the "Email confirmed — waiting for admin" screen
-    document.querySelectorAll('.role-form').forEach(f=>{
-      f.classList.remove('on');
-      f.style.display = 'none';
-    });
-    const tabs = document.querySelector('.role-tabs');
-    if(tabs) tabs.style.display = 'none';
-    const confirmed = $id('login-register-confirmed');
-    if(confirmed){
-      confirmed.style.display = 'block';
-      confirmed.classList.add('on');
-    }
-    goScreen('sc-login');
-    return true;
-  } catch(e){
-    console.error('handleRegistrationConfirmation error:', e);
-    return false;
+  if(btn){
+    btn.classList.remove('btn-loading');
+    btn.textContent = 'Register →';
+    // Re-respect the checkbox state
+    updateRegSubmitState();
   }
 }
+
+// v59 [Louis M8-rebuild] - Email-confirmation landing handler removed (no email confirm step).
+// Stub kept in case any caller still references it during transition; returns false silently.
+async function handleRegistrationConfirmation(){ return false; }
 
 // ═══════════════════════════════════════════════
 //  AUTH HELPERS
@@ -8961,9 +8942,13 @@ async function renderSettings(){
   // Admin-only sections
   const teamCard=$id('settings-team-card');
   const mgrsCard=$id('settings-managers-card');
+  // v59 [Louis M8-rebuild] - Pending Users card visibility + initial render
+  const pendingCard = $id('settings-pending-card');
+  if(pendingCard) pendingCard.style.display = isAdmin ? 'block' : 'none';
   if(teamCard) teamCard.style.display = isAdmin ? 'block' : 'none';
   if(mgrsCard) mgrsCard.style.display = isAdmin ? 'block' : 'none';
   if(isAdmin){
+    await renderPendingUsers();
     await settingsLoadTeam();
     await settingsLoadManagers();
   }
@@ -9076,6 +9061,189 @@ function closeTeamSheet(){
 // ═══════════════════════════════════════════════
 //  SETTINGS — TEAM MANAGEMENT & MANAGERS (original section follows)
 // ═══════════════════════════════════════════════
+// v59 [Louis M8-rebuild] - Pending Users card render. Fetches verified/pending registrations,
+// builds the row HTML, auto-hides the parent card when empty. Each row shows name, nickname,
+// email, phone, time-since-registered, and three buttons: WhatsApp, Approve, Reject.
+async function renderPendingUsers(){
+  const card = $id('settings-pending-card');
+  const list = $id('settings-pending-list');
+  const badge = $id('pending-count-badge');
+  if(!card || !list) return;
+  try {
+    const { data: rows, error } = await sb.from('pending_users')
+      .select('id, email, full_name, nickname, phone, created_at, status')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if(error){
+      console.error('renderPendingUsers fetch error:', error);
+      list.innerHTML = `<div class="pending-user-empty">Could not load — ${sanitize(error.message || 'unknown error')}</div>`;
+      card.style.display = 'block';
+      if(badge) badge.textContent = '!';
+      return;
+    }
+    const items = rows || [];
+    if(badge) badge.textContent = String(items.length);
+    if(items.length === 0){
+      // Card stays visible with empty state — helps admin know feature exists.
+      list.innerHTML = '<div class="pending-user-empty">No pending registrations.</div>';
+      card.style.display = 'block';
+      return;
+    }
+    list.innerHTML = items.map(u => {
+      const safeName  = sanitize(u.full_name || '?');
+      const safeNick  = sanitize(u.nickname  || '?');
+      const safeEmail = sanitize(u.email     || '');
+      const phone     = u.phone || '';
+      const safePhone = sanitize(phone);
+      // wa.me wants digits-only (strip + and spaces)
+      const waPhone   = phone.replace(/[^0-9]/g, '');
+      const waLink    = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent('Hi ' + (u.full_name||'') + ', confirming your BD4U Book registration?')}` : '';
+      const ago       = _timeAgo(u.created_at);
+      return `<div class="pending-user-row">
+        <div class="pending-user-head">
+          <div>
+            <span class="pending-user-name">${safeName}</span><span class="pending-user-nick">@${safeNick}</span>
+            <div class="pending-user-meta">📧 ${safeEmail}<br>📱 ${safePhone || '<em style="color:#aaa">(not provided)</em>'}</div>
+          </div>
+          <div class="pending-user-ago">${ago}</div>
+        </div>
+        <div class="pending-user-actions">
+          ${waLink ? `<a class="pending-user-wa" href="${waLink}" target="_blank" rel="noopener" title="WhatsApp ${safePhone}">💬 WhatsApp</a>` : ''}
+          <button type="button" class="pending-user-approve" onclick="approvePendingUser('${u.id}')">✓ Approve</button>
+          <button type="button" class="pending-user-reject" onclick="rejectPendingUser('${u.id}')">✕ Reject</button>
+        </div>
+      </div>`;
+    }).join('');
+    card.style.display = 'block';
+  } catch(e){
+    console.error('renderPendingUsers exception:', e);
+    list.innerHTML = `<div class="pending-user-empty">Could not load: ${sanitize(e.message || 'unknown')}</div>`;
+    card.style.display = 'block';
+  }
+}
+
+// v59 [Louis M8-rebuild] - "X mins/hours/days ago" formatter for pending-user timestamps
+function _timeAgo(iso){
+  if(!iso) return '';
+  const then = new Date(iso).getTime();
+  if(!then) return '';
+  const sec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if(sec < 60)        return `${sec}s ago`;
+  const min = Math.floor(sec/60);
+  if(min < 60)        return `${min} min ago`;
+  const hr  = Math.floor(min/60);
+  if(hr < 24)         return `${hr} hr ago`;
+  const day = Math.floor(hr/24);
+  if(day < 30)        return `${day} day${day===1?'':'s'} ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+// v59 [Louis M8-rebuild] - Approve a pending registration. Reuses the existing admin add-downline
+// pattern from settingsAddDownlineSubmit (save admin session → signUp → INSERT users →
+// restore admin session). Defaults: timezone='MY', role='downline' per Louis Q1+Q2. Initials
+// derived from full_name. After success: DELETE pending_users row + refresh both cards.
+async function approvePendingUser(pendingId){
+  if(!pendingId) return;
+  // Fetch the pending row
+  const { data: pu, error: fetchErr } = await sb.from('pending_users')
+    .select('id, email, full_name, nickname, phone, password')
+    .eq('id', pendingId)
+    .single();
+  if(fetchErr || !pu){
+    if(typeof showToast === 'function') showToast('Could not load pending user', 'err');
+    return;
+  }
+  if(!pu.password){
+    if(typeof showToast === 'function') showToast('Missing password — this was registered before the M8-rebuild. Reject and ask user to register again.', 'err');
+    return;
+  }
+  showBSheetConfirm({
+    title: 'Approve registration?',
+    sub: `${pu.full_name} · @${pu.nickname}`,
+    body: `Create account for <strong>${sanitize(pu.email)}</strong>?<br><br>They'll be added to Team Management as a downline. Please WhatsApp them to confirm before approving.`,
+    confirmLabel: 'Approve',
+    onConfirm: async () => {
+      showAuthSpinner('Approving…');
+      try {
+        // Save admin session before signUp (signUp may switch session if confirm-email is OFF)
+        const { data: sessData } = await sb.auth.getSession();
+        const adminSess = sessData?.session;
+        // Create the auth user with the password the registrant chose
+        const { data: su, error: suErr } = await sb.auth.signUp({
+          email: pu.email,
+          password: pu.password,
+          options: { data: { full_name: pu.full_name, nickname: pu.nickname }, emailRedirectTo: null }
+        });
+        if(suErr || !su?.user){
+          if(adminSess) await sb.auth.setSession({ access_token: adminSess.access_token, refresh_token: adminSess.refresh_token }).catch(()=>{});
+          hideAuthSpinner();
+          if(typeof showToast === 'function') showToast('Approve failed: ' + (suErr?.message || 'no user returned'), 'err');
+          return;
+        }
+        const userId = su.user.id;
+        const ini = (pu.full_name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)) || pu.nickname.slice(0,2).toUpperCase();
+        // INSERT users profile — nickname is the username (display name)
+        const { error: insErr } = await sb.from('users').insert({
+          id: userId,
+          name: pu.nickname,
+          email: pu.email,
+          role: 'downline',
+          timezone: 'MY',
+          country: 'MY',
+          initials: ini,
+          suspended: false
+        });
+        // Restore admin session regardless of insert outcome
+        if(adminSess) await sb.auth.setSession({ access_token: adminSess.access_token, refresh_token: adminSess.refresh_token }).catch(()=>{});
+        if(insErr){
+          hideAuthSpinner();
+          console.error('users insert failed after approve:', insErr);
+          if(typeof showToast === 'function') showToast('Auth created but profile failed: ' + insErr.message, 'err');
+          return;
+        }
+        // DELETE pending row (per Louis Q5 — clean over audit-trail)
+        await sb.from('pending_users').delete().eq('id', pu.id);
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast(`Approved ${pu.nickname} ✓`);
+        // Refresh both cards
+        await renderPendingUsers();
+        if(typeof settingsLoadTeam === 'function') await settingsLoadTeam();
+      } catch(e){
+        hideAuthSpinner();
+        console.error('approvePendingUser exception:', e);
+        if(typeof showToast === 'function') showToast('Approve failed: ' + (e.message || 'unknown'), 'err');
+      }
+    }
+  });
+}
+
+// v59 [Louis M8-rebuild] - Reject a pending registration. No auth.users entry exists (we deferred
+// signUp to approve time), so it's a simple DELETE of the pending_users row. User isn't notified —
+// admin tells them via WhatsApp per Louis spec.
+async function rejectPendingUser(pendingId){
+  if(!pendingId) return;
+  const { data: pu } = await sb.from('pending_users')
+    .select('id, full_name, nickname, email')
+    .eq('id', pendingId)
+    .single();
+  if(!pu) return;
+  showBSheetConfirm({
+    title: 'Reject registration?',
+    sub: `${pu.full_name} · @${pu.nickname}`,
+    body: `Reject <strong>${sanitize(pu.email)}</strong>?<br><br>The registration will be deleted. Please WhatsApp the user to inform them.`,
+    confirmLabel: 'Reject',
+    onConfirm: async () => {
+      const { error } = await sb.from('pending_users').delete().eq('id', pu.id);
+      if(error){
+        if(typeof showToast === 'function') showToast('Reject failed: ' + error.message, 'err');
+        return;
+      }
+      if(typeof showToast === 'function') showToast(`Rejected ${pu.nickname}`);
+      await renderPendingUsers();
+    }
+  });
+}
+
 async function settingsLoadTeam(){
   const container=$id('settings-team-list'); if(!container) return;
   container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
