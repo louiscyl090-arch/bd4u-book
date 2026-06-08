@@ -1052,7 +1052,8 @@ tr:hover td{background:var(--g50)}
 .tz-sel-opt:not(.on) .tz-sel-label{color:var(--g600)}
 
 /* v59 [Louis M8-rebuild] - Pending Users card row. Same layout on mobile + desktop —
-   stacked detail block + action button row. WhatsApp opens wa.me link for admin verification. */
+   stacked detail block + action button row. WhatsApp opens wa.me link for admin verification.
+   v59 [Louis M8-rebuild-hotfix Item 5] - desktop now uses compact team-row-style layout. */
 .pending-user-row{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;margin-bottom:10px}
 .pending-user-row:last-child{margin-bottom:0}
 .pending-user-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -1069,6 +1070,23 @@ tr:hover td{background:var(--g50)}
 .pending-user-reject{background:#fff;color:#d33;border:1px solid #d33}
 .pending-user-reject:hover{background:#fff0f0}
 .pending-user-empty{text-align:center;padding:20px 10px;font-size:12px;color:var(--g500)}
+/* Avatar circle — hidden on mobile, shown on desktop */
+.pu-avatar{display:none}
+@media(min-width:641px){
+  /* Desktop: switch to compact team-row-style layout */
+  .pending-user-row{
+    background:none;border:none;border-bottom:1px solid var(--g100);border-radius:0;
+    padding:10px 0;margin-bottom:0;
+    display:flex;align-items:center;gap:10px
+  }
+  .pu-avatar{display:flex;width:36px;height:36px;border-radius:50%;background:var(--amber);color:#000;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .pending-user-body{flex:1;min-width:0}
+  .pending-user-head{margin-bottom:2px}
+  .pending-user-meta{margin-top:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pending-user-actions{flex:0 0 auto;flex-wrap:nowrap;gap:5px}
+  .pending-user-actions > *{flex:0 0 auto;min-width:auto;padding:5px 10px;font-size:11px;border-radius:5px}
+  .pending-user-ago{font-size:10px}
+}
    independent z-index (550/551). Mobile-only — desktop keeps inline 3-button rows. */
 .team-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:550;backdrop-filter:blur(3px)}
 .team-sheet-overlay.on{display:block;animation:fadeIn .2s ease both}
@@ -1516,7 +1534,7 @@ tr:hover td{background:var(--g50)}
       <div class="login-feat-list">
         <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">All times in your local timezone</div></div>
         <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">See who's booked before you pick a slot</div></div>
-        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">15-min Zoom or 20-min Meet with Renee &amp; Gus</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">15-min Zoom call between you, prospect &amp; Gus or Renee</div></div>
         <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Share Zoom screenshots with admin in one tap</div></div>
         <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Mobile-first — works on any device</div></div>
       </div>
@@ -1536,7 +1554,7 @@ tr:hover td{background:var(--g50)}
           <!-- v59 [Louis M8a Item 2] - "Register here" link above Remember me, per Louis spec.
                Tap → switches to the register form below. Replaces the old "Request an account" alert. -->
           <div style="margin-bottom:10px;font-size:12px;color:var(--g600);">
-            New? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showRegisterForm()">Register here</a>
+            New user? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showRegisterForm()">Register here</a>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g600);cursor:pointer">
@@ -1575,7 +1593,7 @@ tr:hover td{background:var(--g50)}
           <div class="login-err" id="login-register-err"></div>
           <div class="fg"><label class="fl" for="reg-fullname">Full name <span style="color:#d33">*</span></label><input class="fc" type="text" id="reg-fullname" placeholder="e.g. Ali Bin Ahmad" autocomplete="name"></div>
           <div class="fg"><label class="fl" for="reg-nickname">Nickname <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(becomes your username)</span></label><input class="fc" type="text" id="reg-nickname" placeholder="e.g. ali" autocomplete="off"></div>
-          <div class="fg"><label class="fl" for="reg-phone">Phone <span style="color:#999;font-weight:400;font-size:10.5px">(optional)</span></label><input class="fc" type="tel" id="reg-phone" placeholder="e.g. +60 12 345 6789" autocomplete="tel"></div>
+          <div class="fg"><label class="fl" for="reg-phone">Phone <span style="color:#d33">*</span></label><input class="fc" type="tel" id="reg-phone" placeholder="e.g. +60 12 345 6789" autocomplete="tel"></div>
           <div class="fg"><label class="fl" for="reg-email">Email <span style="color:#d33">*</span></label><input class="fc" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="reg-pass">Password <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(min 8 characters)</span></label><input class="fc" type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password"></div>
           <div class="fg"><label class="fl" for="reg-pass2">Confirm password <span style="color:#d33">*</span></label><input class="fc" type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitRegister()"></div>
@@ -2982,6 +3000,8 @@ async function submitRegister(){
   if(!nickname || nickname.length < 2) return setRegisterError('Please enter a nickname (used as your username).');
   if(!/^[a-z0-9_-]+$/.test(nickname))  return setRegisterError('Nickname can only contain lowercase letters, numbers, hyphens, and underscores.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setRegisterError('Please enter a valid email address.');
+  // v59 [Louis M8-rebuild-hotfix] - phone now required per Louis spec
+  if(!phone || phone.replace(/[^0-9]/g,'').length < 5) return setRegisterError('Please enter a valid phone number.');
   if(!pass || pass.length < 8)         return setRegisterError('Password must be at least 8 characters.');
   if(pass !== pass2)                   return setRegisterError("Passwords don't match.");
 
@@ -9099,13 +9119,17 @@ async function renderPendingUsers(){
       const waPhone   = phone.replace(/[^0-9]/g, '');
       const waLink    = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent('Hi ' + (u.full_name||'') + ', confirming your BD4U Book registration?')}` : '';
       const ago       = _timeAgo(u.created_at);
+      const initials  = sanitize((u.full_name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2));
       return `<div class="pending-user-row">
-        <div class="pending-user-head">
-          <div>
-            <span class="pending-user-name">${safeName}</span><span class="pending-user-nick">@${safeNick}</span>
-            <div class="pending-user-meta">📧 ${safeEmail}<br>📱 ${safePhone || '<em style="color:#aaa">(not provided)</em>'}</div>
+        <div class="pu-avatar">${initials}</div>
+        <div class="pending-user-body">
+          <div class="pending-user-head">
+            <div>
+              <span class="pending-user-name">${safeName}</span><span class="pending-user-nick">@${safeNick}</span>
+            </div>
+            <div class="pending-user-ago">${ago}</div>
           </div>
-          <div class="pending-user-ago">${ago}</div>
+          <div class="pending-user-meta">📧 ${safeEmail}${safePhone ? ' · 📱 ' + safePhone : ''}</div>
         </div>
         <div class="pending-user-actions">
           ${waLink ? `<a class="pending-user-wa" href="${waLink}" target="_blank" rel="noopener" title="WhatsApp ${safePhone}">💬 WhatsApp</a>` : ''}
