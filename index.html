@@ -68,6 +68,18 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* ── NAV ── FIX NAV-1: contrast raised, FIX NAV-3: logo white */
 .nav{background:var(--navy);display:flex;align-items:stretch;padding:0 14px;position:sticky;top:0;z-index:300;min-height:52px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:0;box-shadow:0 2px 8px rgba(13,31,51,.3);overflow-y:visible}
+/* v59 [Louis M7a Q1a Option 2] - golden top nav when in elevated view (admin OR manager).
+   Applied via .is-admin or .is-manager on #main-nav. Dark gold gradient base + bright gold
+   border-bottom so the mode is unmissable. Badge to the right of logo adds explicit label. */
+.nav.is-admin,.nav.is-manager{background:linear-gradient(135deg,#8B6914,#5C4609);border-bottom:2px solid #FFD54F;box-shadow:0 2px 12px rgba(139,105,20,.35)}
+/* v59 [Louis M7a Q1c] - elevated view badge. Shows 'ADMIN' for admin view, 'MNGR' for manager view, hidden in downline view. Populated by updateRoleUI.
+   v59 [Louis M7b Item 3] - differentiated colours per Louis spec:
+     • ADMIN → Option A: navy bg + bright gold text + gold border (premium / elite look)
+     • MNGR  → Option B: pure white bg + dark gold/brown text (maximum contrast for readability)
+   updateRoleUI sets .is-admin or .is-mngr modifier class for the right palette. */
+.role-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-size:9.5px;font-weight:800;letter-spacing:.6px;margin-left:8px;font-family:var(--font);text-transform:uppercase;flex-shrink:0;align-self:center;background:#FFD54F;color:#5C4609}
+.role-badge.is-admin{background:#0D1F33;color:#FFD54F;border:1px solid #FFD54F;padding:2px 7px}
+.role-badge.is-mngr{background:#fff;color:#5C4609;border:1px solid #fff}
 .nav::-webkit-scrollbar{display:none}
 .nav-logo{font-size:15px;font-weight:800;color:#fff;padding-right:14px;margin-right:6px;border-right:1px solid rgba(255,255,255,.15);flex-shrink:0;white-space:nowrap;letter-spacing:-.3px}
 .nav-logo span{color:#5BC8B0} /* lighter teal — better contrast on navy */
@@ -215,7 +227,7 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .focus-mode .sc-private:not(.sc-private-mine){ display:none !important }
 /* Hide rows whose only remaining chips are types that Focus would hide. Keep the row if it has any AV or mine chip. */
 .focus-mode .blk-row:not(:has(.sc-av-zoom, .sc-av-meet, .sc-av-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-private-mine)){ display:none !important }
-.focus-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.focus-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
 
 /* v59 [Louis M4a] - Today button in day panel footer. Default = neutral. When viewing a non-today
    date, .is-not-today highlights yellow as a "shortcut home" affordance. Dims when already on today. */
@@ -229,10 +241,34 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .sc-booked-manager{background:#FFD580;border:1.5px solid #E8A000;color:#5A3500}
 .sc-mine-manager{background:#FFE5A0;border:1.5px solid #E8A000;color:#5A3500}
 /* ── PAST SLOTS ── */
-.sc-past{opacity:.32;filter:grayscale(70%);pointer-events:none;cursor:default}
-.sc-past-admin{opacity:.32;filter:grayscale(70%)}
-.blk-tc.tc-past{opacity:.32}
-.blk-row.row-past .blk-tc{opacity:.32}
+/* v59 [Louis M5a] - Option B: past chips no longer fade opacity, instead get a neutral light-grey
+   background + crisp dark-grey text so name/time stays readable. Clickable for "view details" —
+   existing onclick handlers fire (admin → SAM modal; downline → own booking detail). */
+.sc-past,.sc-past-admin{
+  background:var(--g100)!important;
+  border-color:var(--g200)!important;
+  color:var(--g600)!important;
+  cursor:pointer;
+}
+.sc-past *,.sc-past-admin *{color:var(--g600)!important}
+.blk-tc.tc-past{color:var(--g500)}
+.blk-row.row-past .blk-tc{color:var(--g500)}
+
+/* v59 [Louis M5c] - Mobile panel slot rows (Option A · switched from Option B per Louis): full grey
+   treatment matching desktop M5a. Every past row gets uniform grey background + border + text.
+   Type pill ALSO greyed (Option A differentiator vs M5b — previously kept its colour).
+   X delete button stays visible per Louis Q2. Click handlers preserved per Louis Q3 (testing). */
+.slot-entry.is-past{
+  background:var(--g100)!important;
+  border:1.5px solid var(--g200)!important;
+  color:var(--g600)!important;
+}
+.slot-entry.is-past .se-t,
+.slot-entry.is-past .se-tz,
+.slot-entry.is-past .se-name{color:var(--g600)!important}
+.slot-entry.is-past .bdg{background:var(--g200)!important;color:var(--g600)!important;border-color:var(--g300)!important}
+.slot-entry.is-past .type-pill{background:var(--g200)!important;color:var(--g600)!important;border-color:var(--g300)!important}
+.slot-entry.is-past .btn-primary{background:var(--g300)!important;color:var(--g500)!important;border-color:var(--g300)!important;pointer-events:none}
 /* v58: current-time red line indicator (only shown on today's column, current week) */
 /* v58 Phase 1.8: positioning now uses CSS calc() + percentages → auto-resilient to window resize */
 .blk-row{position:relative}
@@ -394,7 +430,9 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .day-chip.has-event .dc-name{color:var(--evt)}
 .day-chip.on .dc-name{color:rgba(255,255,255,.75)}
 /* v59 [Louis M3b] - Past day theme: grey override regardless of has-slots/has-event. Still clickable (panel opens read-only). */
-.day-chip.is-past{background:var(--g100);border-color:var(--g200);opacity:.75}
+/* v59 [Louis M5a / Q4] - Mobile day chip past styling aligned with desktop Option B. Opacity
+   removed (was .75 — made text faded). Background + border already grey from M3b. */
+.day-chip.is-past{background:var(--g100);border-color:var(--g200)}
 .day-chip.is-past .dc-name{color:var(--g500)}
 .day-chip.is-past .dc-num{color:var(--g600)}
 .day-chip.is-past .dc-dot-item{color:var(--g500)!important}
@@ -584,6 +622,10 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 /* On mobile, shrink the badge area slightly so ✕ doesn't overlap text. The se-badge already
    sits right-aligned; padding-right on the row gives the X room without changing the badge layout. */
 .slot-entry.has-x{padding-right:36px}
+/* v59 [Louis M6b] - downline mine rows get cursor:pointer + subtle hover, since tapping
+   opens the attachment upload modal. Applied in addition to type colours (mine-zoom/mine-meet). */
+.slot-entry.has-tap{cursor:pointer}
+.slot-entry.has-tap:active{transform:scale(.985)}
 .slot-entry.av{border-color:var(--greenB);background:var(--greenLt);cursor:pointer}.slot-entry.av:hover{background:#c0f0d8}
 .slot-entry.mine{border-color:var(--tealB);background:var(--tealLt)}
 .slot-entry.zoom{border-color:var(--zoomB)}
@@ -762,6 +804,22 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .att-action-btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
 .att-action-btn.primary:hover{background:var(--teal);color:#fff;opacity:0.92}
 /* State B — drop zone */
+/* v59 [Louis M6c] - Edit booking details section. Toggle row collapses/expands the form;
+   chevron rotates 90° when open. Form uses standard input styling matching app form patterns. */
+.att-edit-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;background:#F5F7FA;border:1px solid #E5EAF1;border-radius:8px;font-size:12px;font-weight:600;color:#435061;cursor:pointer;font-family:var(--font);transition:background .12s}
+.att-edit-toggle:hover{background:#EEF1F6}
+.att-edit-toggle .att-edit-chev{font-size:14px;color:#888;transition:transform .15s;display:inline-block}
+.att-edit-toggle.is-open .att-edit-chev{transform:rotate(90deg)}
+.att-edit-form{margin-top:8px;padding:12px;background:#fafbfc;border:1px solid #E5EAF1;border-radius:8px}
+.att-edit-label{display:block;font-size:11px;font-weight:600;color:#637283;margin-bottom:3px}
+.att-edit-input{width:100%;padding:8px 10px;background:#fff;border:1px solid #D8DFE9;border-radius:6px;font-size:13px;color:#0D1F33;font-family:var(--font);margin-bottom:10px;box-sizing:border-box}
+.att-edit-input:focus{outline:none;border-color:var(--teal,#0B6B55)}
+.att-edit-actions{display:flex;gap:8px;margin-top:4px}
+.att-edit-cancel{flex:1;padding:9px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:12px;font-weight:600;color:#666;cursor:pointer;font-family:var(--font)}
+.att-edit-cancel:hover{background:#f5f7fa}
+.att-edit-save{flex:1;padding:9px;background:var(--teal,#0B6B55);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:opacity .12s}
+.att-edit-save:disabled{background:#cbd5e1;color:#888;cursor:not-allowed}
+.att-edit-save:not(:disabled):hover{opacity:.92}
 .att-drop-zone{border:2px dashed var(--g300,#cbd5e1);border-radius:10px;padding:32px 16px;
   text-align:center;cursor:pointer;transition:all .15s ease;background:var(--g50)}
 .att-drop-zone:hover{border-color:var(--teal);background:var(--tealLt,#e6f7f5)}
@@ -993,7 +1051,42 @@ tr:hover td{background:var(--g50)}
 .tz-sel-label{font-size:10px;font-weight:700;color:inherit}
 .tz-sel-opt:not(.on) .tz-sel-label{color:var(--g600)}
 
-/* v59 [Louis M4d-B] - Team Management action sheet. Same slide-up pattern as More sheet but
+/* v59 [Louis M8-rebuild] - Pending Users card row. Same layout on mobile + desktop —
+   stacked detail block + action button row. WhatsApp opens wa.me link for admin verification.
+   v59 [Louis M8-rebuild-hotfix Item 5] - desktop now uses compact team-row-style layout. */
+.pending-user-row{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.pending-user-row:last-child{margin-bottom:0}
+.pending-user-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pending-user-name{font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.3}
+.pending-user-nick{font-size:11.5px;color:var(--g500);font-weight:500;margin-left:4px}
+.pending-user-meta{font-size:11px;color:var(--g600);line-height:1.55;margin-top:4px}
+.pending-user-ago{font-size:10.5px;color:var(--g400);flex-shrink:0;white-space:nowrap}
+.pending-user-actions{display:flex;gap:6px;flex-wrap:wrap}
+.pending-user-actions > *{flex:1;min-width:100px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;font-family:var(--font);text-decoration:none;border:1px solid transparent;transition:all .12s;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.pending-user-wa{background:#25D366;color:#fff;border-color:#25D366}
+.pending-user-wa:hover{background:#1ea958}
+.pending-user-approve{background:var(--teal);color:#fff;border-color:var(--teal)}
+.pending-user-approve:hover{opacity:.92}
+.pending-user-reject{background:#fff;color:#d33;border:1px solid #d33}
+.pending-user-reject:hover{background:#fff0f0}
+.pending-user-empty{text-align:center;padding:20px 10px;font-size:12px;color:var(--g500)}
+/* Avatar circle — hidden on mobile, shown on desktop */
+.pu-avatar{display:none}
+@media(min-width:641px){
+  /* Desktop: switch to compact team-row-style layout */
+  .pending-user-row{
+    background:none;border:none;border-bottom:1px solid var(--g100);border-radius:0;
+    padding:10px 0;margin-bottom:0;
+    display:flex;align-items:center;gap:10px
+  }
+  .pu-avatar{display:flex;width:36px;height:36px;border-radius:50%;background:var(--amber);color:#000;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .pending-user-body{flex:1;min-width:0}
+  .pending-user-head{margin-bottom:2px}
+  .pending-user-meta{margin-top:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pending-user-actions{flex:0 0 auto;flex-wrap:nowrap;gap:5px}
+  .pending-user-actions > *{flex:0 0 auto;min-width:auto;padding:5px 10px;font-size:11px;border-radius:5px}
+  .pending-user-ago{font-size:10px}
+}
    independent z-index (550/551). Mobile-only — desktop keeps inline 3-button rows. */
 .team-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(13,31,51,.5);z-index:550;backdrop-filter:blur(3px)}
 .team-sheet-overlay.on{display:block;animation:fadeIn .2s ease both}
@@ -1031,10 +1124,15 @@ tr:hover td{background:var(--g50)}
 .login-left::after{content:'';position:absolute;bottom:-60px;left:-60px;width:200px;height:200px;border-radius:50%;background:rgba(91,200,176,.05)}
 .login-brand{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.5px}
 .login-brand span{color:#5BC8B0}
+/* v59 [Louis M7c] - sub-brand label + checkmark bullets per Option α refresh. login-tag/login-dot
+   rules kept for backward compatibility but no longer used in HTML. */
+.login-sub-brand{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.14em;text-transform:uppercase;margin-bottom:36px;font-weight:700}
+.login-feat-list{display:flex;flex-direction:column;gap:14px}
+.login-check{color:#5BC8B0;font-size:13px;font-weight:800;flex-shrink:0;width:14px;line-height:1}
 .login-tag{font-size:12.5px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:32px}
-.login-feat{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.login-feat{display:flex;align-items:flex-start;gap:10px;margin-bottom:0}
 .login-dot{width:5px;height:5px;border-radius:50%;background:#5BC8B0;flex-shrink:0}
-.login-ft{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
+.login-ft{font-size:12px;color:rgba(255,255,255,.6);line-height:1.55}
 .login-hosts{display:flex;align-items:center;gap:-8px;margin-bottom:24px}
 .login-host-av{width:40px;height:40px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--navy);flex-shrink:0}
 .login-host-av:not(:first-child){margin-left:-10px}
@@ -1090,7 +1188,15 @@ tr:hover td{background:var(--g50)}
   .ntab{padding:14px 9px;font-size:11.5px}
   .desktop-cal{display:none}
   .mobile-cal-wrapper{display:block}
-  .stats-grid{grid-template-columns:1fr 1fr}
+  /* v59 [Louis M7b Item 1] - keep 2x2 on mobile and shrink stat cards so they fit comfortably.
+     Was: 1x4 stack on <400px = ~480px tall just for stats. Now: 2x2 grid, compact cards = ~140px.
+     Numbers stay readable (20px), labels still scan ("DOWNLINES" fits). */
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat-card{padding:10px 12px}
+  .stat-lbl{font-size:9px;letter-spacing:.05em;margin-bottom:3px}
+  .stat-bar{width:3px;height:20px;margin-right:8px}
+  .stat-val{font-size:20px;letter-spacing:-.3px}
+  .stat-sub{font-size:9px;margin-top:2px}
   .slot-type-row{grid-template-columns:1fr 1fr}
   .stype-row{flex-direction:column}
   .bk-grid{grid-template-columns:1fr}
@@ -1162,7 +1268,9 @@ tr:hover td{background:var(--g50)}
   .slot-entry.training .se-name{color:var(--indigo)}
 }
 @media(min-width:641px){.mobile-cal-wrapper{display:none}}
-@media(max-width:400px){.stats-grid{grid-template-columns:1fr}}
+@media(max-width:400px){
+  /* v59 [Louis M7b Item 1] - removed forced 1-column for stats-grid (was making cards stack and use ~480px height). Compact 2x2 now works at any width. */
+}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--g200);border-radius:2px}
@@ -1274,7 +1382,7 @@ tr:hover td{background:var(--g50)}
 .qopen-type.on-private{border-color:var(--meet);background:var(--meetLt);color:var(--meet)}
 .qopen-summary{background:var(--tealLt);border:1.5px solid var(--tealB);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--teal);font-weight:600;min-height:36px;line-height:1.5}
 .qopen-foot{padding:0 20px 18px;display:flex;gap:8px}
-.qopen-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid var(--tealB);background:var(--tealLt);color:var(--teal);transition:all .13s;white-space:nowrap}
+.qopen-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid var(--tealB);background:var(--tealLt);color:var(--teal);transition:all .13s;white-space:nowrap}
 .qopen-btn:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
 
 .auth-overlay{position:fixed;inset:0;background:rgba(13,31,51,.72);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -1319,6 +1427,8 @@ tr:hover td{background:var(--g50)}
       <span style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-.2px">BD4U Book</span>
       <span style="font-size:8.5px;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;margin-top:1px">Smart Scheduling</span>
     </div>
+    <!-- v59 [Louis M7a Q1c] - elevated view badge. Shows 'ADMIN' for admin view, 'MNGR' for manager view, hidden in downline view. Populated by updateRoleUI. -->
+    <span class="role-badge" id="role-badge" style="display:none">ADMIN</span>
   </div>
   <div class="nav-tabs" id="nav-tabs" style="display:flex;align-items:stretch;margin-left:8px">
     <div class="ntab" data-screen="sc-cal" onclick="goScreen('sc-cal')">Calendar</div>
@@ -1416,12 +1526,18 @@ tr:hover td{background:var(--g50)}
 <div id="sc-login" class="screen on">
   <div class="login-wrap">
     <div class="login-left">
+      <!-- v59 [Louis M7c] - refresh per Q1 Option α + screenshot-sharing bullet. Brand + subtitle on
+           top, then 5 checkmark bullets. Replaced the rounded dots with teal ✓ glyphs for cleaner
+           hierarchy. Tagline removed (was redundant with the bullets). -->
       <div class="login-brand">BD4U <span>Book</span></div>
-      <div class="login-tag">Smart booking for your whole team — every timezone, one calendar.</div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Calendar shows times in your timezone by default</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Switch timezone anytime — all times update instantly</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">See who else is booked before you pick your time</div></div>
-      <div class="login-feat"><div class="login-dot"></div><div class="login-ft">Book a 15-min Zoom or 20-min private meeting with Renee or Gus after booking</div></div>
+      <div class="login-sub-brand">Smart Scheduling</div>
+      <div class="login-feat-list">
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">All times in your local timezone</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">See who's booked before you pick a slot</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">15-min Zoom call between you, prospect &amp; Gus or Renee</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Share Zoom screenshots with admin in one tap</div></div>
+        <div class="login-feat"><div class="login-check">✓</div><div class="login-ft">Mobile-first — works on any device</div></div>
+      </div>
     </div>
     <div class="login-right">
       <div class="login-box">
@@ -1435,6 +1551,11 @@ tr:hover td{background:var(--g50)}
           <div class="login-err" id="login-user-err"></div>
           <div class="fg"><label class="fl" for="user-username">Username</label><input class="fc" type="text" id="user-username" placeholder="e.g. ali" autocomplete="username"></div>
           <div class="fg"><label class="fl" for="user-pass">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
+          <!-- v59 [Louis M8a Item 2] - "Register here" link above Remember me, per Louis spec.
+               Tap → switches to the register form below. Replaces the old "Request an account" alert. -->
+          <div style="margin-bottom:10px;font-size:12px;color:var(--g600);">
+            New user? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showRegisterForm()">Register here</a>
+          </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g600);cursor:pointer">
               <input type="checkbox" id="user-remember" checked style="accent-color:var(--teal);width:14px;height:14px"> Remember me
@@ -1442,8 +1563,6 @@ tr:hover td{background:var(--g50)}
             <a style="font-size:11.5px;color:var(--teal);cursor:pointer;font-weight:600" onclick="forgotPasswordByUsername()">Forgot password?</a>
           </div>
           <button type="button" class="btn btn-primary btn-full" id="user-login-btn" onclick="loginAs('user')">Sign in →</button>
-          <div class="divider"><div class="divl"></div><div class="divt">or</div><div class="divl"></div></div>
-          <button type="button" class="btn btn-outline btn-full" onclick="alert('Contact Renee or Gus to get your account created.')">Request an account</button>
         </div>
         <div id="login-admin" class="role-form">
           <div class="login-err" id="login-admin-err"></div>
@@ -1464,6 +1583,43 @@ tr:hover td{background:var(--g50)}
           <div class="fg"><label class="fl" for="dev-email">Developer email</label><input class="fc" type="email" id="dev-email" placeholder="your@gmail.com" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="dev-pass">Password</label><input class="fc" type="password" id="dev-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('developer')"></div>
           <button type="button" class="btn btn-navy btn-full" id="dev-login-btn" onclick="loginAs('developer')">Developer Sign in →</button>
+        </div>
+        <!-- v59 [Louis M8a] - Register form. Hidden by default. Toggled into view by showRegisterForm()
+             from the User login form. Plan B per Louis Q2a — user sets own password during registration.
+             Username auto-generated from nickname per Q2b. Submit triggers supabase.auth.signUp +
+             INSERT pending_users. After admin accepts (M8b/c), user appears in Team Management. -->
+        <div id="login-register" class="role-form" style="display:none">
+          <div style="background:var(--tealLt);color:var(--teal);border-radius:var(--r);padding:10px 12px;font-size:11px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px">📝 Register for BD4U Book</div>
+          <div class="login-err" id="login-register-err"></div>
+          <div class="fg"><label class="fl" for="reg-fullname">Full name <span style="color:#d33">*</span></label><input class="fc" type="text" id="reg-fullname" placeholder="e.g. Ali Bin Ahmad" autocomplete="name"></div>
+          <div class="fg"><label class="fl" for="reg-nickname">Nickname <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(becomes your username)</span></label><input class="fc" type="text" id="reg-nickname" placeholder="e.g. ali" autocomplete="off"></div>
+          <div class="fg"><label class="fl" for="reg-phone">Phone <span style="color:#d33">*</span></label><input class="fc" type="tel" id="reg-phone" placeholder="e.g. +60 12 345 6789" autocomplete="tel"></div>
+          <div class="fg"><label class="fl" for="reg-email">Email <span style="color:#d33">*</span></label><input class="fc" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
+          <div class="fg"><label class="fl" for="reg-pass">Password <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(min 8 characters)</span></label><input class="fc" type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password"></div>
+          <div class="fg"><label class="fl" for="reg-pass2">Confirm password <span style="color:#d33">*</span></label><input class="fc" type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitRegister()"></div>
+          <!-- v59 [Louis M8-rebuild Q1] - confirmation checkbox. Submit button stays disabled until checked.
+               Ensures user double-checks all fields before submission — admin can't fix typos later. -->
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--g600);cursor:pointer;margin-bottom:14px;line-height:1.5">
+            <input type="checkbox" id="reg-confirm-chk" oninput="updateRegSubmitState()" style="accent-color:var(--teal);width:16px;height:16px;margin-top:2px;flex-shrink:0">
+            <span>I confirm all the information I've filled in is correct.</span>
+          </label>
+          <button type="button" class="btn btn-primary btn-full" id="reg-submit-btn" onclick="submitRegister()" disabled style="opacity:.5;cursor:not-allowed">Register →</button>
+          <div style="margin-top:14px;font-size:12px;color:var(--g600);text-align:center">
+            Already have an account? <a style="color:var(--teal);cursor:pointer;font-weight:700;text-decoration:none" onclick="showLoginForm()">Sign in</a>
+          </div>
+        </div>
+        <!-- v59 [Louis M8-rebuild] - Post-register success message. New flow doesn't send an email
+             at registration — admin reviews directly. Amber note nudges user to ping their upline. -->
+        <div id="login-register-success" class="role-form" style="display:none">
+          <div style="text-align:center;padding:18px 0">
+            <div style="font-size:48px;margin-bottom:14px">📝</div>
+            <div style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px">Registration submitted</div>
+            <div style="font-size:13px;color:var(--g600);line-height:1.6;margin-bottom:18px">Your registration has been sent to admin for review.</div>
+            <div style="background:#fff8e1;border-left:3px solid #f4d35e;border-radius:4px;padding:11px 13px;margin-bottom:18px;text-align:left">
+              <div style="font-size:12px;color:#665a00;line-height:1.55"><strong>📲 Important:</strong> Please contact your upline on WhatsApp to inform them of your registration so they can approve you faster.</div>
+            </div>
+            <button type="button" class="btn btn-outline btn-full" onclick="showLoginForm()">← Back to sign in</button>
+          </div>
         </div>
       </div>
   </div>
@@ -1929,6 +2085,20 @@ tr:hover td{background:var(--g50)}
           </div>
         </div>
 
+        <!-- v59 [Louis M8-rebuild] - Pending Users card. Shows verified registrations awaiting
+             admin review. Placed above Team Management per Louis spec. Auto-hidden when empty.
+             Approve creates the auth user + users row via the existing add-downline pattern.
+             Reject deletes the pending row. WhatsApp button opens wa.me/{phone} for verification. -->
+        <div class="card" id="settings-pending-card" style="display:none;margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>📋 Pending for approval <span id="pending-count-badge" style="background:#FFE082;color:#5C4609;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;margin-left:6px">0</span></span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="renderPendingUsers()" title="Refresh list">↻</button>
+            </div>
+            <div id="settings-pending-list"></div>
+          </div>
+        </div>
+
         <!-- Team Management — admin only -->
         <div class="card" id="settings-team-card" style="display:none;margin-bottom:16px">
           <div class="card-b">
@@ -2133,16 +2303,11 @@ tr:hover td{background:var(--g50)}
         <button type="button" class="btn btn-primary btn-sm" onclick="goScreen('sc-cal')">Open Calendar →</button>
       </div>
 
-      <div class="explainer" id="dash-explainer" style="position:relative">
-        <button type="button" id="dash-explainer-dismiss" onclick="dismissDashExplainer()" title="Hide this guide (per browser)" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#fff;opacity:.55;cursor:pointer;font-size:14px;padding:4px 8px;line-height:1;border-radius:4px;font-weight:700;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✕</button>
-        <div class="exp-t">💡 How the unified calendar works</div>
-        <div class="exp-steps">
-          <div class="exp-step"><div class="exp-num">1</div><div class="exp-txt"><strong>Open blocks</strong>Click + on the calendar to open an hour block for booking.</div></div>
-          <div class="exp-step"><div class="exp-num">2</div><div class="exp-txt"><strong>Users book</strong>Each user sees the block in their own timezone and types their preferred minute.</div></div>
-          <div class="exp-step"><div class="exp-num">3</div><div class="exp-txt"><strong>Review here</strong>New bookings arrive below. MYT is the master reference time.</div></div>
-          <div class="exp-step"><div class="exp-num">4</div><div class="exp-txt"><strong>Assign upline</strong>Click Renee or Gus on any TBA booking to assign the presenter.</div></div>
-        </div>
-      </div>
+      <!-- v59 [Louis M7b Item 2] - Removed #dash-explainer ("How the unified calendar works" card
+           plus the "Click Renee or Gus..." step). Both admin and manager view it; permanent removal.
+           The dismissable-by-localStorage logic (isDashExplainerDismissed/applyDashExplainerState/
+           dismissDashExplainer/resetDashExplainer) still exists in JS as no-op when #dash-explainer
+           is absent — left intact to avoid breaking any external callers. -->
 
       <div class="stats-grid" id="stats-grid"></div>
 
@@ -2271,6 +2436,25 @@ tr:hover td{background:var(--g50)}
       <button type="button" class="att-modal-close" onclick="closeAttachmentModal()" aria-label="Close">✕</button>
     </div>
     <div class="att-modal-body">
+      <!-- v59 [Louis M6c] - collapsible edit-details section. Default collapsed (Q1=β). Tap toggle row
+           to reveal name + phone inputs + Save button. Past + future mine both editable (Q2). Title
+           stays "Add screenshot" (Q3). No field validation (Q4). Explicit Save trigger (Q5). -->
+      <div id="att-edit-section" style="margin-bottom:12px">
+        <button type="button" id="att-edit-toggle" class="att-edit-toggle" onclick="attachmentToggleEdit()">
+          <span>✏️ Edit booking details</span>
+          <span class="att-edit-chev" id="att-edit-chev">›</span>
+        </button>
+        <div id="att-edit-form" class="att-edit-form" style="display:none">
+          <label class="att-edit-label" for="att-edit-name">Prospect name</label>
+          <input type="text" id="att-edit-name" class="att-edit-input" placeholder="Enter prospect name" oninput="attachmentEditDirty()">
+          <label class="att-edit-label" for="att-edit-phone">Phone <span style="color:#999;font-weight:400">(optional)</span></label>
+          <input type="tel" id="att-edit-phone" class="att-edit-input" placeholder="Enter phone number" oninput="attachmentEditDirty()">
+          <div class="att-edit-actions">
+            <button type="button" class="att-edit-cancel" onclick="attachmentEditCancel()">Cancel</button>
+            <button type="button" id="att-edit-save" class="att-edit-save" disabled onclick="attachmentSaveEdit()">Save changes</button>
+          </div>
+        </div>
+      </div>
       <!-- State A — Preview (when attachment exists). Shown OR State B, never both. -->
       <div id="att-state-a" style="display:none">
         <div class="att-state-a">
@@ -2735,6 +2919,163 @@ function switchLoginRole(role,el){
   if(fm){ fm.classList.add('on'); fm.style.display=''; }
 }
 
+// v59 [Louis M8a] - Show the register form (hides login + role tabs to avoid confusion).
+function showRegisterForm(){
+  // Hide all role forms + tabs
+  document.querySelectorAll('.role-form').forEach(f=>{
+    f.classList.remove('on');
+    f.style.display = 'none';
+  });
+  const tabs = document.querySelector('.role-tabs');
+  if(tabs) tabs.style.display = 'none';
+  // Show register form
+  const fm = $id('login-register');
+  if(fm){ fm.style.display = 'block'; fm.classList.add('on'); }
+  // Reset form fields + error
+  ['reg-fullname','reg-nickname','reg-phone','reg-email','reg-pass','reg-pass2'].forEach(id=>{
+    const el = $id(id); if(el) el.value = '';
+  });
+  const chk = $id('reg-confirm-chk'); if(chk) chk.checked = false;
+  updateRegSubmitState(); // re-disable Register button
+  setRegisterError('');
+  // Hide login screen header text (the "Welcome back" / "Sign in to your BD4U account" lines
+  // don't apply when registering); switch to a more relevant header is overkill — just leave them.
+}
+
+// v59 [Louis M8a] - Return to the user login form from any register-related sub-state.
+function showLoginForm(){
+  document.querySelectorAll('.role-form').forEach(f=>{
+    f.classList.remove('on');
+    f.style.display = '';
+  });
+  const tabs = document.querySelector('.role-tabs');
+  if(tabs) tabs.style.display = '';
+  // Reset tab selection to User + show user form
+  document.querySelectorAll('.role-tab').forEach((t,i)=>{
+    if(i===0) t.classList.add('on'); else t.classList.remove('on');
+  });
+  const fm = $id('login-user');
+  if(fm){ fm.classList.add('on'); fm.style.display = ''; }
+  setLoginError('user','');
+}
+
+function setRegisterError(msg){
+  const el = $id('login-register-err');
+  if(!el) return;
+  if(msg){ el.textContent = msg; el.classList.add('on'); }
+  else { el.textContent = ''; el.classList.remove('on'); }
+}
+
+// v59 [Louis M8-rebuild Q1] - Submit button is disabled until "I confirm" checkbox is ticked.
+// Called from the checkbox oninput. Also called from showRegisterForm to reset state on every open.
+function updateRegSubmitState(){
+  const chk = $id('reg-confirm-chk');
+  const btn = $id('reg-submit-btn');
+  if(!chk || !btn) return;
+  const ok = chk.checked;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+  btn.style.cursor  = ok ? 'pointer' : 'not-allowed';
+}
+
+// v59 [Louis M8-rebuild] - Submit register form. NEW FLOW (no email confirmation):
+// 1) Validate locally
+// 2) Check nickname/email uniqueness against users + pending_users
+// 3) INSERT into pending_users with all fields + plaintext password
+// 4) Show success screen
+// No supabase.auth.signUp here — admin's approve action will do that. This avoids the entire
+// email-deliverability dependency and aligns the flow with Louis's new spec.
+async function submitRegister(){
+  setRegisterError('');
+  const fullName = ($id('reg-fullname')?.value || '').trim();
+  const nickname = ($id('reg-nickname')?.value || '').trim().toLowerCase();
+  const phone    = ($id('reg-phone')?.value    || '').trim();
+  const email    = ($id('reg-email')?.value    || '').trim().toLowerCase();
+  const pass     = ($id('reg-pass')?.value     || '');
+  const pass2    = ($id('reg-pass2')?.value    || '');
+  const chk      = $id('reg-confirm-chk');
+  if(!chk || !chk.checked) return setRegisterError('Please tick the confirmation box to submit.');
+  // ── Validation ──
+  if(!fullName || fullName.length < 2) return setRegisterError('Please enter your full name.');
+  if(!nickname || nickname.length < 2) return setRegisterError('Please enter a nickname (used as your username).');
+  if(!/^[a-z0-9_-]+$/.test(nickname))  return setRegisterError('Nickname can only contain lowercase letters, numbers, hyphens, and underscores.');
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setRegisterError('Please enter a valid email address.');
+  // v59 [Louis M8-rebuild-hotfix] - phone now required per Louis spec
+  if(!phone || phone.replace(/[^0-9]/g,'').length < 5) return setRegisterError('Please enter a valid phone number.');
+  if(!pass || pass.length < 8)         return setRegisterError('Password must be at least 8 characters.');
+  if(pass !== pass2)                   return setRegisterError("Passwords don't match.");
+
+  const btn = $id('reg-submit-btn');
+  if(btn){ btn.classList.add('btn-loading'); btn.textContent = 'Submitting…'; btn.disabled = true; }
+
+  try {
+    // ── Uniqueness: existing users (by username or email) ──
+    const { data: existingUser } = await sb.from('users')
+      .select('id')
+      .or(`name.eq.${nickname},email.eq.${email}`)
+      .limit(1)
+      .maybeSingle();
+    if(existingUser){
+      _resetRegBtn();
+      return setRegisterError('That nickname or email is already in use. Try another or sign in.');
+    }
+    // ── Uniqueness: pending registrations by email (nickname uniqueness in pending is OK to skip
+    // since admin sees collisions at review time and can resolve manually) ──
+    const { data: existingPending } = await sb.from('pending_users')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+      .maybeSingle();
+    if(existingPending){
+      _resetRegBtn();
+      return setRegisterError('A registration with this email is already pending review.');
+    }
+    // ── INSERT pending_users (no signUp call) ──
+    const { error: insErr } = await sb.from('pending_users').insert({
+      email: email,
+      full_name: fullName,
+      nickname: nickname,
+      phone: phone || null,
+      password: pass,             // plaintext per Q4 — admin's approve action uses this for signUp
+      status: 'pending'
+    });
+    if(insErr){
+      _resetRegBtn();
+      console.error('pending_users insert failed:', insErr);
+      return setRegisterError('Registration failed: ' + (insErr.message || 'database error'));
+    }
+    // ── Show success screen ──
+    _resetRegBtn();
+    document.querySelectorAll('.role-form').forEach(f=>{
+      f.classList.remove('on');
+      f.style.display = 'none';
+    });
+    const success = $id('login-register-success');
+    if(success){
+      success.style.display = 'block';
+      success.classList.add('on');
+    }
+  } catch(e){
+    _resetRegBtn();
+    console.error('submitRegister exception:', e);
+    setRegisterError('Registration failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+function _resetRegBtn(){
+  const btn = $id('reg-submit-btn');
+  if(btn){
+    btn.classList.remove('btn-loading');
+    btn.textContent = 'Register →';
+    // Re-respect the checkbox state
+    updateRegSubmitState();
+  }
+}
+
+// v59 [Louis M8-rebuild] - Email-confirmation landing handler removed (no email confirm step).
+// Stub kept in case any caller still references it during transition; returns false silently.
+async function handleRegistrationConfirmation(){ return false; }
+
 // ═══════════════════════════════════════════════
 //  AUTH HELPERS
 // ═══════════════════════════════════════════════
@@ -2898,7 +3239,18 @@ async function logout(){
 }
 
 function toggleAdminMode(){
-  isAdmin = !isAdmin;
+  if(!CURRENT_USER) return;
+  // v59 [Louis M7a Q2a] - extended to managers. Admin/Developer profiles toggle isAdmin;
+  // manager profiles toggle isManager. Downlines have no elevated mode so toggle is a no-op
+  // (UI also hides the button for them).
+  const r = CURRENT_USER.role;
+  if(r === 'admin' || r === 'developer'){
+    isAdmin = !isAdmin;
+  } else if(r === 'manager'){
+    isManager = !isManager;
+  } else {
+    return; // downline — no toggle
+  }
   updateRoleUI();
   renderCalendar();
 }
@@ -2918,8 +3270,9 @@ function updateRoleUI(){
   if(typeof syncBottomNav === 'function') syncBottomNav(window._lastScreenId || '');
 
   // Nav tabs
+  // v59 [Louis M7a] - Dashboard tab now visible for managers too (in manager view).
   const tabAdmin=$id('tab-admin'), tabDev=$id('tab-dev');
-  if(tabAdmin) tabAdmin.className='ntab'+((isAdmin&&loggedIn)?' ':' hidden');
+  if(tabAdmin) tabAdmin.className='ntab'+(((isAdmin||isManager)&&loggedIn)?' ':' hidden');
   if(tabDev)   tabDev.className='ntab'+((isDev&&loggedIn)?' ':' hidden');
 
   // Nav tabs visibility — hide on mobile (replaced by ··· menu)
@@ -2951,11 +3304,44 @@ function updateRoleUI(){
   setText('pd-role', roleLabel);
 
   // Admin toggle — only for actual admin (not developer)
+  // v59 [Louis M7a Q2a/Q2b] - extended to managers. Admin profile gets Admin/Downline view labels;
+  // manager profile gets Manager/Downline view labels. Downline profiles still hide the button.
   const btn=$id('role-toggle-btn');
   if(btn){
-    btn.style.display=(loggedIn&&CURRENT_USER?.role==='admin')?'inline-flex':'none';
-    btn.textContent=isAdmin?'→ Downline view':'→ Admin view';
-    btn.className=isAdmin?'role-toggle admin-on':'role-toggle';
+    const role = CURRENT_USER?.role;
+    const canToggle = loggedIn && (role==='admin' || role==='manager');
+    btn.style.display = canToggle ? 'inline-flex' : 'none';
+    const elevated = isAdmin || isManager;
+    const targetView = role === 'manager' ? 'Manager' : 'Admin';
+    btn.textContent = elevated ? '→ Downline view' : `→ ${targetView} view`;
+    btn.className = elevated ? 'role-toggle admin-on' : 'role-toggle';
+  }
+
+  // v59 [Louis M7a Q1a/Q1c] - golden nav class + role badge for elevated views.
+  // .is-admin / .is-manager on #main-nav drives the gold gradient background.
+  // #role-badge shows ADMIN or MNGR inline next to the logo. Both hidden in downline view.
+  const navEl = $id('main-nav');
+  if(navEl){
+    navEl.classList.toggle('is-admin',   isAdmin);
+    navEl.classList.toggle('is-manager', isManager && !isAdmin); // mutually exclusive class hygiene
+  }
+  const roleBadge = $id('role-badge');
+  if(roleBadge){
+    if(isAdmin){
+      roleBadge.textContent = 'ADMIN';
+      roleBadge.classList.add('is-admin');
+      roleBadge.classList.remove('is-mngr');
+      roleBadge.style.display = 'inline-flex';
+    } else if(isManager){
+      roleBadge.textContent = 'MNGR';
+      roleBadge.classList.add('is-mngr');
+      roleBadge.classList.remove('is-admin');
+      roleBadge.style.display = 'inline-flex';
+    } else {
+      roleBadge.classList.remove('is-admin');
+      roleBadge.classList.remove('is-mngr');
+      roleBadge.style.display = 'none';
+    }
   }
 
   // TZ pill
@@ -4037,6 +4423,97 @@ const ATT_MAX_BYTES = 2.5 * 1024 * 1024;            // 2.5 MB
 const ATT_ALLOWED_TYPES = ['image/jpeg','image/png','image/webp'];
 let _attBookingId = null;
 let _attUploading = false;
+// v59 [Louis M6c] - edit section state. _attEditOriginal stores the unmodified values when
+// the modal opens so attachmentEditDirty can compute dirty status against a stable baseline.
+let _attEditOpen = false;
+let _attEditOriginal = { prospect: '', phone: '' };
+function attachmentToggleEdit(){
+  _attEditOpen = !_attEditOpen;
+  const toggle = $id('att-edit-toggle');
+  const form   = $id('att-edit-form');
+  if(!toggle || !form) return;
+  if(_attEditOpen){
+    toggle.classList.add('is-open');
+    form.style.display = 'block';
+    // Auto-focus the name field when expanding for fast edit flow
+    setTimeout(()=>{ const n = $id('att-edit-name'); if(n) n.focus(); }, 50);
+  } else {
+    toggle.classList.remove('is-open');
+    form.style.display = 'none';
+  }
+}
+function attachmentEditDirty(){
+  const nameEl  = $id('att-edit-name');
+  const phoneEl = $id('att-edit-phone');
+  const saveBtn = $id('att-edit-save');
+  if(!nameEl || !phoneEl || !saveBtn) return;
+  const dirty = (nameEl.value !== _attEditOriginal.prospect) || (phoneEl.value !== _attEditOriginal.phone);
+  saveBtn.disabled = !dirty;
+}
+function attachmentEditCancel(){
+  // Revert inputs to original values and collapse the section.
+  const nameEl  = $id('att-edit-name');
+  const phoneEl = $id('att-edit-phone');
+  if(nameEl)  nameEl.value  = _attEditOriginal.prospect;
+  if(phoneEl) phoneEl.value = _attEditOriginal.phone;
+  attachmentEditDirty(); // disables Save
+  _attEditOpen = true;   // toggle will flip to false below
+  attachmentToggleEdit();
+}
+async function attachmentSaveEdit(){
+  if(!_attBookingId) return;
+  const name  = ($id('att-edit-name')?.value  || '').trim();
+  const phone = ($id('att-edit-phone')?.value || '').trim();
+  showAuthSpinner('Saving…');
+  try {
+    const { data, error } = await sb.from('schedule')
+      .update({ prospect: name, prospect_phone: phone })
+      .eq('id', _attBookingId)
+      .select();
+    if(error){
+      hideAuthSpinner();
+      console.error('attachmentSaveEdit error:', error);
+      if(typeof showToast === 'function') showToast(`Save failed: ${error.message || 'unknown'}`, 'err');
+      return;
+    }
+    if(!data || data.length === 0){
+      hideAuthSpinner();
+      if(typeof showToast === 'function') showToast('Save failed — permission denied', 'err');
+      return;
+    }
+    // Update local SCHEDULE row so the panel + calendar reflect the new name immediately.
+    const slot = SCHEDULE.find(s => s._id === _attBookingId);
+    if(slot){
+      slot.prospect = name;
+      slot.prospect_phone = phone;
+    }
+    _attEditOriginal = { prospect: name, phone: phone };
+    attachmentEditDirty(); // re-disables Save now that values match original
+    // Refresh the modal sub-line so the new prospect name shows immediately. Same format
+    // as openMineUploadFromPanel ("name · day, date · time TZ"). Falls back gracefully.
+    if(slot){
+      try {
+        const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+        const sT = minToUser(slot.startMyt, tz.o);
+        const day = WEEK_DAYS[slot.dayIdx];
+        const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+        const newSummary = `${name || 'My booking'} · ${dayLabel} · ${sT} ${tz.l||''}`.trim();
+        setText('att-modal-sub', newSummary);
+      } catch(e){ /* sub-line refresh is best-effort */ }
+    }
+    hideAuthSpinner();
+    if(typeof showToast === 'function') showToast('Changes saved ✓');
+    // Collapse the section after a successful save.
+    if(_attEditOpen) attachmentToggleEdit();
+    // Refresh the panel + calendar so the new name appears on the slot row.
+    if(panelOpen && panelDay !== null){ try { renderPanel(panelDay); } catch(e){} }
+    try { renderCalendar(); } catch(e){}
+  } catch(e){
+    hideAuthSpinner();
+    console.error('attachmentSaveEdit exception:', e);
+    if(typeof showToast === 'function') showToast('Save failed — please try again', 'err');
+  }
+}
 
 function openAttachmentModal(bookingId, summaryText){
   _attBookingId = bookingId;
@@ -4048,6 +4525,18 @@ function openAttachmentModal(bookingId, summaryText){
   const progEl = $id('att-progress'); if(progEl) progEl.style.display = 'none';
   const fileEl = $id('att-file-input'); if(fileEl) fileEl.value = '';
   setText('att-modal-sub', summaryText || '');
+  // v59 [Louis M6c] - reset edit section to collapsed and populate inputs with current slot values.
+  // _attEditOriginal tracks the unmodified values so dirty detection works correctly.
+  _attEditOpen = false;
+  const slot = SCHEDULE.find(s => s._id === bookingId);
+  const origName  = slot?.prospect       || '';
+  const origPhone = slot?.prospect_phone || '';
+  _attEditOriginal = { prospect: origName, phone: origPhone };
+  const nameEl  = $id('att-edit-name');  if(nameEl)  nameEl.value  = origName;
+  const phoneEl = $id('att-edit-phone'); if(phoneEl) phoneEl.value = origPhone;
+  const editToggle = $id('att-edit-toggle'); if(editToggle) editToggle.classList.remove('is-open');
+  const editForm   = $id('att-edit-form');   if(editForm)   editForm.style.display = 'none';
+  const saveBtn    = $id('att-edit-save');   if(saveBtn)    saveBtn.disabled = true;
   // v59 M1 (item 7): Drop zone copy is desktop-centric ("Drag screenshot here / or click to browse"). On mobile,
   // drag-and-drop and Ctrl+V both don't exist — swap to "Tap to select photo" and hide the paste hint.
   // Read viewport every time the modal opens, so rotation / different devices behave correctly.
@@ -5479,7 +5968,10 @@ function renderPanel(dayNum){
     }
   }
 
-  const items=weekSlots().filter(s=>s.dayIdx===di).sort((a,b)=>a.startMyt-b.startMyt);
+  // v59 M6a-hotfix: exclude cancelled slots from mobile panel. The desktop calendar keeps them
+  // visible with .sc-cancelled (greyed audit-trail chip); mobile panel hides them entirely so
+  // tapping ✕ on a booked slot does what the user expects — the row disappears.
+  const items=weekSlots().filter(s=>s.dayIdx===di && !s.cancelled).sort((a,b)=>a.startMyt-b.startMyt);
   const body=$id('panel-body'); if(!body) return;
 
   let html='';
@@ -5551,6 +6043,30 @@ function renderPanel(dayNum){
       const sT=minToUser(slot.startMyt,tz.o), eT=minToUser(slot.endMyt,tz.o);
       const label=makePanelLabel(slot);
       const idx=SCHEDULE.indexOf(slot);
+      // v59 [Louis M5b] - mark past-day slot rows so CSS can apply the grey treatment (Option B —
+      // grey row + main text, type pill keeps its colour). day.today flag is already set in
+      // buildWeekDays; "past" = not today and earlier than today (uses fullDate).
+      // v59 [Louis M6a Item 3] - extended to also cover today's already-elapsed hours per Q5.
+      // Day-level isPastDay was binary (whole day grey or whole day fresh); now we compute slot-level
+      // isPastSlot so a 10am Mine row on today goes grey at 11am but the 4pm Mine row stays coloured.
+      //   • Past day (yesterday+) → all slots past
+      //   • Today                → slot past when its endMyt is earlier than current MYT minute
+      //   • Future day            → no slots past (early return)
+      // Option α scope — day chip (preview dots, "X open" count) intentionally unchanged.
+      const _todayMid = (function(){const t=new Date();t.setHours(0,0,0,0);return t.getTime();})();
+      const isPastDay  = day && day.fullDate && day.fullDate.getTime() < _todayMid;
+      const isTodayDay = day && day.today;
+      // Compute "now in MYT minutes since midnight" — endMyt is also in MYT minutes so the
+      // comparison is timezone-safe regardless of activeTZ display. Done per-slot but cheap;
+      // could be hoisted outside .map if perf becomes a concern (currently negligible).
+      let nowMytMin = 0;
+      if(isTodayDay){
+        const nowD = new Date();
+        // Convert local "now" → MYT (UTC+8) by using getUTC + 8h offset
+        const utcMins = nowD.getUTCHours()*60 + nowD.getUTCMinutes();
+        nowMytMin = (utcMins + 8*60) % 1440;
+      }
+      const isPastSlot = isPastDay || (isTodayDay && slot.endMyt <= nowMytMin);
       // v59 CAL-15: 7-state class assignment matching desktop chip palette (Chip Contract tab).
       // Old logic mapped type='private' to .meet (orange) and type='meet' booked/mine fell through to .zoom (blue).
       // New: Training=purple, Meet family=orange, Zoom family=blue/green per Phase 5 Review.
@@ -5583,6 +6099,12 @@ function renderPanel(dayNum){
         // selSlotTime are legacy v57 variables — kept for any code path that may still read them.
         const slotTypeKey = slot.type === 'zoom15' ? 'zoom15' : 'private';
         clickAttr=`onclick="selSlotDbId='${slot._id}';selSlotType='${slotTypeKey}';selBlock='${slotBlockKey}';selSlotTime='${slotTimeStr}';closePanel();goScreen('sc-book')"`;
+      } else if(!isAdmin && isMine && slot._id){
+        // v59 [Louis M6b] - downline tapping their own mine row (past OR future per Q1=β)
+        // opens the attachment modal in upload mode. Past mine has no ✕ (M6a Item 1); future
+        // mine has both ✕ cancel AND this tap-to-upload. Row gets cursor:pointer via .has-tap.
+        cls+=' has-tap';
+        clickAttr=`onclick="openMineUploadFromPanel(${idx})"`;
       }
       const pill=makePanelPill(slot);
       let badge='';
@@ -5608,11 +6130,19 @@ function renderPanel(dayNum){
              :isTraining?`<span class="bdg" style="background:var(--indigoLt);color:var(--indigo)">Training</span>`
              :presenterBadge(slot.presenter, slot._presenterName);
       }
-      // v59 CAL-14: admin gets a corner ✕ delete button on every row. Content-aware confirm via confirmDeleteSlot.
-      const xBtn = isAdmin
-        ? `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`
-        : '';
-      const finalCls = isAdmin ? (cls + ' has-x') : cls;
+      // v59 CAL-14 + M6a Item 1: ✕ corner button.
+      //  Admin → confirmDeleteSlot (content-aware: soft delete booked, hard delete others).
+      //  Downline on their own non-past booking → confirmCancelMineMobile (slot reverts to AV).
+      //  Mirrors the desktop showDL pattern (slot.status==='mine' && slot._id && !isPastWeek && !isCancelled).
+      //  v59 M6a Item 3 — use isPastSlot (per-slot, includes today's elapsed hours), not isPastDay.
+      const showDownlineX = !isAdmin && isMine && slot._id && !isPastSlot;
+      let xBtn = '';
+      if(isAdmin){
+        xBtn = `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmDeleteSlot(${idx})" aria-label="Delete this slot" title="Delete">✕</button>`;
+      } else if(showDownlineX){
+        xBtn = `<button type="button" class="slot-entry-x" onclick="event.stopPropagation();confirmCancelMineMobile(${idx})" aria-label="Cancel booking" title="Cancel booking">✕</button>`;
+      }
+      const finalCls = ((isAdmin || showDownlineX) ? (cls + ' has-x') : cls) + (isPastSlot ? ' is-past' : '');
       return `<div class="${finalCls}" ${clickAttr} role="${clickAttr?'button':'listitem'}">
         ${xBtn}
         <div class="se-time">
@@ -7748,7 +8278,7 @@ async function loadScheduleFromDB(){
         presenter:  row.presenter_id || null,
         label:      row.label     || '',
         reason:     row.reason    || '',
-        cancelled:  row.status === 'cancelled',
+        cancelled:  row.cancelled === true || row.status === 'cancelled',
         // v58 Phase 5b: load notes from DB
         notes:      row.notes     || '',
         // Friendly names from joins
@@ -7842,22 +8372,60 @@ async function adminInsertSlots(slots){
 }
 
 // Hard delete a slot from DB (for av/blocked/event slots)
+// v59 [Louis M5c] - Capture the most recent delete/update failure reason so confirmDeleteSlot can
+// surface it in the user-visible toast. Helps diagnose RLS policy blocks, schema mismatches,
+// network errors etc. without forcing the user into DevTools.
+let _lastDeleteError = null;
 async function adminHardDelete(dbId){
-  const { error } = await sb.from('schedule').delete().eq('id', dbId);
-  if(error){ console.error('adminHardDelete error:', error); return false; }
+  _lastDeleteError = null;
+  // v59 [Louis M5c] - added .select() so we get the deleted rows back; lets us detect
+  // RLS-silent failures (no error but no row affected).
+  const { data, error } = await sb.from('schedule').delete().eq('id', dbId).select();
+  if(error){
+    console.error('adminHardDelete error:', error);
+    _lastDeleteError = error.message || error.hint || JSON.stringify(error).slice(0,120);
+    return false;
+  }
+  if(!data || data.length === 0){
+    console.warn('adminHardDelete: 0 rows deleted — RLS policy may be blocking this delete.');
+    _lastDeleteError = 'No rows deleted (RLS policy blocked)';
+    return false;
+  }
   return true;
 }
 
 // Soft delete a booked slot (mark cancelled=true)
 async function adminSoftDelete(dbId){
-  const { data, error } = await sb.from('schedule')
+  _lastDeleteError = null;
+  let { data, error } = await sb.from('schedule')
     .update({ cancelled: true, status: 'cancelled' })
     .eq('id', dbId)
     .select();
-  if(error){ console.error('adminSoftDelete error:', error); return false; }
+  // v59 [Louis M6a Item 4] - schedule_status_check fallback. If the Supabase CHECK constraint
+  // on schedule.status doesn't include 'cancelled' (older schema), the UPDATE above is rejected
+  // with: "new row for relation 'schedule' violates check constraint 'schedule_status_check'".
+  // Retry the UPDATE setting only cancelled=true, keeping the original status. The cancelled
+  // boolean is the canonical "is this row cancelled" flag everywhere downstream — status alone
+  // is informational once cancelled=true. App behaves identically; constraint upgrade still
+  // recommended but no longer blocking.
+  if(error && /schedule_status_check/i.test(error.message || error.hint || '')){
+    console.warn('adminSoftDelete: schedule_status_check rejected status=cancelled — falling back to cancelled-only update. Run the M5c SQL in Supabase to add cancelled to the allowed status list.');
+    const retry = await sb.from('schedule')
+      .update({ cancelled: true })
+      .eq('id', dbId)
+      .select();
+    data  = retry.data;
+    error = retry.error;
+  }
+  if(error){
+    console.error('adminSoftDelete error:', error);
+    _lastDeleteError = error.message || error.hint || JSON.stringify(error).slice(0,120);
+    return false;
+  }
   // RLS-silent failure detection: if no rows came back, the policy blocked the update
   if(!data || data.length === 0){
     console.warn('adminSoftDelete: 0 rows updated — RLS policy may be blocking this update.');
+    _lastDeleteError = 'No rows updated (RLS policy blocked)';
     return false;
   }
   return true;
@@ -8394,9 +8962,13 @@ async function renderSettings(){
   // Admin-only sections
   const teamCard=$id('settings-team-card');
   const mgrsCard=$id('settings-managers-card');
+  // v59 [Louis M8-rebuild] - Pending Users card visibility + initial render
+  const pendingCard = $id('settings-pending-card');
+  if(pendingCard) pendingCard.style.display = isAdmin ? 'block' : 'none';
   if(teamCard) teamCard.style.display = isAdmin ? 'block' : 'none';
   if(mgrsCard) mgrsCard.style.display = isAdmin ? 'block' : 'none';
   if(isAdmin){
+    await renderPendingUsers();
     await settingsLoadTeam();
     await settingsLoadManagers();
   }
@@ -8509,6 +9081,193 @@ function closeTeamSheet(){
 // ═══════════════════════════════════════════════
 //  SETTINGS — TEAM MANAGEMENT & MANAGERS (original section follows)
 // ═══════════════════════════════════════════════
+// v59 [Louis M8-rebuild] - Pending Users card render. Fetches verified/pending registrations,
+// builds the row HTML, auto-hides the parent card when empty. Each row shows name, nickname,
+// email, phone, time-since-registered, and three buttons: WhatsApp, Approve, Reject.
+async function renderPendingUsers(){
+  const card = $id('settings-pending-card');
+  const list = $id('settings-pending-list');
+  const badge = $id('pending-count-badge');
+  if(!card || !list) return;
+  try {
+    const { data: rows, error } = await sb.from('pending_users')
+      .select('id, email, full_name, nickname, phone, created_at, status')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if(error){
+      console.error('renderPendingUsers fetch error:', error);
+      list.innerHTML = `<div class="pending-user-empty">Could not load — ${sanitize(error.message || 'unknown error')}</div>`;
+      card.style.display = 'block';
+      if(badge) badge.textContent = '!';
+      return;
+    }
+    const items = rows || [];
+    if(badge) badge.textContent = String(items.length);
+    if(items.length === 0){
+      // Card stays visible with empty state — helps admin know feature exists.
+      list.innerHTML = '<div class="pending-user-empty">No pending registrations.</div>';
+      card.style.display = 'block';
+      return;
+    }
+    list.innerHTML = items.map(u => {
+      const safeName  = sanitize(u.full_name || '?');
+      const safeNick  = sanitize(u.nickname  || '?');
+      const safeEmail = sanitize(u.email     || '');
+      const phone     = u.phone || '';
+      const safePhone = sanitize(phone);
+      // wa.me wants digits-only (strip + and spaces)
+      const waPhone   = phone.replace(/[^0-9]/g, '');
+      const waLink    = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent('Hi ' + (u.full_name||'') + ', confirming your BD4U Book registration?')}` : '';
+      const ago       = _timeAgo(u.created_at);
+      const initials  = sanitize((u.full_name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2));
+      return `<div class="pending-user-row">
+        <div class="pu-avatar">${initials}</div>
+        <div class="pending-user-body">
+          <div class="pending-user-head">
+            <div>
+              <span class="pending-user-name">${safeName}</span><span class="pending-user-nick">@${safeNick}</span>
+            </div>
+            <div class="pending-user-ago">${ago}</div>
+          </div>
+          <div class="pending-user-meta">📧 ${safeEmail}${safePhone ? ' · 📱 ' + safePhone : ''}</div>
+        </div>
+        <div class="pending-user-actions">
+          ${waLink ? `<a class="pending-user-wa" href="${waLink}" target="_blank" rel="noopener" title="WhatsApp ${safePhone}">💬 WhatsApp</a>` : ''}
+          <button type="button" class="pending-user-approve" onclick="approvePendingUser('${u.id}')">✓ Approve</button>
+          <button type="button" class="pending-user-reject" onclick="rejectPendingUser('${u.id}')">✕ Reject</button>
+        </div>
+      </div>`;
+    }).join('');
+    card.style.display = 'block';
+  } catch(e){
+    console.error('renderPendingUsers exception:', e);
+    list.innerHTML = `<div class="pending-user-empty">Could not load: ${sanitize(e.message || 'unknown')}</div>`;
+    card.style.display = 'block';
+  }
+}
+
+// v59 [Louis M8-rebuild] - "X mins/hours/days ago" formatter for pending-user timestamps
+function _timeAgo(iso){
+  if(!iso) return '';
+  const then = new Date(iso).getTime();
+  if(!then) return '';
+  const sec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if(sec < 60)        return `${sec}s ago`;
+  const min = Math.floor(sec/60);
+  if(min < 60)        return `${min} min ago`;
+  const hr  = Math.floor(min/60);
+  if(hr < 24)         return `${hr} hr ago`;
+  const day = Math.floor(hr/24);
+  if(day < 30)        return `${day} day${day===1?'':'s'} ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+// v59 [Louis M8-rebuild] - Approve a pending registration. Reuses the existing admin add-downline
+// pattern from settingsAddDownlineSubmit (save admin session → signUp → INSERT users →
+// restore admin session). Defaults: timezone='MY', role='downline' per Louis Q1+Q2. Initials
+// derived from full_name. After success: DELETE pending_users row + refresh both cards.
+async function approvePendingUser(pendingId){
+  if(!pendingId) return;
+  // Fetch the pending row
+  const { data: pu, error: fetchErr } = await sb.from('pending_users')
+    .select('id, email, full_name, nickname, phone, password')
+    .eq('id', pendingId)
+    .single();
+  if(fetchErr || !pu){
+    if(typeof showToast === 'function') showToast('Could not load pending user', 'err');
+    return;
+  }
+  if(!pu.password){
+    if(typeof showToast === 'function') showToast('Missing password — this was registered before the M8-rebuild. Reject and ask user to register again.', 'err');
+    return;
+  }
+  showBSheetConfirm({
+    title: 'Approve registration?',
+    sub: `${pu.full_name} · @${pu.nickname}`,
+    body: `Create account for <strong>${sanitize(pu.email)}</strong>?<br><br>They'll be added to Team Management as a downline. Please WhatsApp them to confirm before approving.`,
+    confirmLabel: 'Approve',
+    onConfirm: async () => {
+      showAuthSpinner('Approving…');
+      try {
+        // Save admin session before signUp (signUp may switch session if confirm-email is OFF)
+        const { data: sessData } = await sb.auth.getSession();
+        const adminSess = sessData?.session;
+        // Create the auth user with the password the registrant chose
+        const { data: su, error: suErr } = await sb.auth.signUp({
+          email: pu.email,
+          password: pu.password,
+          options: { data: { full_name: pu.full_name, nickname: pu.nickname }, emailRedirectTo: null }
+        });
+        if(suErr || !su?.user){
+          if(adminSess) await sb.auth.setSession({ access_token: adminSess.access_token, refresh_token: adminSess.refresh_token }).catch(()=>{});
+          hideAuthSpinner();
+          if(typeof showToast === 'function') showToast('Approve failed: ' + (suErr?.message || 'no user returned'), 'err');
+          return;
+        }
+        const userId = su.user.id;
+        const ini = (pu.full_name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)) || pu.nickname.slice(0,2).toUpperCase();
+        // INSERT users profile — nickname is the username (display name)
+        const { error: insErr } = await sb.from('users').insert({
+          id: userId,
+          name: pu.nickname,
+          email: pu.email,
+          role: 'downline',
+          timezone: 'MY',
+          country: 'MY',
+          initials: ini,
+          suspended: false
+        });
+        // Restore admin session regardless of insert outcome
+        if(adminSess) await sb.auth.setSession({ access_token: adminSess.access_token, refresh_token: adminSess.refresh_token }).catch(()=>{});
+        if(insErr){
+          hideAuthSpinner();
+          console.error('users insert failed after approve:', insErr);
+          if(typeof showToast === 'function') showToast('Auth created but profile failed: ' + insErr.message, 'err');
+          return;
+        }
+        // DELETE pending row (per Louis Q5 — clean over audit-trail)
+        await sb.from('pending_users').delete().eq('id', pu.id);
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast(`Approved ${pu.nickname} ✓`);
+        // Refresh both cards
+        await renderPendingUsers();
+        if(typeof settingsLoadTeam === 'function') await settingsLoadTeam();
+      } catch(e){
+        hideAuthSpinner();
+        console.error('approvePendingUser exception:', e);
+        if(typeof showToast === 'function') showToast('Approve failed: ' + (e.message || 'unknown'), 'err');
+      }
+    }
+  });
+}
+
+// v59 [Louis M8-rebuild] - Reject a pending registration. No auth.users entry exists (we deferred
+// signUp to approve time), so it's a simple DELETE of the pending_users row. User isn't notified —
+// admin tells them via WhatsApp per Louis spec.
+async function rejectPendingUser(pendingId){
+  if(!pendingId) return;
+  const { data: pu } = await sb.from('pending_users')
+    .select('id, full_name, nickname, email')
+    .eq('id', pendingId)
+    .single();
+  if(!pu) return;
+  showBSheetConfirm({
+    title: 'Reject registration?',
+    sub: `${pu.full_name} · @${pu.nickname}`,
+    body: `Reject <strong>${sanitize(pu.email)}</strong>?<br><br>The registration will be deleted. Please WhatsApp the user to inform them.`,
+    confirmLabel: 'Reject',
+    onConfirm: async () => {
+      const { error } = await sb.from('pending_users').delete().eq('id', pu.id);
+      if(error){
+        if(typeof showToast === 'function') showToast('Reject failed: ' + error.message, 'err');
+        return;
+      }
+      if(typeof showToast === 'function') showToast(`Rejected ${pu.nickname}`);
+      await renderPendingUsers();
+    }
+  });
+}
+
 async function settingsLoadTeam(){
   const container=$id('settings-team-list'); if(!container) return;
   container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
@@ -8864,6 +9623,71 @@ function closeBSheetConfirm(){
 // Confirm message wording follows the Chip Contract X-Button-Admin column. Booked/Mine slots use
 // soft delete (sets cancelled status, matches existing saDeleteSlot behavior); everything else
 // hard deletes. Both flows refresh calendar + panel after completion.
+// v59 [Louis M6a Item 1] - Mobile-friendly downline self-cancel. Mirrors desktop cancelMineFromCal
+// behaviour (slot reverts to AV, booker fields cleared, in-app notification) but uses bsheet-confirm
+// for proper mobile UX instead of the native confirm() dialog. Triggered by the ✕ button on a
+// downline's own MZ1/MM1 row in the mobile panel.
+// v59 [Louis M6b] - Downline-side attachment upload entry from the mobile day panel.
+// Tapping a downline's own mine row (past or future per Louis Q1=β) opens the existing
+// openAttachmentModal in upload mode. Modal already handles existing-attachment preview,
+// upload, delete, and RLS error messages. Past-mine rows get this via the panel tap
+// (no ✕ because cancel-past doesn't make sense — already enforced by M6a Item 1).
+// Future-mine rows get BOTH the ✕ cancel button AND this tap-to-upload affordance.
+function openMineUploadFromPanel(idx){
+  const slot = SCHEDULE[idx];
+  if(!slot || !slot._id) return;
+  const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const sT = minToUser(slot.startMyt, tz.o);
+  const day = WEEK_DAYS[slot.dayIdx];
+  const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+  const name = slot.prospect || slot.label || 'My booking';
+  const summary = `${name} · ${dayLabel} · ${sT} ${tz.l||''}`.trim();
+  openAttachmentModal(slot._id, summary);
+}
+
+async function confirmCancelMineMobile(idx){
+  const slot = SCHEDULE[idx];
+  if(!slot || !slot._id) return;
+  const tz = TZ_DATA[activeTZ] || TZ_DATA['MY'];
+  const sT  = minToUser(slot.startMyt, tz.o);
+  const eT  = minToUser(slot.endMyt,   tz.o);
+  const day = WEEK_DAYS[slot.dayIdx];
+  const dayLabel = day ? `${day.n}, ${day.d} ${day.m||''}`.trim() : '';
+  const sub = `${dayLabel} · ${sT}–${eT} ${tz.l||''}`.trim();
+  const prospect = slot.prospect || slot._bookerName || 'this booking';
+  showBSheetConfirm({
+    title: 'Cancel your booking?',
+    sub,
+    body: `Your booking for <strong>${sanitize(prospect)}</strong> will be cancelled and the slot will become available again.`,
+    confirmLabel: 'Cancel booking',
+    onConfirm: async () => {
+      showAuthSpinner('Cancelling…');
+      const ok = await cancelBookingInDB(slot._id);
+      if(!ok){
+        hideAuthSpinner();
+        if(typeof showToast === 'function') showToast('Could not cancel — please try again', 'err');
+        return;
+      }
+      // Mirror desktop cancelMineFromCal local-state reset — slot becomes AV again at same time.
+      slot.status          = 'av';
+      slot.user            = '';
+      slot.prospect        = '';
+      slot.label           = '';
+      slot.presenter       = null;
+      slot._bookerName     = '';
+      slot._bookerInitials = '';
+      slot._presenterName  = '';
+      if(typeof addNotification === 'function'){
+        addNotification('Booking cancelled. Slot is now available again.', 'cancel');
+      }
+      hideAuthSpinner();
+      if(panelOpen && panelDay !== null) renderPanel(panelDay);
+      renderCalendar();
+      if(typeof showToast === 'function') showToast('Booking cancelled');
+    }
+  });
+}
+
 async function confirmDeleteSlot(idx){
   const slot = SCHEDULE[idx];
   if(!slot) return;
@@ -8921,7 +9745,10 @@ async function confirmDeleteSlot(idx){
       }
       if(!dbOk){
         hideAuthSpinner();
-        if(typeof showToast === 'function') showToast('Could not delete — please try again', 'err');
+        // v59 [Louis M5c] - show the actual error reason in the toast so Louis can identify
+        // RLS issues / schema mismatches / network errors without DevTools.
+        const errReason = _lastDeleteError ? `: ${_lastDeleteError}` : '';
+        if(typeof showToast === 'function') showToast(`Could not delete${errReason}`, 'err');
         return;
       }
       // Reload from DB so the in-memory SCHEDULE matches what's actually stored
@@ -8997,8 +9824,9 @@ async function bsheetClearAvailable(){
 //   - Sign out (danger, no border)
 // Timezone deliberately NOT in More sheet — it's now in the top nav TZ chip (visible everywhere).
 function bnGo(screenId){
-  // Dashboard tab is greyed for non-admins — short-circuit before goScreen
-  if(screenId === 'sc-admin' && !isAdmin){ return; }
+  // v59 [Louis M7a] - Dashboard tab greyed for non-elevated users (downline view OR true downline).
+  // Manager-in-Manager-view + admin both allowed.
+  if(screenId === 'sc-admin' && !isAdmin && !isManager){ return; }
   closeMoreSheet();
   // v59 [Louis M4b] - also close the day panel if open, so tapping a bottom nav tab dismisses it
   if(typeof closePanel === 'function' && typeof panelOpen !== 'undefined' && panelOpen) closePanel();
@@ -9012,11 +9840,12 @@ function syncBottomNav(activeScreenId){
     const sid = t.getAttribute('data-bn');
     t.classList.toggle('is-active', sid === activeScreenId);
   });
-  // Greyed Dashboard for non-admins
+  // v59 [Louis M7a] - Greyed Dashboard only for non-elevated views (downline + admin/manager in downline view)
   const dashTab = document.getElementById('bn-tab-admin');
   if(dashTab){
-    dashTab.classList.toggle('is-disabled', !isAdmin);
-    dashTab.setAttribute('aria-disabled', !isAdmin ? 'true' : 'false');
+    const greyed = !isAdmin && !isManager;
+    dashTab.classList.toggle('is-disabled', greyed);
+    dashTab.setAttribute('aria-disabled', greyed ? 'true' : 'false');
   }
 }
 let _moreSheetOpen = false;
@@ -9062,8 +9891,14 @@ function renderMoreSheet(){
     <div class="more-section-hdr">Account</div>
     <button type="button" class="more-item" onclick="goScreen('sc-profile');closeMoreSheet()"><span class="more-item-icon">👤</span>My Profile</button>
     <button type="button" class="more-item" onclick="goScreen('sc-settings');closeMoreSheet()"><span class="more-item-icon">⚙️</span>Settings</button>`;
-  if(CURRENT_USER.role === 'admin'){
-    html += `<button type="button" class="more-item" onclick="toggleAdminMode();closeMoreSheet()"><span class="more-item-icon">🔄</span>${isAdmin?'Switch to Downline view':'Switch to Admin view'}</button>`;
+  // v59 [Louis M7a] - View-mode toggle now available to managers too (was admin-only).
+  // Wording mirrors the top-nav role-toggle button (Admin/Manager based on profile, Downline otherwise).
+  const _r = CURRENT_USER.role;
+  if(_r === 'admin' || _r === 'manager'){
+    const _elevated = isAdmin || isManager;
+    const _targetView = _r === 'manager' ? 'Manager' : 'Admin';
+    const _label = _elevated ? 'Switch to Downline view' : `Switch to ${_targetView} view`;
+    html += `<button type="button" class="more-item" onclick="toggleAdminMode();closeMoreSheet()"><span class="more-item-icon">🔄</span>${_label}</button>`;
   }
   if(isDev){
     html += `
@@ -9323,6 +10158,11 @@ window.addEventListener('load', async ()=>{
         // Load schedule for restored session
         setText('auth-spinner-txt', 'Loading calendar…');
         await loadScheduleFromDB();
+      } else if(!profile){
+        // v59 [Louis M8a Item 4] - Active auth session but no users row. This means the user
+        // just clicked an email confirmation link from registration but admin hasn't accepted
+        // them yet. Mark pending_users.email_verified=true, sign out, show the waiting screen.
+        try { await handleRegistrationConfirmation(); } catch(e){ /* fallthrough */ }
       }
     }
   } catch(e){ /* session check failed — show login */ }
@@ -9338,8 +10178,8 @@ window.addEventListener('load', async ()=>{
       const last = localStorage.getItem('bd4u_lastScreen');
       const PERSIST_SCREENS = ['sc-cal','sc-mybk','sc-gallery','sc-admin','sc-settings','sc-profile','sc-dev'];
       if(last && PERSIST_SCREENS.includes(last)){
-        // Don't restore admin/dev screens for non-privileged users (safety)
-        if(last === 'sc-admin' && !isAdmin) restored = null;
+        // v59 [Louis M7a] - Don't restore admin screen for users without elevated access (admin OR manager).
+        if(last === 'sc-admin' && !isAdmin && !isManager) restored = null;
         else if(last === 'sc-dev' && !isDev) restored = null;
         else restored = last;
       }
