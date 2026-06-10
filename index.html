@@ -189,6 +189,30 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* ── CALENDAR TOOLBAR ── */
 .cal-toolbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--g200);border-radius:var(--rLg);padding:10px 14px;margin-bottom:10px;box-shadow:var(--sh-xs);flex-wrap:wrap;gap:8px}
+/* v59 [Louis M9a Item 3] - new 3-cluster toolbar variant.
+   LEFT cluster (Today + Quick Open) | CENTER cluster (< date >) | RIGHT cluster (Focus + Clean) */
+.cal-toolbar-v2{display:flex;align-items:center;background:#fff;border:1px solid var(--g200);border-radius:var(--rLg);padding:10px 14px;margin-bottom:10px;box-shadow:var(--sh-xs);gap:8px;flex-wrap:wrap}
+.cal-tb-left,.cal-tb-right{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.cal-tb-right{justify-content:flex-end}
+.cal-tb-center{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.cal-tb-center .cal-nav-btn{font-size:17px;padding:5px 14px;font-weight:600;line-height:1}
+.cal-tb-center .cal-mo{font-size:16px;font-weight:800;letter-spacing:.3px;color:var(--navy)}
+/* Clean toggle — same shape as focus-toggle for visual harmony */
+.clean-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.clean-toggle:hover{background:var(--g50);border-color:var(--g400)}
+.clean-toggle.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.clean-toggle.on:hover{opacity:.92}
+/* Narrow desktop (~900px and below) — shrink emojis + labels so toolbar fits in one row */
+@media (min-width:641px) and (max-width:900px){
+  .qopen-emoji,.focus-emoji,.clean-emoji{display:none}
+  .qopen-btn,.focus-toggle,.clean-toggle{padding:5px 10px;font-size:10.5px}
+  .cal-today-btn{padding:5px 10px;font-size:10.5px}
+}
+/* Even narrower (~750px and below) — drop "Quick" word from Quick Open */
+@media (min-width:641px) and (max-width:750px){
+  .qopen-label{font-size:0}
+  .qopen-label::after{content:'Open';font-size:10.5px}
+}
 .cal-nav-btns{display:flex;align-items:center;gap:7px}
 .cal-nav-btn{min-width:28px;height:28px;border-radius:var(--r);border:1.5px solid var(--g200);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--g500);font-size:13px;transition:all .12s;font-family:var(--font);padding:0 6px}
 .cal-nav-btn:hover{background:var(--g100)}
@@ -214,6 +238,24 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 
 /* ── SLOT CHIPS ── */
 .sc{border-radius:5px;padding:4px 6px;font-size:10px;font-weight:600;width:100%;text-align:left;border:none;font-family:var(--font);cursor:pointer;transition:background .12s;display:flex;flex-direction:column;gap:1px;min-width:0;overflow:hidden}
+/* v59 [Louis M9b Item 2 · Variation A] - Small Book button on AV tiles for downline view.
+   Pointer-events:none means clicks pass through to the tile's onclick handler. */
+.av-book-btn{
+  position:absolute;
+  top:4px;
+  right:4px;
+  background:var(--teal);
+  color:#fff;
+  padding:2px 7px;
+  border-radius:9px;
+  font-size:9px;
+  font-weight:700;
+  white-space:nowrap;
+  pointer-events:none;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+  letter-spacing:.2px;
+}
+.sc-av-zoom:hover .av-book-btn,.sc-av-meet:hover .av-book-btn{background:#0a8a6d}
 .sc-av-zoom{background:var(--greenLt);border:1.5px dashed var(--greenB);color:var(--green)}.sc-av-zoom:hover{background:#c0f0d8}
 /* v58 Phase 5b polish: AM1 (available 20-min Meet) — light peach/orange dashed */
 .sc-av-meet{background:var(--orangeLt);border:1.5px dashed var(--orangeB);color:var(--orange)}.sc-av-meet:hover{background:#fbe2c4}
@@ -226,7 +268,49 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
 .focus-mode .sc-event-block, .focus-mode .sc-blocked, .focus-mode .sc-full,
 .focus-mode .sc-private:not(.sc-private-mine){ display:none !important }
 /* Hide rows whose only remaining chips are types that Focus would hide. Keep the row if it has any AV or mine chip. */
-.focus-mode .blk-row:not(:has(.sc-av-zoom, .sc-av-meet, .sc-av-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-private-mine)){ display:none !important }
+/* v59 [Louis M9b hotfix] - Admin "+ open" cells are immune to Focus mode.
+   Added .blk-cell-empty[onclick] to the :has() list — only admin "+ open" empty cells have
+   an onclick attribute (downline empty cells have no onclick). So this clause keeps empty rows
+   visible for admin (who needs them to add slots) while still hiding them for downline view.
+   Clean mode hide-logic (M9c) will handle its own admin-affordance separately. */
+.focus-mode .blk-row:not(:has(.sc-av-zoom, .sc-av-meet, .sc-av-manager, .sc-mine-zoom, .sc-mine-meet, .sc-mine-manager, .sc-private-mine, .blk-cell-empty[onclick])){ display:none !important }
+
+/* v59 [Louis M9c] - Clean mode CSS. Per visibility matrix defaults:
+   HIDE: '+ open' placeholders, entire rows with no chips, time TEXT inside left column.
+   SHOW: all chip types (AV, BK, MN, TS, EV, BL, continues), 7-day header, toolbar, "✓ Available" header.
+   v59 [Louis M9d Item 2] - REVISED: keep .blk-tc width by using visibility:hidden on its TEXT
+   contents (not the cell itself). This preserves the 8-column grid so day columns don't widen. */
+.clean-mode .blk-tc > *{visibility:hidden}
+.clean-mode .cal-dhdr-tc{visibility:hidden}
+/* Hide "+ open" empty placeholders. Empty .blk-cell parents stay in the grid (maintain day-column
+   alignment) but their inner placeholder is gone. Empty cells in partial rows look transparent. */
+.clean-mode .blk-cell-empty{display:none !important}
+/* Hide entire rows that contain ONLY empty cells (no chips of any kind). The :has() selector
+   matches rows with at least one chip — anything else is hidden. */
+.clean-mode .blk-row:not(:has(.sc, .sc-event-block, .sc-blocked, .sc-private, .sc-open-hdr, .sc-occ)){display:none !important}
+/* Cells in partial rows that don't contain chips: drop borders so they look truly empty */
+.clean-mode .blk-cell:not(:has(.sc, .sc-event-block, .sc-blocked, .sc-private, .sc-open-hdr, .sc-occ)){border-right-color:transparent;background:transparent}
+/* In Clean mode, admin still has Quick Open in the toolbar to add slots — no extra affordance needed. */
+
+/* v59 [Louis M9d Items 4+5] - Column-stacked Clean view.
+   When .clean-mode is on AND .clean-view exists, hide the row-based .blk-grid and show .clean-grid.
+   Each day column stacks tiles vertically, sorted by start time. Multi-hour tiles render as single tiles. */
+.clean-grid{display:none}
+.clean-mode .blk-grid{display:none}
+.clean-mode .clean-grid{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));background:#fff;border:1px solid var(--g200);border-radius:0 0 var(--rLg) var(--rLg);overflow:hidden;box-shadow:var(--sh-sm);min-height:300px;align-items:start}
+.clean-time-col{padding:8px;background:var(--g50);border-right:1px solid var(--g200);min-height:100%}
+.clean-day-col{padding:6px;border-right:1px solid var(--g100);display:flex;flex-direction:column;gap:5px;min-width:0;overflow:hidden}
+.clean-day-col:last-child{border-right:none}
+.clean-day-col-empty{flex:1;font-size:10px;color:var(--g300);text-align:center;padding:20px 4px;font-style:italic}
+/* Tiles inside clean view — use same chip classes but apply consistent compact size */
+.clean-day-col .sc,.clean-day-col .sc-private,.clean-day-col .sc-event-block,.clean-day-col .sc-blocked{
+  border-radius:5px;padding:6px 8px;font-size:10px;line-height:1.4;position:relative;cursor:pointer;
+  display:flex;flex-direction:column;gap:2px;min-height:auto
+}
+.clean-day-col .sc-label{font-weight:700;font-size:10.5px}
+.clean-day-col .sc-sub,.clean-day-col .sc-time{font-size:9px;opacity:.75;font-weight:500}
+.clean-day-col .sc-x-admin,.clean-day-col .sc-cancel-x{top:3px;right:3px;width:16px;height:16px;font-size:11px}
+.clean-day-col .av-book-btn{top:3px;right:3px;font-size:8.5px;padding:1px 6px}
 .focus-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:18px;border:1px solid var(--g300,#cbd5e1);background:#fff;color:var(--g600);font-size:11.5px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
 
 /* v59 [Louis M4a] - Today button in day panel footer. Default = neutral. When viewing a non-today
@@ -1416,6 +1500,22 @@ tr:hover td{background:var(--g50)}
   </div>
 </div>
 
+<!-- v59 [Louis M10b] - Maintenance screen overlay. Full-screen for non-admin users when maintenance_mode=true. -->
+<div id="maintenance-overlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0D1F33 0%,#1a3a5a 100%);z-index:9999;color:#fff;align-items:center;justify-content:center;padding:20px">
+  <div style="text-align:center;max-width:480px">
+    <div style="font-size:72px;margin-bottom:14px">🔧</div>
+    <div style="font-size:26px;font-weight:800;margin-bottom:10px;letter-spacing:.3px">Under Maintenance</div>
+    <div id="maintenance-message" style="font-size:14px;line-height:1.6;opacity:.85;margin-bottom:24px">BD4U Book is under maintenance. Please check back later.</div>
+    <button type="button" onclick="signOutFromMaintenance()" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);padding:9px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Sign out</button>
+    <div style="font-size:11px;opacity:.55;margin-top:20px;line-height:1.5">If you're an admin and need to access the dev console,<br>sign out and sign back in.</div>
+  </div>
+</div>
+
+<!-- v59 [Louis M10b] - Maintenance banner. Subtle top bar shown ONLY to admins/managers/devs when maintenance is on. -->
+<div id="maintenance-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#7B4F00;color:#fff;z-index:500;padding:6px 14px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.4">
+  ⚠️ Maintenance mode is ON — only admins/managers can access the app · <a onclick="toggleMaintenanceMode(document.getElementById('dev-maintenance-toggle'))" style="color:#FFE082;text-decoration:underline;cursor:pointer">Turn off</a>
+</div>
+
 
 <!-- ═══════════════════ NAV ═══════════════════ -->
 <nav class="nav" id="main-nav">
@@ -1438,6 +1538,17 @@ tr:hover td{background:var(--g50)}
     <div class="ntab hidden" data-screen="sc-dev" id="tab-dev" onclick="goScreen('sc-dev')">🛠 Dev</div>
   </div>
   <div class="nav-right">
+    <!-- v59 [Louis M11d Part 4] - Dev-only 'View as downline' toggle. Visible only when CURRENT_USER's role is developer.
+         When ON, isAdmin/isDev temporarily become false → dev sees downline UI everywhere (Book buttons, +New Booking pill).
+         When OFF, full admin/dev view. State persists in localStorage bd4u_devAsDownline. -->
+    <div id="dev-downline-toggle-wrap" style="display:none">
+      <button type="button" id="dev-downline-toggle" onclick="toggleDevAsDownline()"
+        style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap"
+        title="Toggle between admin view and downline view (developer only)">
+        <span id="dev-downline-toggle-icon">🛠</span>
+        <span id="dev-downline-toggle-label">Admin view</span>
+      </button>
+    </div>
     <div id="tz-nav-pill" style="display:none;position:relative">
       <button type="button" id="tz-pill-btn" onclick="toggleTZDropdown()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap" title="Switch timezone">
         <span id="tz-pill-flag">🇲🇾</span><span id="tz-pill-code">MYT</span><span style="font-size:9px;opacity:.7">▾</span>
@@ -1549,7 +1660,7 @@ tr:hover td{background:var(--g50)}
         </div>
         <div id="login-user" class="role-form on">
           <div class="login-err" id="login-user-err"></div>
-          <div class="fg"><label class="fl" for="user-username">Username</label><input class="fc" type="text" id="user-username" placeholder="e.g. ali" autocomplete="username"></div>
+          <div class="fg"><label class="fl" for="user-username">Username</label><input class="fc" type="text" id="user-username" placeholder="e.g. Harry" autocomplete="username"></div>
           <div class="fg"><label class="fl" for="user-pass">Password</label><input class="fc" type="password" id="user-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAs('user')"></div>
           <!-- v59 [Louis M8a Item 2] - "Register here" link above Remember me, per Louis spec.
                Tap → switches to the register form below. Replaces the old "Request an account" alert. -->
@@ -1589,10 +1700,15 @@ tr:hover td{background:var(--g50)}
              Username auto-generated from nickname per Q2b. Submit triggers supabase.auth.signUp +
              INSERT pending_users. After admin accepts (M8b/c), user appears in Team Management. -->
         <div id="login-register" class="role-form" style="display:none">
-          <div style="background:var(--tealLt);color:var(--teal);border-radius:var(--r);padding:10px 12px;font-size:11px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px">📝 Register for BD4U Book</div>
+          <!-- v59 [Louis M9a Item 1 · revised M9b Option β] - banner full-width, back as a separate
+               row underneath. Tap back returns to login screen via showLoginForm(). -->
+          <div style="background:var(--tealLt);color:var(--teal);border-radius:var(--r);padding:9px 12px;font-size:11px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">📝 Register for BD4U Book</div>
+          <div style="margin-bottom:12px">
+            <a onclick="showLoginForm()" style="color:var(--g600);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none">← Back to sign in</a>
+          </div>
           <div class="login-err" id="login-register-err"></div>
-          <div class="fg"><label class="fl" for="reg-fullname">Full name <span style="color:#d33">*</span></label><input class="fc" type="text" id="reg-fullname" placeholder="e.g. Ali Bin Ahmad" autocomplete="name"></div>
-          <div class="fg"><label class="fl" for="reg-nickname">Nickname <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(becomes your username)</span></label><input class="fc" type="text" id="reg-nickname" placeholder="e.g. ali" autocomplete="off"></div>
+          <div class="fg"><label class="fl" for="reg-fullname">Full name <span style="color:#d33">*</span></label><input class="fc" type="text" id="reg-fullname" placeholder="e.g. Harry James Potter" autocomplete="name"></div>
+          <div class="fg"><label class="fl" for="reg-nickname">Nickname <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(becomes your username)</span></label><input class="fc" type="text" id="reg-nickname" placeholder="e.g. Harry" autocomplete="off"></div>
           <div class="fg"><label class="fl" for="reg-phone">Phone <span style="color:#d33">*</span></label><input class="fc" type="tel" id="reg-phone" placeholder="e.g. +60 12 345 6789" autocomplete="tel"></div>
           <div class="fg"><label class="fl" for="reg-email">Email <span style="color:#d33">*</span></label><input class="fc" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
           <div class="fg"><label class="fl" for="reg-pass">Password <span style="color:#d33">*</span> <span style="color:#999;font-weight:400;font-size:10.5px">(min 8 characters)</span></label><input class="fc" type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password"></div>
@@ -1649,23 +1765,23 @@ tr:hover td{background:var(--g50)}
         <!-- TZ bar -->
         
 
-        <!-- Week nav + legend -->
-        <div class="cal-toolbar">
-          <div class="cal-nav-btns">
+        <!-- Week nav + cluster toolbar (M9a Item 3) -->
+        <!-- v59 [Louis M9a Item 3] - Restructured to 3 clusters: LEFT (Today + Quick Open),
+             CENTER (< date >), RIGHT (Focus + Clean). Legend removed. Clean button is a stub
+             here — M9c wires up the hide-logic for empty slots / time bar / +open boxes. -->
+        <div class="cal-toolbar cal-toolbar-v2">
+          <div class="cal-tb-left">
+            <button type="button" class="btn btn-ghost btn-sm cal-today-btn" onclick="jumpToday()">Today</button>
+            <button type="button" class="qopen-btn" id="qopen-toolbar-btn" style="display:none" onclick="openQuickOpen()"><span class="qopen-emoji">⚡</span> <span class="qopen-label">Quick Open</span></button>
+          </div>
+          <div class="cal-tb-center">
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(-1)">‹</button>
             <span class="cal-mo" id="week-label">19–25 May 2025</span>
             <button type="button" class="cal-nav-btn" onclick="shiftWeek(1)">›</button>
-            <button type="button" class="btn btn-ghost btn-sm cal-today-btn" onclick="jumpToday()">Today</button>
-            <button type="button" class="qopen-btn" id="qopen-toolbar-btn" style="display:none" onclick="openQuickOpen()">⚡ Quick Open</button>
-            <button type="button" class="focus-toggle" id="focus-toggle-btn" onclick="toggleFocusMode()" title="Show only available slots and your own bookings">👁 Focus</button>
-            <!-- v58 Phase 3b-ii: toolbar '+ Add' button removed per user request — Cell Popover is the proper entry point -->
           </div>
-          <div class="legend">
-            <div class="leg-i"><div class="leg-d leg-zoom"></div>15-min Zoom</div>
-            <div class="leg-i"><div class="leg-d leg-meet"></div>20-min Meet</div>
-            <div class="leg-i"><div class="leg-d leg-evt"></div>Event</div>
-            <div class="leg-i"><div class="leg-d" style="background:var(--greenLt);border:1.5px dashed var(--greenB)"></div>Available</div>
-            <div class="leg-i"><div class="leg-d" style="background:var(--fullLt);border:1px solid var(--fullB)"></div>Full</div>
+          <div class="cal-tb-right">
+            <button type="button" class="focus-toggle" id="focus-toggle-btn" onclick="toggleFocusMode()" title="Show only available slots and your own bookings"><span class="focus-emoji">👁</span> <span class="focus-label">Focus</span></button>
+            <button type="button" class="clean-toggle" id="clean-toggle-btn" onclick="toggleCleanMode()" title="Hide empty slots and the time column"><span class="clean-emoji">✨</span> <span class="clean-label">Clean</span></button>
           </div>
         </div>
 
@@ -3198,10 +3314,14 @@ async function loginAs(role){
     isDev     = profile.role==='developer';
     activeTZ  = CURRENT_USER.tz;
     setText('auth-spinner-txt','Loading calendar…');
+    // v59 [Louis M11d Part 4] - apply dev-as-downline override if persisted
+    if(typeof initDevDownlineOverride === 'function') initDevDownlineOverride();
     await loadScheduleFromDB();
     hideAuthSpinner(); setLoginBtnLoading(role, false);
     updateRoleUI(); renderTZBar(); renderNavFlags();
     goScreen(isDev?'sc-dev':'sc-cal');
+    // v59 [Louis M10b] - check maintenance + force-logout settings after login
+    if(typeof checkAppSettings === 'function') checkAppSettings();
   } catch(e){
     hideAuthSpinner(); setLoginBtnLoading(role, false);
     setLoginError(role,'Connection error. Please check your internet and try again.');
@@ -3274,6 +3394,10 @@ function updateRoleUI(){
   const tabAdmin=$id('tab-admin'), tabDev=$id('tab-dev');
   if(tabAdmin) tabAdmin.className='ntab'+(((isAdmin||isManager)&&loggedIn)?' ':' hidden');
   if(tabDev)   tabDev.className='ntab'+((isDev&&loggedIn)?' ':' hidden');
+
+  // v59 [Louis M9d Item 3] - Focus toggle is downline-only. Admins/managers hide it.
+  const focusBtn = $id('focus-toggle-btn');
+  if(focusBtn) focusBtn.style.display = (loggedIn && !isAdmin && !isManager) ? 'inline-flex' : 'none';
 
   // Nav tabs visibility — hide on mobile (replaced by ··· menu)
   const navTabs=$id('nav-tabs');
@@ -3376,6 +3500,8 @@ function updateRoleUI(){
 
   // Update mobile menu
   renderMobMenu();
+  // v59 [Louis M11d Part 4] - sync dev-as-downline toggle visual state
+  if(typeof syncDevDownlineToggleUI === 'function') syncDevDownlineToggleUI();
 }
 
 // ─── TZ ──────────────────────────────────────
@@ -3611,6 +3737,7 @@ function renderCalendar(){
   }
   // Apply Clean Mode persisted state (hide AZ1/AM1 if enabled)
   if(typeof applyFocusModeState === 'function') applyFocusModeState();
+  if(typeof applyCleanModeState === 'function') applyCleanModeState();
 }
 function updateWeekLabel(){
   const first=WEEK_DAYS[0], last=WEEK_DAYS[6];
@@ -3803,7 +3930,7 @@ function renderDesktopCal(){
             const isMinePriv  = slot.status==='mine';
 
             let chipClass='sc-private', chipLabel='', chipOnclick='', chipStyle='position:relative';
-            let adminX='', downlineX='', chipSub='';
+            let adminX='', downlineX='', chipSub='', bookBtn='';
 
             if(isAvPrivate){
               // GREEN available private — same green chip class as av zoom
@@ -3814,6 +3941,8 @@ function renderDesktopCal(){
                 adminX = `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','av')" title="Remove slot">✕</button>`;
               } else if(!isPastWeek && !isCancelled){
                 chipOnclick = `onclick="bookAvPrivate('${slot._id}',${slot.dayIdx},${slot.startMyt})"`;
+                // v59 [Louis M9b Item 2] - Variation A book button on AV tiles for downline view
+                bookBtn = `<span class="av-book-btn">Book →</span>`;
               }
             } else if(isTraining){
               // v58 Phase 1.5: PURPLE training session — spans multi-hour like EV1 with "continues..." pattern
@@ -3858,7 +3987,7 @@ function renderDesktopCal(){
                 title="${sanitize(label)}">
                 <span class="sc-label">${chipLabel}</span>
                 ${chipSub}
-                ${adminX}
+                ${adminX}${bookBtn}
               </div>`;
             } else {
               // Booked private
@@ -3877,7 +4006,7 @@ function renderDesktopCal(){
           const idx=SCHEDULE.indexOf(slot);
           const isCancelled=slot.cancelled===true;
           const cls=slotChipCls(slot)+(isCancelled?' sc-cancelled':'');
-          let onclick='', adminX='', downlineX='';
+          let onclick='', adminX='', downlineX='', bookBtn='';
 
           if(isAdmin||isManager){
             if(slot.status==='av'){
@@ -3897,6 +4026,8 @@ function renderDesktopCal(){
                 const uStartMin=((slot.startMyt+tzOffsetMins)%1440+1440)%1440;
                 const slotTimeStr=fmtMinutes(uStartMin);
                 onclick=`onclick="selSlotType='zoom15';selSlotDbId='${slot._id}';selBlock='${blockKey}';selSlotTime='${slotTimeStr}';goScreen('sc-book')"`;
+                // v59 [Louis M9b Item 2] - Variation A book button on AV zoom tiles for downline view
+                if(!isCancelled) bookBtn = `<span class="av-book-btn">Book →</span>`;
               }
             }
             const showDL=slot.status==='mine'&&slot._id&&!isPastWeek&&!isCancelled;
@@ -3918,7 +4049,7 @@ function renderDesktopCal(){
             title="${sanitize(label)}" aria-label="${sanitize(label)}">
             <span class="sc-label">${chipTop}</span>
             ${avSub}
-            ${adminX}${downlineX}
+            ${adminX}${downlineX}${bookBtn}
           </div>`;
         });
         // Admin occupancy footer
@@ -5179,9 +5310,13 @@ function applyFocusModeState(){
   targets.forEach(el => el.classList.toggle('focus-mode', on));
   // v59 CAL-11: update ALL .focus-toggle buttons (toolbar + panel footer). Previously only the
   // toolbar's #focus-toggle-btn was updated, so the new panel footer Focus button stayed stale.
+  // v59 [Louis M9a Item 3] - write innerHTML with span structure so the new responsive media
+  // queries (.focus-emoji hidden at narrow widths) keep working through toggles.
   document.querySelectorAll('.focus-toggle').forEach(btn => {
     btn.classList.toggle('on', on);
-    btn.textContent = on ? '👁 Focus · on' : '👁 Focus';
+    btn.innerHTML = on
+      ? '<span class="focus-emoji">👁</span> <span class="focus-label">Focus · on</span>'
+      : '<span class="focus-emoji">👁</span> <span class="focus-label">Focus</span>';
   });
   // v59 [Louis M4c-1] - also sync the calendar-grid Focus tile (different DOM structure — icon +
   // label stacked, so textContent replacement would wipe the layout). Update innerHTML instead.
@@ -5203,6 +5338,208 @@ function toggleFocusMode(){
   }
 }
 // ═════ end Focus Mode ═════
+
+// ═════ Clean Mode (v59 [Louis M9a Item 3] — stub; M9c wires up hide-logic) ═════
+// Toggles a class on .desktop-cal that hides empty slot cells, +open boxes, and the left time
+// column. Mobile is unaffected. Persists in localStorage bd4u_cleanMode_v2 (the v2 suffix avoids
+// colliding with the orphaned bd4u_cleanMode key from before the Focus mode rename). M9a only
+// toggles button visual + persistence — M9c adds the CSS rules that actually hide elements.
+function isCleanMode(){
+  try { return localStorage.getItem('bd4u_cleanMode_v2') === '1'; } catch(e){ return false; }
+}
+function applyCleanModeState(){
+  const cal = document.querySelector('.desktop-cal');
+  const on = isCleanMode();
+  if(cal) cal.classList.toggle('clean-mode', on);
+  document.querySelectorAll('.clean-toggle').forEach(btn => {
+    btn.classList.toggle('on', on);
+    btn.innerHTML = on
+      ? '<span class="clean-emoji">✨</span> <span class="clean-label">Clean · on</span>'
+      : '<span class="clean-emoji">✨</span> <span class="clean-label">Clean</span>';
+  });
+  // v59 [Louis M9d Items 4+5] - rebuild column-stacked clean view when toggle changes
+  if(on) buildCleanView();
+}
+
+// v59 [Louis M9d Items 4+5] - Build the parallel column-stacked clean view. Called when
+// Clean toggle is on. Renders 8 columns: empty time column + 7 day columns. Each day column
+// stacks tiles vertically, sorted ascending by start time. Multi-hour tiles (event/training/
+// blocked) appear as single tiles with their full time range in the chip text. Reuses existing
+// onclick handlers so behavior matches the row view exactly. CSS hides .blk-grid and shows
+// .clean-grid via the .clean-mode class.
+function buildCleanView(){
+  const wrap = $id('desktop-cal-wrap'); if(!wrap) return;
+  let cleanGrid = wrap.querySelector('.clean-grid');
+  if(!cleanGrid){
+    cleanGrid = document.createElement('div');
+    cleanGrid.className = 'clean-grid';
+    wrap.appendChild(cleanGrid);
+  }
+  const tz = TZ_DATA[(CURRENT_USER?.tz)||activeTZ||'MY'] || TZ_DATA['MY'];
+  const tzOffsetMins = Math.round((tz.o-8)*60);
+  // Group active slots by dayIdx, skip cancelled
+  const byDay = [[],[],[],[],[],[],[]];
+  (SCHEDULE||[]).forEach(slot => {
+    if(slot.dayIdx == null || slot.dayIdx < 0 || slot.dayIdx > 6) return;
+    if(slot.cancelled) return;
+    byDay[slot.dayIdx].push(slot);
+  });
+  byDay.forEach(arr => arr.sort((a,b) => (a.startMyt||0) - (b.startMyt||0)));
+
+  // Build HTML
+  let html = '<div class="clean-time-col"></div>';
+  byDay.forEach((daySlots, dayIdx) => {
+    html += `<div class="clean-day-col" data-day-idx="${dayIdx}">`;
+    if(daySlots.length === 0){
+      html += '<div class="clean-day-col-empty">—</div>';
+    } else {
+      daySlots.forEach(slot => { html += _buildCleanChip(slot, dayIdx, tz, tzOffsetMins); });
+    }
+    html += '</div>';
+  });
+  cleanGrid.innerHTML = html;
+}
+
+// Helper: format SG/MY time range like "SG 9am-11am" using the active tz from buildCleanView
+function _cleanTimeRange(slot, tz, tzOffsetMins){
+  const uStart = ((slot.startMyt + tzOffsetMins) % 1440 + 1440) % 1440;
+  const uEnd   = ((slot.endMyt   + tzOffsetMins) % 1440 + 1440) % 1440;
+  const sH = Math.floor(uStart/60), sM = uStart % 60;
+  const eH = Math.floor(uEnd  /60), eM = uEnd   % 60;
+  return `${tz.f} ${fmtH(sH,sM)}-${fmtH(eH,eM)}`;
+}
+
+// Helper: build a single tile for clean view
+function _buildCleanChip(slot, dayIdx, tz, tzOffsetMins){
+  const isCancelled = slot.cancelled === true;
+  const idx = SCHEDULE.indexOf(slot);
+  const tRange = _cleanTimeRange(slot, tz, tzOffsetMins);
+  const nowMins = nowMYTMins();
+  const todayIso = todayISOStr();
+  const dayIso = WEEK_DAYS[dayIdx]?.iso || '';
+  const isPastDay = dayIso < todayIso;
+  const isToday = dayIso === todayIso;
+  const isPastSlot = isPastDay || (isToday && slot.endMyt <= nowMins);
+  const isPastWeek = weekOffset < 0;
+
+  // ── EVENT ──
+  if(slot.type === 'event'){
+    const adminX = (isAdmin||isManager) && slot._id
+      ? `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','event')" title="Delete event">✕</button>`
+      : '';
+    return `<div class="sc-event-block${isCancelled?' sc-cancelled':''}" role="button" tabindex="0"
+      title="${sanitize(slot.label||'Event')}">
+      <span class="sc-label">${sanitize(slot.label||'Event')}</span>
+      <span class="sc-time">${tRange}</span>
+      ${adminX}
+    </div>`;
+  }
+  // ── BLOCKED ──
+  if(slot.type === 'blocked'){
+    const adminX = (isAdmin||isManager) && slot._id
+      ? `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','blocked')" title="Remove block">✕</button>`
+      : '';
+    return `<div class="sc-blocked${isCancelled?' sc-cancelled':''}" role="button" tabindex="0"
+      title="${sanitize(slot.label||'Unavailable')}">
+      <span class="sc-label">🔒 ${sanitize(slot.label||'Unavailable')}</span>
+      <span class="sc-time">${tRange}</span>
+      ${adminX}
+    </div>`;
+  }
+  // ── PRIVATE ──
+  if(slot.type === 'private'){
+    const isTraining = slot.status !== 'av' && !slot.user;
+    const isAvPrivate = slot.status === 'av';
+    if(isTraining){
+      const adminX = (isAdmin||isManager) && slot._id
+        ? `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','training')" title="Delete training">✕</button>`
+        : '';
+      return `<div class="sc-private${isCancelled?' sc-cancelled':''}" role="button" tabindex="0"
+        title="${sanitize(slot.label||'Training Session')}">
+        <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(slot.label||'Training Session')}</span>
+        <span class="sc-time">${tRange}</span>
+        ${adminX}
+      </div>`;
+    }
+    if(isAvPrivate){
+      let onclick='', adminX='', bookBtn='';
+      if(isAdmin||isManager){
+        adminX = `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','av')" title="Remove slot">✕</button>`;
+      } else if(!isPastWeek && !isPastSlot && !isCancelled){
+        onclick = `onclick="bookAvPrivate('${slot._id}',${dayIdx},${slot.startMyt})"`;
+        bookBtn = `<span class="av-book-btn">Book →</span>`;
+      }
+      return `<div class="sc sc-av-meet${isCancelled?' sc-cancelled':''}${isPastSlot?' sc-past':''}" role="button" tabindex="0" ${onclick}
+        title="Available - 20min PV">
+        <span class="sc-label">20min PV</span>
+        <span class="sc-sub">${tRange}</span>
+        ${adminX}${bookBtn}
+      </div>`;
+    }
+    // Booked private (BM1 / MM1)
+    const isMinePriv = slot.status === 'mine';
+    const chipClass = isMinePriv ? 'sc sc-mine-meet' : 'sc sc-booked-meet';
+    let onclick = '', adminX = '', downlineX = '';
+    if(isAdmin||isManager){
+      onclick = `onclick="openSA(${idx})"`;
+      if(slot._id && !isCancelled) adminX = `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminCancelBooked('${slot._id}')" title="Cancel booking">✕</button>`;
+    }
+    if(!isAdmin && !isManager && isMinePriv && slot._id && !isPastWeek && !isPastSlot && !isCancelled){
+      downlineX = `<button type="button" class="sc-cancel-x" onclick="event.stopPropagation();cancelMineFromCal('${slot._id}')" title="Cancel booking">✕</button>`;
+    }
+    return `<div class="${chipClass}${isCancelled?' sc-cancelled':''}${isPastSlot?' sc-past':''}" role="button" tabindex="0" ${onclick}
+      title="${sanitize(makeLabel(slot))}">
+      <span class="sc-label">${presenterDot(slot.presenter)}${sanitize(makeChipLabel(slot))}</span>
+      <span class="sc-time">${tRange}</span>
+      ${adminX}${downlineX}
+    </div>`;
+  }
+  // ── ZOOM15 (default) ──
+  const isMine = slot.status === 'mine';
+  const isAv = slot.status === 'av';
+  let onclick='', adminX='', downlineX='', bookBtn='';
+  const cls = isAv ? 'sc sc-av-zoom'
+            : isMine ? 'sc sc-mine-zoom'
+            : 'sc sc-booked-zoom';
+  if(isAdmin||isManager){
+    if(isAv){
+      if(slot._id) adminX = `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminDeleteSlot('${slot._id}','av')" title="Remove slot">✕</button>`;
+    } else {
+      onclick = `onclick="openSA(${idx})"`;
+      if(slot._id && !isCancelled) adminX = `<button type="button" class="sc-x-admin" onclick="event.stopPropagation();adminCancelBooked('${slot._id}')" title="Cancel booking">✕</button>`;
+    }
+  } else {
+    if(isAv && !isPastWeek && !isPastSlot && !isCancelled){
+      const startH = Math.floor(slot.startMyt/60);
+      const blockKey = `d${slot.dayIdx}_h${startH}`;
+      const uStartMin = ((slot.startMyt + tzOffsetMins) % 1440 + 1440) % 1440;
+      const slotTimeStr = fmtMinutes(uStartMin);
+      onclick = `onclick="selSlotType='zoom15';selSlotDbId='${slot._id}';selBlock='${blockKey}';selSlotTime='${slotTimeStr}';goScreen('sc-book')"`;
+      bookBtn = `<span class="av-book-btn">Book →</span>`;
+    }
+    if(isMine && slot._id && !isPastWeek && !isPastSlot && !isCancelled){
+      downlineX = `<button type="button" class="sc-cancel-x" onclick="event.stopPropagation();cancelMineFromCal('${slot._id}')" title="Cancel booking">✕</button>`;
+    }
+  }
+  const chipTop = isAv
+    ? '15min ZM'
+    : `${presenterDot(slot.presenter)}${sanitize(makeChipLabel(slot))}`;
+  return `<div class="${cls}${isCancelled?' sc-cancelled':''}${isPastSlot?' sc-past':''}" role="button" tabindex="0" ${onclick}
+    title="${sanitize(makeLabel(slot))}">
+    <span class="sc-label">${chipTop}</span>
+    <span class="sc-sub">${tRange}</span>
+    ${adminX}${downlineX}${bookBtn}
+  </div>`;
+}
+function toggleCleanMode(){
+  const next = !isCleanMode();
+  try { localStorage.setItem('bd4u_cleanMode_v2', next ? '1' : '0'); } catch(e){ /* silent */ }
+  applyCleanModeState();
+  if(typeof showToast === 'function'){
+    showToast(next ? 'Clean on — empty slots hidden' : 'Clean off — showing full grid');
+  }
+}
+// ═════ end Clean Mode ═════
 
 // ═════ Dashboard "How unified calendar works" — dismissible (per browser via localStorage) ═════
 function isDashExplainerDismissed(){
@@ -5232,6 +5569,11 @@ let _delTargetId = null;
 let _delTargetName = '';
 
 async function openDeleteUserModal(userId, name, email, role){
+  // v59 [Louis M11d Part 3] - defense in depth: refuse to open delete modal for protected users
+  if(PROTECTED_NAMES.includes(name)){
+    alert(`🔒 ${name} is a protected account and cannot be deleted.`);
+    return;
+  }
   _delTargetId = userId;
   _delTargetName = name || '';
   // Reset modal state
@@ -9207,10 +9549,12 @@ async function approvePendingUser(pendingId){
         const userId = su.user.id;
         const ini = (pu.full_name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)) || pu.nickname.slice(0,2).toUpperCase();
         // INSERT users profile — nickname is the username (display name)
+        // v59 [Louis M11abc-hotfix] - carry phone from pending_users to users table
         const { error: insErr } = await sb.from('users').insert({
           id: userId,
           name: pu.nickname,
           email: pu.email,
+          phone: pu.phone || null,
           role: 'downline',
           timezone: 'MY',
           country: 'MY',
@@ -9271,30 +9615,41 @@ async function rejectPendingUser(pendingId){
 async function settingsLoadTeam(){
   const container=$id('settings-team-list'); if(!container) return;
   container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
-  const {data,error}=await sb.from('users').select('id,name,email,timezone,suspended,role').eq('role','downline').order('name');
+  // v59 [Louis M11d Part 2] - Include developer role so Louis appears in team list too
+  const {data,error}=await sb.from('users').select('id,name,email,timezone,suspended,role').in('role',['downline','developer']).order('name');
   if(error||!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">Failed to load team</div>'; return; }
   if(!data.length){ container.innerHTML='<div style="color:var(--g400);font-size:12px;padding:8px">No downlines yet.</div>'; return; }
   const tz=k=>TZ_DATA[k]?.l||k;
   container.innerHTML=data.map(u=>{
     const nameEsc = sanitize(u.name||'');
     const emailEsc = sanitize(u.email||'');
-    // v59 [Louis M4d-B] - Stash row data via dataset so the mobile ··· button can hand the user
-    // object to the action sheet without re-querying.
+    // v59 [Louis M11d Part 3] - Protect Louis/LouisC/Gus/Renee from admin actions in Team Management.
+    // Buttons hidden, 🔒 lock indicator shown instead. Whole row gets a subtle background tint.
+    const isProtected = PROTECTED_NAMES.includes(u.name);
+    const isDev = u.role === 'developer';
+    const roleBadge = isDev
+      ? '<span style="background:var(--navy);color:#fff;font-size:9px;padding:1px 6px;border-radius:5px;margin-left:6px;font-weight:700">developer</span>'
+      : '';
+    const avBg = isDev ? 'var(--navy)' : 'var(--teal)';
+    const rowBg = isProtected ? 'background:rgba(13,31,51,.03);' : '';
     return `
-    <div class="team-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100)">
-      <div class="team-av${u.suspended?' suspended':''}" style="width:36px;height:36px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
+    <div class="team-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100);${rowBg}">
+      <div class="team-av${u.suspended?' suspended':''}" style="width:36px;height:36px;border-radius:50%;background:${avBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
         ${sanitize((u.name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2))}
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">${sanitize(u.name||'—')}${roleBadge}</div>
         <div style="font-size:11px;color:var(--g400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitize(u.email||'—')} · ${tz(u.timezone)}${u.suspended?' · 🔴 Suspended':''}</div>
       </div>
-      <div class="team-actions-desktop" style="display:flex;gap:6px;flex-wrap:wrap">
-        <button type="button" class="btn btn-xs" style="background:var(--amberLt);color:#7B4F00;border:1px solid var(--amberB)" onclick="settingsPromoteDemote('${u.id}','manager','${nameEsc}')" >⭐ Promote</button>
-        <button type="button" class="btn btn-xs ${u.suspended?'btn-primary':'btn-outline'}" onclick="settingsToggleSuspend('${u.id}',${!u.suspended},'downline')">${u.suspended?'Unsuspend':'Suspend'}</button>
-        <button type="button" class="btn btn-xs" style="background:#fef2f2;color:var(--red,#dc2626);border:1px solid var(--red,#dc2626)" onclick="openDeleteUserModal('${u.id}','${nameEsc}','${emailEsc}','${u.role||'downline'}')" title="Permanently delete this user">🗑 Delete</button>
-      </div>
-      <button type="button" class="team-actions-mobile" onclick="openTeamSheet('${u.id}','${nameEsc}','${emailEsc}',${!!u.suspended},'${u.role||'downline'}')" aria-label="More actions for ${nameEsc}">···</button>
+      ${isProtected
+        ? `<div style="font-size:11px;color:var(--g500);font-style:italic;display:flex;align-items:center;gap:5px;padding:0 10px">🔒 Protected</div>`
+        : `<div class="team-actions-desktop" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn btn-xs" style="background:var(--amberLt);color:#7B4F00;border:1px solid var(--amberB)" onclick="settingsPromoteDemote('${u.id}','manager','${nameEsc}')" >⭐ Promote</button>
+            <button type="button" class="btn btn-xs ${u.suspended?'btn-primary':'btn-outline'}" onclick="settingsToggleSuspend('${u.id}',${!u.suspended},'downline')">${u.suspended?'Unsuspend':'Suspend'}</button>
+            <button type="button" class="btn btn-xs" style="background:#fef2f2;color:var(--red,#dc2626);border:1px solid var(--red,#dc2626)" onclick="openDeleteUserModal('${u.id}','${nameEsc}','${emailEsc}','${u.role||'downline'}')" title="Permanently delete this user">🗑 Delete</button>
+          </div>
+          <button type="button" class="team-actions-mobile" onclick="openTeamSheet('${u.id}','${nameEsc}','${emailEsc}',${!!u.suspended},'${u.role||'downline'}')" aria-label="More actions for ${nameEsc}">···</button>`
+      }
     </div>`;
   }).join('');
 }
@@ -9326,6 +9681,11 @@ async function settingsLoadManagers(){
 }
 
 async function settingsPromoteDemote(userId, newRole, name){
+  // v59 [Louis M11d Part 3] - defense in depth: refuse role changes on protected users
+  if(PROTECTED_NAMES.includes(name)){
+    alert(`🔒 ${name} is a protected account and cannot be promoted/demoted.`);
+    return;
+  }
   const action = newRole==='manager'?'Promote to Manager':'Demote to Downline';
   if(!confirm(`${action}: ${name}?`)) return;
   showAuthSpinner(newRole==='manager'?'Promoting…':'Demoting…');
@@ -9345,6 +9705,14 @@ async function settingsPromoteDemote(userId, newRole, name){
 }
 
 async function settingsToggleSuspend(userId, suspend, role){
+  // v59 [Louis M11d Part 3] - defense in depth: refuse suspend on protected users
+  try {
+    const { data: target } = await sb.from('users').select('name').eq('id', userId).single();
+    if(target && PROTECTED_NAMES.includes(target.name)){
+      alert(`🔒 ${target.name} is a protected account and cannot be suspended.`);
+      return;
+    }
+  } catch(e){ /* if check fails, fall through — defense in depth not blocker */ }
   showAuthSpinner(suspend?'Suspending…':'Reinstating…');
   const {error}=await sb.from('users').update({suspended:suspend}).eq('id',userId);
   hideAuthSpinner();
@@ -10007,72 +10375,171 @@ async function renderDevConsole(){
   // Load users
   devLoadUsers();
   devLoadSlotCount();
+  // v59 [Louis M10b] - Sync maintenance toggle state from app_settings cache
+  loadMaintenanceStateForToggle();
+  // v59 [Louis M11a/c] - Activity log (paginated) + storage quota (replaces simple count)
+  devLoadActivityLog(0);
+  devLoadStorageQuota();
   // Check DB status
   try {
     const {error}=await sb.from('users').select('id',{count:'exact',head:true});
     setText('dev-supabase-status', error?'⚠ DB error':'✅ DB connected · Singapore');
   } catch(e){ setText('dev-supabase-status','⚠ DB offline'); }
 }
+// v59 [Louis M11b Item 3] - Protected names hidden entirely from dev console list.
+// They can still be managed via Settings → Team Management which has its own UI.
+// v59 [Louis M11d Q3] - Added 'LouisC' alongside 'Louis' for safety during name transition.
+const PROTECTED_NAMES = ['Louis', 'LouisC', 'Gus', 'Renee'];
+let DEV_USERS_PAGE = 0; // current page index (0-based)
+const DEV_USERS_PER_PAGE = 15;
+let _DEV_USERS_CACHE = []; // sorted, non-protected users
+
 async function devLoadUsers(){
   const container=$id('dev-users-list'); if(!container) return;
   container.innerHTML='<div style="color:var(--g400);font-size:12px">Loading…</div>';
-  const {data,error}=await sb.from('users').select('id,name,email,role,timezone,suspended').order('role');
-  if(error||!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">Failed to load users</div>'; return; }
-  container.innerHTML=`<table style="width:100%;font-size:12px;border-collapse:collapse">
+  const {data,error}=await sb.from('users').select('id,name,email,phone,role,timezone,suspended').order('name');
+  if(error){
+    // v59 [Louis M11abc-hotfix] - Show actual error so column/RLS/network issues are diagnosable.
+    console.error('devLoadUsers error:', error);
+    container.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px;background:#fff3f0;border:1px solid #f4a59c;border-radius:6px">
+      <b>Failed to load users.</b><br>
+      <span style="font-family:monospace;font-size:10px;color:#7a2918">${sanitize(error.message||'Unknown error')}</span><br>
+      <span style="font-size:10px;color:#7a2918">Hint: if message mentions "column phone", run <code>ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text;</code> in Supabase.</span>
+    </div>`;
+    return;
+  }
+  if(!data){ container.innerHTML='<div style="color:var(--red);font-size:12px">No data returned.</div>'; return; }
+  // v59 [Louis M11b] - Hide protected names entirely
+  const visible = data.filter(u => !PROTECTED_NAMES.includes(u.name));
+  // Sort: admin/developer pinned first (max 3), then downlines alphabetically
+  const pinned = visible.filter(u => u.role === 'developer' || u.role === 'admin').slice(0, 3);
+  const others = visible.filter(u => !(u.role === 'developer' || u.role === 'admin'))
+    .sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  _DEV_USERS_CACHE = [...pinned, ...others];
+  DEV_USERS_PAGE = 0;
+  _renderDevUsersPage();
+}
+
+function _renderDevUsersPage(){
+  const container=$id('dev-users-list'); if(!container) return;
+  const total = _DEV_USERS_CACHE.length;
+  if(total === 0){
+    container.innerHTML = '<div style="color:var(--g400);font-size:12px;padding:12px;text-align:center;font-style:italic">No users in this list. (Protected users are hidden — manage them via Settings → Team Management.)</div>';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / DEV_USERS_PER_PAGE));
+  if(DEV_USERS_PAGE >= totalPages) DEV_USERS_PAGE = totalPages - 1;
+  const start = DEV_USERS_PAGE * DEV_USERS_PER_PAGE;
+  const slice = _DEV_USERS_CACHE.slice(start, start + DEV_USERS_PER_PAGE);
+
+  let html = `<table style="width:100%;font-size:12px;border-collapse:collapse">
     <tr style="border-bottom:1px solid var(--g200)">
       <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Name</th>
       <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Email</th>
       <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Role</th>
       <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">TZ</th>
       <th style="padding:6px 8px"></th>
-    </tr>
-    ${data.map(u=>`<tr style="border-bottom:1px solid var(--g100)${u.suspended?';opacity:.5':''}">
-      <td style="padding:7px 8px;font-weight:600;color:var(--navy)">${sanitize(u.name)}</td>
-      <td style="padding:7px 8px;color:var(--g500)">${sanitize(u.email)}</td>
-      <td style="padding:7px 8px"><span style="background:${u.role==='developer'?'var(--navy)':u.role==='admin'?'var(--reneeLt)':'var(--tealLt)'};color:${u.role==='developer'?'#fff':u.role==='admin'?'var(--renee)':'var(--teal)'};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${u.role}</span></td>
-      <td style="padding:7px 8px;color:var(--g500)">${u.timezone}</td>
-      <td style="padding:7px 8px;display:flex;gap:4px">
-        ${u.role!=='developer'?`<button type="button" class="btn btn-danger btn-xs" onclick="devSuspendUser('${u.id}','${u.name}',${!u.suspended})">${u.suspended?'Unsuspend':'Suspend'}</button>
-        <button type="button" class="btn btn-outline btn-xs" onclick="devDeleteUser('${u.id}','${u.name}')">Delete</button>`:'<span style="font-size:10px;color:var(--g400)">protected</span>'}
-      </td>
-    </tr>`).join('')}
-  </table>`;
+    </tr>`;
+  html += slice.map(u => `<tr style="border-bottom:1px solid var(--g100)${u.suspended?';opacity:.5':''}">
+    <td style="padding:7px 8px;font-weight:600;color:var(--navy)">${sanitize(u.name)}</td>
+    <td style="padding:7px 8px;color:var(--g500)">${sanitize(u.email||'—')}</td>
+    <td style="padding:7px 8px"><span style="background:${u.role==='developer'?'var(--navy)':u.role==='admin'?'var(--reneeLt)':'var(--tealLt)'};color:${u.role==='developer'?'#fff':u.role==='admin'?'var(--renee)':'var(--teal)'};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${u.role}</span></td>
+    <td style="padding:7px 8px;color:var(--g500)">${u.timezone}</td>
+    <td style="padding:7px 8px;display:flex;gap:4px;flex-wrap:wrap">
+      <button type="button" class="btn btn-outline btn-xs" onclick="devResetUserPassword('${u.id}','${sanitize(u.name)}','${sanitize(u.email||'')}')" title="Reset password">🔑</button>
+      <button type="button" class="btn btn-danger btn-xs" onclick="devSuspendUser('${u.id}','${sanitize(u.name)}',${!u.suspended})">${u.suspended?'Unsuspend':'Suspend'}</button>
+      <button type="button" class="btn btn-outline btn-xs" onclick="devDeleteUser('${u.id}','${sanitize(u.name)}')">Delete</button>
+    </td>
+  </tr>`).join('');
+  html += `</table>`;
+  if(totalPages > 1){
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--g600)">
+      <button type="button" class="btn btn-outline btn-xs" ${DEV_USERS_PAGE===0?'disabled':''} onclick="devUsersPage(-1)">← Prev</button>
+      <span>Page ${DEV_USERS_PAGE+1} of ${totalPages} · ${total} user${total===1?'':'s'}</span>
+      <button type="button" class="btn btn-outline btn-xs" ${DEV_USERS_PAGE===totalPages-1?'disabled':''} onclick="devUsersPage(1)">Next →</button>
+    </div>`;
+  } else {
+    html += `<div style="margin-top:10px;font-size:11px;color:var(--g500);text-align:right">${total} user${total===1?'':'s'}</div>`;
+  }
+  container.innerHTML = html;
+}
+function devUsersPage(delta){
+  DEV_USERS_PAGE += delta;
+  _renderDevUsersPage();
+}
+
+// v59 [Louis M11a Item 11] - Per-user reset password. Replaces standalone form. Sends Supabase
+// password reset email to the user's email. Email delivery limited to louiscyl090@gmail.com
+// while Resend is in sandbox — known limitation.
+async function devResetUserPassword(userId, name, email){
+  if(!email){ alert(`No email on file for ${name}. Cannot send password reset.`); return; }
+  if(!confirm(`Send password reset email to:\n\n${name} <${email}>\n\nThey'll receive an email with a reset link.`)) return;
+  showAuthSpinner('Sending reset email…');
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  hideAuthSpinner();
+  if(error){
+    alert('Error: ' + error.message);
+  } else {
+    alert(`✅ Reset email sent to ${email}.\n\n⚠️ Note: Resend sandbox currently only delivers to louiscyl090@gmail.com — other recipients may not receive the email.`);
+  }
 }
 async function devCreateUser(){
   const username=($id('dev-new-username')?.value||'').trim().toLowerCase();
   const name=($id('dev-new-name')?.value||'').trim();
-  const role=$id('dev-new-role')?.value||'downline';
+  const emailInput=($id('dev-new-email')?.value||'').trim().toLowerCase();
+  const phone=($id('dev-new-phone')?.value||'').trim();
+  const tempPass=($id('dev-new-temppass')?.value||'').trim();
   const tz=$id('dev-new-tz')?.value||'MY';
   const err=$id('dev-create-err'), res=$id('dev-create-result');
   if(err){err.textContent='';err.classList.remove('on');}
   if(!username){if(err){err.textContent='Please enter a username.';err.classList.add('on');}return;}
   if(!name){if(err){err.textContent='Please enter a full name.';err.classList.add('on');}return;}
-  const email=`${username}@bd4u.com`;
-  const defaultPw='bd4u123';
+  if(!emailInput){if(err){err.textContent='Please enter an email.';err.classList.add('on');}return;}
+  if(!phone){if(err){err.textContent='Please enter a phone number.';err.classList.add('on');}return;}
+  if(!tempPass||tempPass.length<6){if(err){err.textContent='Temporary password must be at least 6 characters.';err.classList.add('on');}return;}
+  // v59 [Louis M11a Item 2] - Always downline role. Use the user's actual email (not username@bd4u.com synthetic).
+  // Save admin session before signUp (signUp auto-signs-in the new user, which would hijack the admin session).
+  const role='downline';
   showAuthSpinner('Creating account…');
-  // Create auth user via Supabase admin — use service key approach via edge function
-  // For now use the signup endpoint with auto-confirm
-  const {data:authData,error:authErr}=await sb.auth.admin?.createUser({
-    email, password:defaultPw, email_confirm:true
-  }).catch(()=>({data:null,error:{message:'Admin API not available'}})) || {data:null,error:{message:'Admin API not available'}};
-  // Fallback: use signUp (user must confirm email)
-  let userId=authData?.user?.id;
-  if(!userId){
-    const {data:su,error:suErr}=await sb.auth.signUp({email,password:defaultPw,options:{emailRedirectTo:null}});
-    if(suErr||!su?.user){hideAuthSpinner();if(err){err.textContent='Could not create auth account: '+(suErr?.message||'unknown error');err.classList.add('on');}return;}
-    userId=su.user.id;
+  const adminSessionResp = await sb.auth.getSession();
+  const adminAccessToken = adminSessionResp?.data?.session?.access_token;
+  const adminRefreshToken = adminSessionResp?.data?.session?.refresh_token;
+  try {
+    const { data: su, error: suErr } = await sb.auth.signUp({
+      email: emailInput,
+      password: tempPass,
+      options: { emailRedirectTo: null }
+    });
+    if(suErr || !su?.user){
+      hideAuthSpinner();
+      if(err){err.textContent='Could not create auth account: '+(suErr?.message||'unknown error');err.classList.add('on');}
+      return;
+    }
+    const userId = su.user.id;
+    // Insert profile row
+    const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const { error: profErr } = await sb.from('users').insert({
+      id:userId, email:emailInput, name, role, phone, timezone:tz, initials, country:tz,
+      suspended:false, sessions_booked:0, sessions_hosted:0
+    });
+    // Restore admin session (signUp logged in as new user)
+    if(adminAccessToken && adminRefreshToken){
+      try { await sb.auth.setSession({ access_token:adminAccessToken, refresh_token:adminRefreshToken }); } catch(e){}
+    }
+    hideAuthSpinner();
+    if(profErr){
+      if(err){err.textContent='Account auth created but profile failed: '+profErr.message;err.classList.add('on');}
+      return;
+    }
+    if(res) res.textContent=`✅ Created downline account · username="${username}" · email="${emailInput}" · temporary password set`;
+    // Clear form
+    ['dev-new-username','dev-new-name','dev-new-email','dev-new-phone','dev-new-temppass']
+      .forEach(id => { const el=$id(id); if(el) el.value=''; });
+    devLoadUsers();
+  } catch(e){
+    hideAuthSpinner();
+    if(err){err.textContent='Create failed: '+(e.message||'unknown error');err.classList.add('on');}
   }
-  // Insert profile
-  const initials=name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  const {error:profErr}=await sb.from('users').insert({
-    id:userId,email,name,role,timezone:tz,initials,country:tz,suspended:false,sessions_booked:0,sessions_hosted:0
-  });
-  hideAuthSpinner();
-  if(profErr){if(err){err.textContent='Account auth created but profile failed: '+profErr.message;err.classList.add('on');}return;}
-  if(res) res.textContent=`✅ Created: username="${username}" · password="bd4u123" · email="${email}"`;
-  if($id('dev-new-username')) $id('dev-new-username').value='';
-  if($id('dev-new-name')) $id('dev-new-name').value='';
-  devLoadUsers();
 }
 async function devSuspendUser(id,name,suspend){
   if(!confirm(`${suspend?'Suspend':'Unsuspend'} "${name}"?`)) return;
@@ -10113,15 +10580,647 @@ async function devExportCSV(){
   a.download=`bd4u_bookings_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
-async function devResetPassword(){
-  const uEl=$id('dev-reset-username');
-  const username=(uEl?.value||'').trim();
-  if(!username){alert('Enter a username.');return;}
-  const email=usernameToEmail(username,'user');
-  showAuthSpinner('Sending reset…');
-  const {error}=await sb.auth.resetPasswordForEmail(email);
+// v59 [Louis M11a Item 11] - Old standalone devResetPassword removed.
+// Replaced by per-user devResetUserPassword (each user row in dev console has 🔑 button).
+
+// ═══════════════════════════════════════════════
+// v59 [Louis M10a] - Reset Calendar (triple-gate modal). Wipes ALL schedule rows + ALL attachment
+// files in booking-attachments bucket. Preserves users, pending_users, notif prefs. Irreversible.
+// ═══════════════════════════════════════════════
+function openResetCalendarModal(){
+  const ov=$id('reset-cal-overlay'); if(!ov) return;
+  // Reset gates
+  const chk=$id('reset-cal-chk'); if(chk) chk.checked=false;
+  const phrase=$id('reset-cal-phrase'); if(phrase) phrase.value='';
+  updateResetCalBtnState();
+  ov.style.display='flex';
+  setTimeout(()=>{ phrase?.focus(); }, 100);
+}
+function closeResetCalendarModal(){
+  const ov=$id('reset-cal-overlay'); if(ov) ov.style.display='none';
+}
+function updateResetCalBtnState(){
+  const chk=$id('reset-cal-chk');
+  const phrase=$id('reset-cal-phrase');
+  const btn=$id('reset-cal-confirm');
+  if(!chk||!phrase||!btn) return;
+  const ok = chk.checked && (phrase.value||'').trim() === 'RESET CALENDAR';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+async function executeResetCalendar(){
+  const chk=$id('reset-cal-chk');
+  const phrase=$id('reset-cal-phrase');
+  if(!chk?.checked || (phrase?.value||'').trim() !== 'RESET CALENDAR'){
+    alert('Confirmation gates not satisfied.');
+    return;
+  }
+  closeResetCalendarModal();
+  showAuthSpinner('Resetting calendar…');
+  try {
+    // Step 1: list all files in booking-attachments bucket and delete them
+    let attachDeleted = 0;
+    try {
+      const { data: files } = await sb.storage.from('booking-attachments').list('', { limit: 1000 });
+      if(files && files.length){
+        const paths = files.filter(f => f.name).map(f => f.name);
+        if(paths.length){
+          await sb.storage.from('booking-attachments').remove(paths);
+          attachDeleted = paths.length;
+        }
+      }
+    } catch(e){ console.warn('Attachment cleanup failed (non-fatal):', e); }
+
+    // Step 2: delete ALL schedule rows. Use a where clause that matches everything.
+    // Supabase requires a WHERE on delete (RLS-safe pattern). gte on id matches all rows.
+    const { error: schedErr, count } = await sb.from('schedule').delete({count:'exact'}).gte('id', '00000000-0000-0000-0000-000000000000');
+    hideAuthSpinner();
+    if(schedErr){
+      alert('Schedule delete error: ' + schedErr.message);
+      return;
+    }
+    alert(`✅ Calendar reset complete.\n\n${count||0} schedule rows deleted.\n${attachDeleted} attachment files deleted.`);
+    await reloadWeekSchedule();
+    devLoadSlotCount();
+  } catch(e){
+    hideAuthSpinner();
+    alert('Reset failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+// v59 [Louis M10a] - Reset future weeks only. DELETE schedule where day_date >= today_iso.
+// Less destructive than full Reset Calendar — keeps historical bookings for audit/records.
+async function devResetFutureWeeks(){
+  const todayIso = todayISOStr();
+  if(!confirm(`Delete ALL schedule data from ${todayIso} onward?\n\nThis includes all available, booked, training, event, and blocked slots from today into the future. Past records will be kept.\n\nThis cannot be undone.`)) return;
+  showAuthSpinner('Deleting future schedule…');
+  try {
+    const { error, count } = await sb.from('schedule').delete({count:'exact'}).gte('day_date', todayIso);
+    hideAuthSpinner();
+    if(error){
+      alert('Error: ' + error.message);
+      return;
+    }
+    alert(`✅ Future weeks reset.\n\n${count||0} rows deleted (from ${todayIso} onward).`);
+    await reloadWeekSchedule();
+    devLoadSlotCount();
+  } catch(e){
+    hideAuthSpinner();
+    alert('Reset failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+// v59 [Louis M10a] - Generate test data. Populates the CURRENT week with a sample mix of
+// AV Zoom/Meet slots, 1 training session, 1 event. For dev/demo use only.
+async function devGenerateTestData(){
+  if(!WEEK_DAYS || WEEK_DAYS.length < 7){
+    alert('Calendar week not loaded — open Calendar first.');
+    return;
+  }
+  if(!confirm(`Generate sample slots for the current week (${WEEK_DAYS[0].iso} to ${WEEK_DAYS[6].iso})?\n\nWill add ~40 available slots, 1 training session, 1 event.`)) return;
+  showAuthSpinner('Generating test data…');
+  try {
+    const rows = [];
+    // Weekdays Mon-Fri (indices 0-4) — open every hour 9am-5pm with mix of zoom + meet
+    for(let dayIdx = 0; dayIdx <= 4; dayIdx++){
+      const iso = WEEK_DAYS[dayIdx].iso;
+      for(let h = 9; h < 17; h++){
+        // Alternate zoom and meet by hour
+        const isZoom = (h % 2 === 0);
+        rows.push({
+          day_date: iso,
+          start_myt: h * 60,
+          end_myt: (h+1) * 60,
+          type: isZoom ? 'zoom15' : 'private',
+          status: 'av',
+          cancelled: false
+        });
+      }
+    }
+    // 1 training session — Wed 10am-12pm
+    rows.push({
+      day_date: WEEK_DAYS[2].iso,
+      start_myt: 10*60,
+      end_myt: 12*60,
+      type: 'private',
+      status: 'booked',
+      label: 'Training Session (test data)',
+      cancelled: false
+    });
+    // 1 event — Fri 2pm-4pm
+    rows.push({
+      day_date: WEEK_DAYS[4].iso,
+      start_myt: 14*60,
+      end_myt: 16*60,
+      type: 'event',
+      status: 'booked',
+      label: 'Demo Event (test data)',
+      cancelled: false
+    });
+    const { error } = await sb.from('schedule').insert(rows);
+    hideAuthSpinner();
+    if(error){
+      alert('Error: ' + error.message);
+      return;
+    }
+    alert(`✅ Generated ${rows.length} test slots for this week.`);
+    await reloadWeekSchedule();
+    devLoadSlotCount();
+  } catch(e){
+    hideAuthSpinner();
+    alert('Generate failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+// v59 [Louis M10a] - Show all localStorage contents in a modal. Read-only.
+function devShowLocalStorage(){
+  const ov = $id('ls-view-overlay');
+  const content = $id('ls-view-content');
+  if(!ov || !content) return;
+  const keys = [];
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k) keys.push(k);
+  }
+  keys.sort();
+  if(keys.length === 0){
+    content.innerHTML = '<div style="text-align:center;color:var(--g400);font-size:12px;padding:20px">No localStorage data.</div>';
+  } else {
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--g200);background:var(--g50)"><th style="text-align:left;padding:6px 8px">Key</th><th style="text-align:left;padding:6px 8px">Value</th></tr></thead><tbody>';
+    keys.forEach(k => {
+      const v = localStorage.getItem(k) || '';
+      const safeK = sanitize(k);
+      const safeV = sanitize(v.length > 200 ? v.slice(0, 200) + '… (truncated)' : v);
+      html += `<tr style="border-bottom:1px solid var(--g100)"><td style="padding:6px 8px;font-family:monospace;font-weight:700;color:var(--navy);vertical-align:top">${safeK}</td><td style="padding:6px 8px;font-family:monospace;color:var(--g600);word-break:break-all">${safeV}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<div style="margin-top:10px;font-size:11px;color:var(--g500);text-align:right">${keys.length} key${keys.length===1?'':'s'} · session storage not shown</div>`;
+    content.innerHTML = html;
+  }
+  ov.style.display = 'flex';
+}
+function closeLocalStorageModal(){
+  const ov = $id('ls-view-overlay'); if(ov) ov.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// v59 [Louis M10b] - App settings: maintenance mode + force logout. Requires app_settings
+// table with RLS (see M10b SQL). Runs checkAppSettings() on app load AFTER auth check.
+// ═══════════════════════════════════════════════
+let APP_SETTINGS = {}; // cached values
+
+async function checkAppSettings(){
+  try {
+    const { data, error } = await sb.from('app_settings').select('key, value');
+    if(error){
+      console.warn('app_settings fetch error (table may not exist yet — run M10b SQL):', error.message);
+      return;
+    }
+    APP_SETTINGS = {};
+    (data||[]).forEach(r => { APP_SETTINGS[r.key] = r.value; });
+
+    // Force-logout check first (highest priority)
+    const flAfter = APP_SETTINGS.force_logout_after;
+    if(flAfter && CURRENT_USER){
+      // v59 [Louis M11a Item 9] - exclude developer + admin from force-logout
+      const exempt = isDev || isAdmin;
+      if(!exempt){
+        try {
+          const { data: sessData } = await sb.auth.getSession();
+          const lastSignIn = sessData?.session?.user?.last_sign_in_at;
+          if(lastSignIn && new Date(lastSignIn) < new Date(flAfter)){
+            await sb.auth.signOut();
+            alert('You have been signed out by an admin.');
+            window.location.reload();
+            return;
+          }
+        } catch(e){ console.warn('force_logout check failed:', e); }
+      }
+    }
+
+    // Maintenance mode check
+    const isMaint = APP_SETTINGS.maintenance_mode === true;
+    if(isMaint){
+      if(isAdmin || isManager || isDev){
+        // Show banner for admins
+        const banner = $id('maintenance-banner');
+        if(banner) banner.style.display = 'block';
+      } else if(CURRENT_USER){
+        // Block non-admin logged-in users with full-screen overlay
+        const msg = APP_SETTINGS.maintenance_message;
+        const ov = $id('maintenance-overlay');
+        const msgEl = $id('maintenance-message');
+        if(msgEl && typeof msg === 'string') msgEl.textContent = msg;
+        if(ov) ov.style.display = 'flex';
+      }
+      // Logged-out users see the login screen as normal — they can't get in unless admin
+    } else {
+      // Maintenance off — make sure banner/overlay are hidden
+      const banner = $id('maintenance-banner'); if(banner) banner.style.display = 'none';
+      const ov = $id('maintenance-overlay'); if(ov) ov.style.display = 'none';
+    }
+  } catch(e){
+    console.error('checkAppSettings error:', e);
+  }
+}
+
+// Sync the dev console toggle visual state from current APP_SETTINGS
+function loadMaintenanceStateForToggle(){
+  const btn = $id('dev-maintenance-toggle');
+  const msgRow = $id('dev-maintenance-msg-row');
+  const msgInput = $id('dev-maintenance-msg-input');
+  if(!btn) return;
+  const on = APP_SETTINGS.maintenance_mode === true;
+  btn.classList.toggle('on', on);
+  // Show/hide the custom message row based on toggle state
+  if(msgRow) msgRow.style.display = on ? 'flex' : 'none';
+  if(msgInput && typeof APP_SETTINGS.maintenance_message === 'string'){
+    msgInput.value = APP_SETTINGS.maintenance_message;
+  }
+}
+
+async function toggleMaintenanceMode(btn){
+  if(!btn) return;
+  const currentlyOn = btn.classList.contains('on');
+  const nextOn = !currentlyOn;
+  if(nextOn && !confirm('Turn maintenance mode ON?\n\nAll non-admin users will be locked out of the app on their next page load. Admins will see a banner and can still access everything.')) return;
+  showAuthSpinner(nextOn ? 'Activating maintenance…' : 'Deactivating maintenance…');
+  try {
+    const { error } = await sb.from('app_settings')
+      .upsert({ key:'maintenance_mode', value:nextOn, updated_at:new Date().toISOString(), updated_by:CURRENT_USER?.id||null }, { onConflict:'key' });
+    hideAuthSpinner();
+    if(error){
+      alert('Could not update: ' + error.message);
+      return;
+    }
+    APP_SETTINGS.maintenance_mode = nextOn;
+    btn.classList.toggle('on', nextOn);
+    // Update banner + msg row visibility
+    const banner = $id('maintenance-banner');
+    if(banner) banner.style.display = nextOn ? 'block' : 'none';
+    const msgRow = $id('dev-maintenance-msg-row');
+    if(msgRow) msgRow.style.display = nextOn ? 'flex' : 'none';
+    if(typeof showToast === 'function'){
+      showToast(nextOn ? 'Maintenance ON · non-admins locked out on next load' : 'Maintenance OFF · normal access restored');
+    }
+  } catch(e){
+    hideAuthSpinner();
+    alert('Toggle failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+async function saveMaintenanceMessage(){
+  const input = $id('dev-maintenance-msg-input');
+  if(!input) return;
+  const msg = (input.value || '').trim() || 'BD4U Book is under maintenance. Please check back later.';
+  showAuthSpinner('Saving message…');
+  const { error } = await sb.from('app_settings')
+    .upsert({ key:'maintenance_message', value:msg, updated_at:new Date().toISOString(), updated_by:CURRENT_USER?.id||null }, { onConflict:'key' });
   hideAuthSpinner();
-  alert(error?'Error: '+error.message:`✅ Password reset sent to ${email}`);
+  if(error){
+    alert('Could not save: ' + error.message);
+    return;
+  }
+  APP_SETTINGS.maintenance_message = msg;
+  if(typeof showToast === 'function') showToast('Maintenance message saved');
+}
+
+async function executeForceLogout(){
+  if(!confirm('Force-logout all users?\n\nEveryone EXCEPT developer and admin will be signed out the next time they open or refresh the app. You (developer/admin) will keep your session.\n\nThis cannot be undone.')) return;
+  showAuthSpinner('Forcing logout…');
+  try {
+    const now = new Date().toISOString();
+    const { error } = await sb.from('app_settings')
+      .upsert({ key:'force_logout_after', value:now, updated_at:now, updated_by:CURRENT_USER?.id||null }, { onConflict:'key' });
+    if(error){
+      hideAuthSpinner();
+      alert('Could not set force-logout: ' + error.message);
+      return;
+    }
+    // v59 [Louis M11a Item 9] - admin/dev are exempt — don't sign self out
+    hideAuthSpinner();
+    alert('✅ Force-logout activated. All manager + downline sessions will end on their next refresh.');
+  } catch(e){
+    hideAuthSpinner();
+    alert('Force-logout failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+async function signOutFromMaintenance(){
+  try { await sb.auth.signOut(); } catch(e){}
+  window.location.reload();
+}
+
+// ═══════════════════════════════════════════════
+// v59 [Louis M11d Part 4] - "View as downline" toggle for developer role.
+// Lets dev experience the downline UI (Book buttons, + New Booking pill) for testing.
+// Mutates isAdmin/isDev runtime flags. Original role flags preserved in _ORIG_*.
+// State persists in localStorage bd4u_devAsDownline.
+// ═══════════════════════════════════════════════
+let _ORIG_isAdmin = false;
+let _ORIG_isDev = false;
+let DEV_AS_DOWNLINE = false;
+
+function initDevDownlineOverride(){
+  // Called after auth — preserve original role flags
+  _ORIG_isAdmin = isAdmin;
+  _ORIG_isDev = isDev;
+  // Only meaningful for developers
+  if(!_ORIG_isDev){
+    DEV_AS_DOWNLINE = false;
+    return;
+  }
+  // Load persisted state
+  DEV_AS_DOWNLINE = localStorage.getItem('bd4u_devAsDownline') === '1';
+  applyDevDownlineOverride();
+}
+
+function applyDevDownlineOverride(){
+  if(!_ORIG_isDev) return;
+  if(DEV_AS_DOWNLINE){
+    isAdmin = false;
+    isDev = false;
+  } else {
+    isAdmin = _ORIG_isAdmin;
+    isDev = _ORIG_isDev;
+  }
+}
+
+async function toggleDevAsDownline(){
+  if(!_ORIG_isDev) return;
+  DEV_AS_DOWNLINE = !DEV_AS_DOWNLINE;
+  localStorage.setItem('bd4u_devAsDownline', DEV_AS_DOWNLINE ? '1' : '0');
+  applyDevDownlineOverride();
+  syncDevDownlineToggleUI();
+  // Re-render role-dependent UI
+  updateRoleUI();
+  // Re-render calendar so slot buttons (Book vs ✕) update correctly
+  try {
+    if(typeof reloadWeekSchedule === 'function') await reloadWeekSchedule();
+    else if(typeof renderCalendarGrid === 'function') renderCalendarGrid();
+  } catch(e){ console.warn('Re-render after toggle failed:', e); }
+}
+
+function syncDevDownlineToggleUI(){
+  const wrap = $id('dev-downline-toggle-wrap');
+  const btn = $id('dev-downline-toggle');
+  const icon = $id('dev-downline-toggle-icon');
+  const label = $id('dev-downline-toggle-label');
+  if(!wrap || !btn) return;
+  // Visibility based on ORIGINAL role (so dev can always toggle back)
+  wrap.style.display = _ORIG_isDev ? 'block' : 'none';
+  if(!_ORIG_isDev) return;
+  if(DEV_AS_DOWNLINE){
+    btn.style.background = '#0F6E56';
+    btn.style.borderColor = '#0F6E56';
+    if(icon) icon.textContent = '👤';
+    if(label) label.textContent = 'Downline view';
+  } else {
+    btn.style.background = 'rgba(255,255,255,.1)';
+    btn.style.borderColor = 'rgba(255,255,255,.3)';
+    if(icon) icon.textContent = '🛠';
+    if(label) label.textContent = 'Admin view';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// v59 [Louis M11a Item 7] - Activity Log relocated AFTER App section · 15 per page · paginated.
+// Was M10c with last 50 single page. Now uses range() for cursor-based paging.
+// ═══════════════════════════════════════════════
+let DEV_ACTIVITY_PAGE = 0;
+const DEV_ACTIVITY_PER_PAGE = 15;
+let _DEV_ACTIVITY_TOTAL = 0;
+
+async function devLoadActivityLog(pageOverride){
+  if(typeof pageOverride === 'number') DEV_ACTIVITY_PAGE = pageOverride;
+  const container = $id('dev-activity-log');
+  const pager = $id('dev-activity-pager');
+  if(!container) return;
+  container.innerHTML = '<div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div>';
+  if(pager) pager.style.display = 'none';
+  try {
+    // Fetch total count first
+    const { count: totalCount } = await sb.from('schedule')
+      .select('id', { count: 'exact', head: true });
+    _DEV_ACTIVITY_TOTAL = totalCount || 0;
+    // Then fetch the page range
+    const from = DEV_ACTIVITY_PAGE * DEV_ACTIVITY_PER_PAGE;
+    const to = from + DEV_ACTIVITY_PER_PAGE - 1;
+    const { data, error } = await sb.from('schedule')
+      .select('id, day_date, start_myt, end_myt, type, status, prospect, prospect_phone, label, cancelled, created_at, user_id')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if(error){
+      container.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">Error: ${sanitize(error.message)}</div>`;
+      return;
+    }
+    if(!data || data.length === 0){
+      container.innerHTML = '<div style="color:var(--g400);font-size:12px;padding:12px;text-align:center;font-style:italic">No schedule activity yet.</div>';
+      return;
+    }
+    // Build table
+    let html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid var(--g200);background:var(--g50)">';
+    html += '<th style="text-align:left;padding:6px 8px">When</th>';
+    html += '<th style="text-align:left;padding:6px 8px">Action</th>';
+    html += '<th style="text-align:left;padding:6px 8px">Day · Time</th>';
+    html += '<th style="text-align:left;padding:6px 8px">Details</th>';
+    html += '</tr></thead><tbody>';
+    data.forEach(row => {
+      const when = _formatActivityTime(row.created_at);
+      const action = _activityActionLabel(row);
+      const dayTime = `${row.day_date} · ${fmtH(Math.floor(row.start_myt/60), row.start_myt%60)}-${fmtH(Math.floor(row.end_myt/60), row.end_myt%60)}`;
+      let details = '';
+      if(row.cancelled) details = '<span style="color:#a31515;font-weight:600">CANCELLED</span> · ';
+      if(row.prospect) details += sanitize(row.prospect);
+      else if(row.label) details += sanitize(row.label);
+      else if(row.status === 'av') details += '<span style="color:var(--g400)">—</span>';
+      html += `<tr style="border-bottom:1px solid var(--g100)">`;
+      html += `<td style="padding:6px 8px;color:var(--g500);font-family:monospace;white-space:nowrap;vertical-align:top">${when}</td>`;
+      html += `<td style="padding:6px 8px;vertical-align:top">${action}</td>`;
+      html += `<td style="padding:6px 8px;color:var(--g600);white-space:nowrap;vertical-align:top">${sanitize(dayTime)}</td>`;
+      html += `<td style="padding:6px 8px;color:var(--g700);vertical-align:top">${details}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+    // Update pager
+    const totalPages = Math.max(1, Math.ceil(_DEV_ACTIVITY_TOTAL / DEV_ACTIVITY_PER_PAGE));
+    if(pager){
+      pager.style.display = totalPages > 1 ? 'flex' : 'none';
+      const prev = $id('dev-activity-prev');
+      const next = $id('dev-activity-next');
+      const label = $id('dev-activity-pagelabel');
+      if(prev) prev.disabled = DEV_ACTIVITY_PAGE === 0;
+      if(next) next.disabled = DEV_ACTIVITY_PAGE >= totalPages - 1;
+      if(label) label.textContent = `Page ${DEV_ACTIVITY_PAGE+1} of ${totalPages} · ${_DEV_ACTIVITY_TOTAL} entries`;
+    }
+  } catch(e){
+    container.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">Failed: ${sanitize(e.message||'unknown')}</div>`;
+  }
+}
+function devActivityPage(delta){
+  DEV_ACTIVITY_PAGE = Math.max(0, DEV_ACTIVITY_PAGE + delta);
+  devLoadActivityLog();
+}
+function _formatActivityTime(iso){
+  if(!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } catch(e){ return iso; }
+}
+function _activityActionLabel(row){
+  if(row.type === 'event')   return '<span style="background:#FFE0E0;color:#a31515;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">📅 Event</span>';
+  if(row.type === 'blocked') return '<span style="background:#E0E0E0;color:#555;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">🔒 Block</span>';
+  if(row.type === 'private' && row.status !== 'av' && !row.user_id) return '<span style="background:#E0E7FF;color:#1e40af;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">📚 Training</span>';
+  if(row.status === 'av' && row.type === 'private') return '<span style="background:#FFE5B4;color:#7B4F00;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">🟠 AV 20-Meet</span>';
+  if(row.status === 'av') return '<span style="background:#E8F5F1;color:#0F6E56;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">✅ AV 15-Zoom</span>';
+  if(row.status === 'booked' && row.type === 'private') return '<span style="background:#FED7AA;color:#7B4F00;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">📌 Booked Meet</span>';
+  if(row.status === 'booked') return '<span style="background:#DBEAFE;color:#1e40af;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700">📌 Booked Zoom</span>';
+  return `<span style="color:var(--g500);font-size:10px">${sanitize(row.type)} · ${sanitize(row.status)}</span>`;
+}
+
+// ═══════════════════════════════════════════════
+// v59 [Louis M10c] - Attachment cleanup (Option α — manual trigger button). Two modes:
+// 1) Age-based: delete files older than 90 days
+// 2) Orphan-based: delete files not referenced by any schedule row
+// Uses Supabase Storage list (paginated 1000 per call), then storage.remove() in batches.
+// ═══════════════════════════════════════════════
+async function devLoadAttachmentCount(){
+  // Kept as alias for back-compat; delegates to quota loader which already shows file count.
+  return devLoadStorageQuota();
+}
+
+// v59 [Louis M11c Item 8] - Storage quota: total / used / balance. Supabase Free = 1 GB.
+// Lists all files in bucket, sums metadata.size, computes used vs 1 GB limit.
+const STORAGE_QUOTA_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB Free tier
+
+async function devLoadStorageQuota(){
+  const el = $id('dev-storage-quota'); if(!el) return;
+  el.textContent = 'Counting…';
+  try {
+    let allFiles = [];
+    let offset = 0;
+    const limit = 1000;
+    while(true){
+      const { data, error } = await sb.storage.from('booking-attachments').list('', { limit, offset });
+      if(error){ el.textContent = '⚠ ' + error.message; return; }
+      if(!data || data.length === 0) break;
+      allFiles = allFiles.concat(data);
+      if(data.length < limit) break;
+      offset += limit;
+      if(offset > 10000) break;
+    }
+    const fileCount = allFiles.length;
+    const usedBytes = allFiles.reduce((sum, f) => sum + (f.metadata?.size || 0), 0);
+    const freeBytes = Math.max(0, STORAGE_QUOTA_BYTES - usedBytes);
+    const usedPct = (usedBytes / STORAGE_QUOTA_BYTES * 100).toFixed(1);
+    el.innerHTML = `<span style="color:var(--g700);font-weight:700">${_fmtBytes(usedBytes)}</span> used of 1 GB · <span style="color:var(--teal);font-weight:600">${_fmtBytes(freeBytes)} free</span> · ${fileCount} file${fileCount===1?'':'s'} · ${usedPct}%`;
+  } catch(e){
+    el.textContent = '⚠ ' + (e.message || 'list failed');
+  }
+}
+function _fmtBytes(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  if(bytes < 1024*1024*1024) return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  return (bytes/(1024*1024*1024)).toFixed(2) + ' GB';
+}
+
+async function devCleanupOldAttachments(){
+  showAuthSpinner('Listing files…');
+  try {
+    const cutoffMs = Date.now() - (90 * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(cutoffMs);
+    let allFiles = [];
+    let offset = 0;
+    const limit = 1000;
+    while(true){
+      const { data, error } = await sb.storage.from('booking-attachments').list('', { limit, offset });
+      if(error){ hideAuthSpinner(); alert('List error: ' + error.message); return; }
+      if(!data || data.length === 0) break;
+      allFiles = allFiles.concat(data);
+      if(data.length < limit) break;
+      offset += limit;
+      if(offset > 10000) break;
+    }
+    // Filter older than 90 days using created_at
+    const oldFiles = allFiles.filter(f => {
+      if(!f.created_at) return false;
+      return new Date(f.created_at) < cutoffDate;
+    });
+    hideAuthSpinner();
+    if(oldFiles.length === 0){
+      alert(`No files older than 90 days. (${allFiles.length} total files checked.)`);
+      return;
+    }
+    if(!confirm(`Found ${oldFiles.length} file${oldFiles.length===1?'':'s'} older than 90 days (out of ${allFiles.length} total).\n\nDelete these files permanently?\n\nThis cannot be undone.`)) return;
+    showAuthSpinner(`Deleting ${oldFiles.length} files…`);
+    const paths = oldFiles.map(f => f.name);
+    // Remove in batches of 100 (Supabase Storage limit)
+    let deleted = 0;
+    for(let i = 0; i < paths.length; i += 100){
+      const batch = paths.slice(i, i + 100);
+      const { error } = await sb.storage.from('booking-attachments').remove(batch);
+      if(error){ console.error('Batch delete error:', error); continue; }
+      deleted += batch.length;
+    }
+    hideAuthSpinner();
+    alert(`✅ Deleted ${deleted} file${deleted===1?'':'s'}.`);
+    devLoadAttachmentCount();
+  } catch(e){
+    hideAuthSpinner();
+    alert('Cleanup failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+async function devCleanupOrphanedAttachments(){
+  showAuthSpinner('Finding orphans…');
+  try {
+    // 1. List all files in bucket
+    let allFiles = [];
+    let offset = 0;
+    const limit = 1000;
+    while(true){
+      const { data, error } = await sb.storage.from('booking-attachments').list('', { limit, offset });
+      if(error){ hideAuthSpinner(); alert('List error: ' + error.message); return; }
+      if(!data || data.length === 0) break;
+      allFiles = allFiles.concat(data);
+      if(data.length < limit) break;
+      offset += limit;
+      if(offset > 10000) break;
+    }
+    // 2. Fetch all attachment_path values from schedule
+    const { data: schedRows, error: schedErr } = await sb.from('schedule')
+      .select('attachment_path')
+      .not('attachment_path', 'is', null);
+    if(schedErr){ hideAuthSpinner(); alert('Schedule fetch error: ' + schedErr.message); return; }
+    const referenced = new Set((schedRows||[]).map(r => r.attachment_path).filter(Boolean));
+    // 3. Find orphans (files in bucket not in referenced set)
+    const orphans = allFiles.filter(f => f.name && !referenced.has(f.name));
+    hideAuthSpinner();
+    if(orphans.length === 0){
+      alert(`No orphaned files. (${allFiles.length} files in bucket · ${referenced.size} referenced by schedule.)`);
+      return;
+    }
+    if(!confirm(`Found ${orphans.length} orphaned file${orphans.length===1?'':'s'} (not linked to any schedule row).\n\n${allFiles.length} files in bucket, ${referenced.size} are referenced.\n\nDelete the ${orphans.length} orphans permanently?`)) return;
+    showAuthSpinner(`Deleting ${orphans.length} orphans…`);
+    const paths = orphans.map(f => f.name);
+    let deleted = 0;
+    for(let i = 0; i < paths.length; i += 100){
+      const batch = paths.slice(i, i + 100);
+      const { error } = await sb.storage.from('booking-attachments').remove(batch);
+      if(error){ console.error('Batch delete error:', error); continue; }
+      deleted += batch.length;
+    }
+    hideAuthSpinner();
+    alert(`✅ Deleted ${deleted} orphan${deleted===1?'':'s'}.`);
+    devLoadAttachmentCount();
+  } catch(e){
+    hideAuthSpinner();
+    alert('Cleanup failed: ' + (e.message || 'unknown error'));
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -10155,9 +11254,13 @@ window.addEventListener('load', async ()=>{
         isManager = profile.role === 'manager';
         isDev     = profile.role === 'developer';
         activeTZ  = CURRENT_USER.tz;
+        // v59 [Louis M11d Part 4] - apply dev-as-downline override if persisted
+        if(typeof initDevDownlineOverride === 'function') initDevDownlineOverride();
         // Load schedule for restored session
         setText('auth-spinner-txt', 'Loading calendar…');
         await loadScheduleFromDB();
+        // v59 [Louis M10b] - check maintenance + force-logout settings after session restore
+        if(typeof checkAppSettings === 'function') checkAppSettings();
       } else if(!profile){
         // v59 [Louis M8a Item 4] - Active auth session but no users row. This means the user
         // just clicked an email confirmation link from registration but admin hasn't accepted
@@ -10205,7 +11308,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v58 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M11a-LouisC · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -10215,17 +11318,17 @@ window.addEventListener('resize',()=>{
           <div class="card-b">
             <div class="settings-section-title">👥 Users</div>
             <!-- Create account -->
+            <!-- v59 [Louis M11a Item 2] - Role dropdown removed (all new accounts default to downline).
+                 Added Email + Phone + Temporary password fields. To promote to admin/manager, use
+                 Settings → Team Management after creation. -->
             <div style="background:var(--g50);border-radius:var(--r);padding:14px;margin-bottom:14px">
               <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">Create new account</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                <div class="fg" style="margin:0"><label class="fl" for="dev-new-username">Username</label><input class="fc" type="text" id="dev-new-username" placeholder="e.g. ali_my"></div>
-                <div class="fg" style="margin:0"><label class="fl" for="dev-new-name">Full name</label><input class="fc" type="text" id="dev-new-name" placeholder="Ali Rahman"></div>
-                <div class="fg" style="margin:0"><label class="fl" for="dev-new-role">Role</label>
-                  <select class="fc" id="dev-new-role">
-                    <option value="downline">Downline</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-username">Username</label><input class="fc" type="text" id="dev-new-username" placeholder="e.g. harry" autocomplete="off"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-name">Full name</label><input class="fc" type="text" id="dev-new-name" placeholder="Harry James Potter" autocomplete="off"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-email">Email</label><input class="fc" type="email" id="dev-new-email" placeholder="harry@example.com" autocomplete="off"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-phone">Phone</label><input class="fc" type="tel" id="dev-new-phone" placeholder="+60123456789" autocomplete="off"></div>
+                <div class="fg" style="margin:0"><label class="fl" for="dev-new-temppass">Temporary password</label><input class="fc" type="text" id="dev-new-temppass" placeholder="At least 6 characters" autocomplete="off"></div>
                 <div class="fg" style="margin:0"><label class="fl" for="dev-new-tz">Timezone</label>
                   <select class="fc" id="dev-new-tz">
                     <option value="MY">MY — MYT</option>
@@ -10236,6 +11339,7 @@ window.addEventListener('resize',()=>{
                   </select>
                 </div>
               </div>
+              <div style="font-size:10.5px;color:var(--g500);margin-bottom:8px;line-height:1.5">All new accounts created here default to <strong>downline</strong> role. To promote to admin/manager, edit them via Settings → Team Management afterward.</div>
               <div class="login-err" id="dev-create-err"></div>
               <button type="button" class="btn btn-primary btn-sm" onclick="devCreateUser()">Create account</button>
               <div id="dev-create-result" style="margin-top:8px;font-size:12px;color:var(--teal);font-weight:600"></div>
@@ -10258,6 +11362,21 @@ window.addEventListener('resize',()=>{
               <div><div class="settings-row-lbl">Clear slots for current week</div><div class="settings-row-sub">Removes all av + blocked slots (keeps bookings)</div></div>
               <button type="button" class="btn btn-danger btn-sm" onclick="devClearWeekSlots()">Clear week</button>
             </div>
+            <!-- v59 [Louis M10a] - Reset future-weeks-only. Deletes all schedule rows where day_date >= today. Less destructive than full Reset Calendar (keeps history). -->
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Reset future weeks only</div><div class="settings-row-sub">Deletes all schedule data from today onward · keeps history</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="devResetFutureWeeks()">Reset future</button>
+            </div>
+            <!-- v59 [Louis M10a] - Reset Calendar nuke option. Triple-gate modal. Deletes ALL schedule + attachment files. -->
+            <div class="settings-row">
+              <div><div class="settings-row-lbl" style="color:#d33">⚠️ Reset Calendar (nuke)</div><div class="settings-row-sub">Deletes ALL schedule data + attachment files · keeps users · cannot be undone</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="openResetCalendarModal()">Reset…</button>
+            </div>
+            <!-- v59 [Louis M10a] - Generate test data. Populates current week with sample slots for testing. -->
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Generate test data</div><div class="settings-row-sub">Adds sample slots, training + event to the current week</div></div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="devGenerateTestData()">Generate</button>
+            </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Export all bookings as CSV</div><div class="settings-row-sub">Downloads all bookings from DB</div></div>
               <button type="button" class="btn btn-outline btn-sm" onclick="devExportCSV()">Export CSV</button>
@@ -10265,15 +11384,24 @@ window.addEventListener('resize',()=>{
           </div>
         </div>
 
-        <!-- DB Migration card -->
+        <!-- v59 [Louis M10c] - Attachment cleanup card. Manual trigger to delete files older than 90 days from Storage. -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-b">
-            <div class="settings-section-title">🗄 DB Migration — v48</div>
-            <div style="font-size:12px;color:var(--g500);margin-bottom:10px">Run this SQL once in the Supabase dashboard → SQL Editor to enable v48 features (notification prefs columns).</div>
-            <pre style="background:var(--navy);color:#A8F0D0;border-radius:var(--r);padding:12px;font-size:11px;white-space:pre-wrap;overflow-x:auto;margin-bottom:10px">ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_whatsapp BOOLEAN DEFAULT FALSE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;</pre>
-            <button type="button" class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_whatsapp BOOLEAN DEFAULT FALSE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').then(()=>alert('SQL copied!'))">📋 Copy SQL</button>
+            <div class="settings-section-title">🗑️ Attachment cleanup</div>
+            <div style="font-size:11px;color:var(--g500);margin-bottom:8px">Removes files from booking-attachments Storage bucket. ZL-9 deferred-cron substitute.</div>
+            <!-- v59 [Louis M11c Item 8] - Storage quota: total / used / balance for Supabase Free tier (1 GB). -->
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Storage quota (Free · 1 GB)</div><div class="settings-row-sub" id="dev-storage-quota">—</div></div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="devLoadStorageQuota()">Refresh</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Delete files older than 90 days</div><div class="settings-row-sub">Age-based cleanup · shows preview first</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="devCleanupOldAttachments()">Run cleanup</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-lbl">Delete orphaned files</div><div class="settings-row-sub">Files not referenced by any schedule row</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="devCleanupOrphanedAttachments()">Find &amp; delete</button>
+            </div>
           </div>
         </div>
 
@@ -10281,28 +11409,115 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email BOOLEAN DEFAULT FALSE;').
         <div class="card">
           <div class="card-b">
             <div class="settings-section-title">⚙️ App</div>
+            <!-- v59 [Louis M10b] - Maintenance mode (now functional). Toggle writes to app_settings table.
+                 When on, non-admin users see maintenance screen on next page load. Admins see banner. -->
             <div class="settings-row">
-              <div><div class="settings-row-lbl">Maintenance mode</div><div class="settings-row-sub">Shows maintenance message to all users</div></div>
-              <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleSetting(this)"></button>
+              <div>
+                <div class="settings-row-lbl">Maintenance mode</div>
+                <div class="settings-row-sub">Locks app for non-admins on next page load</div>
+              </div>
+              <button type="button" class="settings-toggle" id="dev-maintenance-toggle" onclick="toggleMaintenanceMode(this)"></button>
+            </div>
+            <div class="settings-row" id="dev-maintenance-msg-row" style="display:none">
+              <div style="flex:1">
+                <div class="settings-row-lbl">Maintenance message</div>
+                <div class="settings-row-sub" style="margin-bottom:6px">Shown to non-admin users on maintenance screen</div>
+                <div style="display:flex;gap:6px">
+                  <input type="text" class="fc" id="dev-maintenance-msg-input" placeholder="BD4U Book is under maintenance…" style="flex:1;padding:6px 10px;font-size:12px">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="saveMaintenanceMessage()">Save</button>
+                </div>
+              </div>
+            </div>
+            <!-- v59 [Louis M11a Item 9] - Force-logout now excludes both developer AND admin. Only manager/downline get logged out. -->
+            <div class="settings-row">
+              <div><div class="settings-row-lbl" style="color:#d33">⚠️ Force-logout all users</div><div class="settings-row-sub">Signs out everyone except developer + admin on next page load · cannot be undone</div></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="executeForceLogout()">Force logout</button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v58</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M11a-LouisC</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
             </div>
+            <!-- v59 [Louis M10a] - View localStorage contents. Opens a modal listing all keys + values from browser localStorage. Useful for debugging Focus/Clean/timezone state without DevTools. -->
             <div class="settings-row">
-              <div><div class="settings-row-lbl">Reset password for user</div><div class="settings-row-sub">Enter username to send reset</div></div>
-              <div style="display:flex;gap:6px">
-                <input type="text" class="fc" id="dev-reset-username" placeholder="username" style="width:120px;padding:6px 10px;font-size:12px">
-                <button type="button" class="btn btn-outline btn-sm" onclick="devResetPassword()">Reset</button>
-              </div>
+              <div><div class="settings-row-lbl">View localStorage</div><div class="settings-row-sub">Shows all browser-stored settings (read-only)</div></div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="devShowLocalStorage()">View</button>
+            </div>
+            <!-- v59 [Louis M11a Item 11] - Reset Password moved to per-user row in the All Users list. The standalone row was removed from here. -->
+          </div>
+        </div>
+
+        <!-- v59 [Louis M11a Item 7] - Activity Log card relocated AFTER App section. Paginated 15/page with Prev/Next controls. -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-b">
+            <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>📋 Activity log</span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="devLoadActivityLog(0)" title="Refresh list">↻</button>
+            </div>
+            <div style="font-size:11px;color:var(--g500);margin-bottom:8px">Schedule changes · most recent first · 15 per page</div>
+            <div id="dev-activity-log"><div style="color:var(--g400);font-size:12px;padding:8px">Loading…</div></div>
+            <div id="dev-activity-pager" style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--g600);display:none">
+              <button type="button" class="btn btn-outline btn-xs" id="dev-activity-prev" onclick="devActivityPage(-1)">← Prev</button>
+              <span id="dev-activity-pagelabel">Page 1 of 1</span>
+              <button type="button" class="btn btn-outline btn-xs" id="dev-activity-next" onclick="devActivityPage(1)">Next →</button>
             </div>
           </div>
         </div>
 
       </div>
     </main>
+  </div>
+
+  <!-- v59 [Louis M10a] - Reset Calendar triple-gate modal. Checkbox + typed phrase + button. -->
+  <div class="bsheet-overlay" id="reset-cal-overlay" onclick="if(event.target===this)closeResetCalendarModal()" style="display:none">
+    <div class="bsheet" id="reset-cal-modal" style="max-width:440px">
+      <div class="bsheet-hdr" style="border-bottom:1px solid var(--g200)">
+        <div class="bsheet-title">⚠️ Reset Calendar</div>
+        <div class="bsheet-sub" style="color:#d33">This will permanently delete all schedule data.</div>
+      </div>
+      <div style="padding:14px">
+        <div style="background:#fff3f0;border:1px solid #f4a59c;border-radius:6px;padding:11px;margin-bottom:14px;font-size:11.5px;color:#7a2918;line-height:1.55">
+          <strong>Will delete:</strong><br>
+          • All available slots (15min Zoom + 20min Meet)<br>
+          • All booked slots (downline bookings)<br>
+          • All training sessions / events / blocked slots<br>
+          • All cancelled bookings<br>
+          • All attachment files in Supabase Storage<br>
+          <br>
+          <strong>Will keep:</strong><br>
+          • All users (admin / manager / downline / developer)<br>
+          • Pending registrations<br>
+          • Notification preferences
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--g600);margin-bottom:10px;cursor:pointer;line-height:1.45">
+          <input type="checkbox" id="reset-cal-chk" oninput="updateResetCalBtnState()" style="margin-top:2px;accent-color:#d33;width:16px;height:16px">
+          <span>I understand this cannot be undone.</span>
+        </label>
+        <div style="font-size:11.5px;color:var(--g600);margin-bottom:5px">Type <strong>RESET CALENDAR</strong> to confirm:</div>
+        <input type="text" id="reset-cal-phrase" oninput="updateResetCalBtnState()" placeholder="" style="width:100%;padding:8px 10px;border:1px solid var(--g300);border-radius:6px;font-size:12px;font-family:monospace;letter-spacing:.5px;box-sizing:border-box;margin-bottom:14px">
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" style="flex:1" onclick="closeResetCalendarModal()">Cancel</button>
+          <button type="button" id="reset-cal-confirm" class="btn btn-sm" style="flex:1;background:#d33;color:#fff;border:none;opacity:.5;cursor:not-allowed" disabled onclick="executeResetCalendar()">Reset everything</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v59 [Louis M10a] - LocalStorage viewer modal. Read-only table of all browser-stored values. -->
+  <div class="bsheet-overlay" id="ls-view-overlay" onclick="if(event.target===this)closeLocalStorageModal()" style="display:none">
+    <div class="bsheet" id="ls-view-modal" style="max-width:600px">
+      <div class="bsheet-hdr" style="border-bottom:1px solid var(--g200)">
+        <div class="bsheet-title">📦 Browser localStorage</div>
+        <div class="bsheet-sub">Read-only view of all stored values</div>
+      </div>
+      <div style="padding:14px;max-height:60vh;overflow-y:auto">
+        <div id="ls-view-content"></div>
+      </div>
+      <div style="padding:10px 14px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeLocalStorageModal()">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 <div class="bsheet-overlay" id="bsheet-overlay" onclick="if(event.target===this)closeBSheet()">
