@@ -864,13 +864,22 @@ body{font-family:var(--font);background:#E2E8F0;color:var(--g800);min-height:100
   display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto}
 .att-modal-overlay.on{display:flex}
 .att-modal{background:#fff;border-radius:12px;width:100%;max-width:640px;
+  max-height:calc(100vh - 48px);
   box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;display:flex;flex-direction:column}
 .att-modal-hdr{padding:16px 18px 8px;position:relative;flex:0 0 auto}
 .att-modal-title{font-size:15px;font-weight:800;color:var(--navy)}
 .att-modal-sub{font-size:11.5px;color:var(--g500);margin-top:2px}
 .att-modal-close{position:absolute;top:12px;right:12px;background:none;border:none;
   color:var(--g500);cursor:pointer;font-size:14px;padding:4px;font-weight:700}
-.att-modal-body{padding:6px 18px 14px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.att-modal-body{padding:6px 18px 14px;flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+/* v59 [Louis M11a-LouisC fix #3] - On mobile, stack preview action buttons vertically so they don't
+   overlap each other or the modal footer Cancel. Body is now scrollable so content can't overflow. */
+@media (max-width:640px){
+  .att-preview-actions{flex-direction:column;gap:6px;align-items:stretch}
+  .att-preview-actions .att-action-btn{width:100%;justify-content:center;display:flex}
+  .att-modal-footer{padding:10px 14px 12px}
+  .att-modal-meta{font-size:10px}
+}
 /* State A — large preview */
 .att-state-a{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0}
 .att-preview-wrap{width:100%;background:var(--g50);border-radius:10px;padding:10px;
@@ -4646,7 +4655,7 @@ async function attachmentSaveEdit(){
   }
 }
 
-function openAttachmentModal(bookingId, summaryText){
+async function openAttachmentModal(bookingId, summaryText){
   _attBookingId = bookingId;
   _attUploading = false;
   const ov = $id('att-modal-overlay');
@@ -4656,12 +4665,26 @@ function openAttachmentModal(bookingId, summaryText){
   const progEl = $id('att-progress'); if(progEl) progEl.style.display = 'none';
   const fileEl = $id('att-file-input'); if(fileEl) fileEl.value = '';
   setText('att-modal-sub', summaryText || '');
-  // v59 [Louis M6c] - reset edit section to collapsed and populate inputs with current slot values.
-  // _attEditOriginal tracks the unmodified values so dirty detection works correctly.
+  // v59 [Louis M11a-LouisC fix #1] - reset edit section to collapsed and populate inputs with current slot values.
+  // _attEditOriginal tracks the unmodified values so dirty detection works correctly. Now falls back to DB
+  // lookup when slot not in SCHEDULE (e.g. booking from a different week not currently loaded).
   _attEditOpen = false;
   const slot = SCHEDULE.find(s => s._id === bookingId);
-  const origName  = slot?.prospect       || '';
-  const origPhone = slot?.prospect_phone || '';
+  let origName  = slot?.prospect       || '';
+  let origPhone = slot?.prospect_phone || '';
+  // Fallback: if slot wasn't in SCHEDULE cache, fetch from DB so pre-fill still works
+  if(!slot){
+    try {
+      const { data } = await sb.from('schedule')
+        .select('prospect, prospect_phone')
+        .eq('id', bookingId)
+        .maybeSingle();
+      if(data){
+        origName  = data.prospect || '';
+        origPhone = data.prospect_phone || '';
+      }
+    } catch(e){ /* silent — leave empty */ }
+  }
   _attEditOriginal = { prospect: origName, phone: origPhone };
   const nameEl  = $id('att-edit-name');  if(nameEl)  nameEl.value  = origName;
   const phoneEl = $id('att-edit-phone'); if(phoneEl) phoneEl.value = origPhone;
@@ -9443,7 +9466,28 @@ async function renderPendingUsers(){
       if(badge) badge.textContent = '!';
       return;
     }
-    const items = rows || [];
+    const rawItems = rows || [];
+    // v59 [Louis M11a-LouisC fix #2] - Auto-filter pending rows whose email is already an approved user.
+    // Handles stuck-pending edge case: if DELETE on pending_users silently failed after approval (e.g.
+    // session-restore race condition), the row stays in pending_users. We hide it client-side AND attempt
+    // a defensive cleanup in the background.
+    let items = rawItems;
+    if(rawItems.length){
+      try {
+        const emails = rawItems.map(r => r.email).filter(Boolean);
+        const { data: existing } = await sb.from('users').select('email').in('email', emails);
+        const approvedEmails = new Set((existing || []).map(u => u.email));
+        const stuckIds = rawItems.filter(r => approvedEmails.has(r.email)).map(r => r.id);
+        items = rawItems.filter(r => !approvedEmails.has(r.email));
+        // Background cleanup attempt (fire-and-forget)
+        if(stuckIds.length){
+          console.warn('Auto-cleanup stuck pending rows:', stuckIds);
+          sb.from('pending_users').delete().in('id', stuckIds).then(({ error: delErr }) => {
+            if(delErr) console.warn('Auto-cleanup DELETE failed:', delErr.message);
+          });
+        }
+      } catch(e){ console.warn('Stuck-pending filter failed:', e); items = rawItems; }
+    }
     if(badge) badge.textContent = String(items.length);
     if(items.length === 0){
       // Card stays visible with empty state — helps admin know feature exists.
@@ -9570,7 +9614,11 @@ async function approvePendingUser(pendingId){
           return;
         }
         // DELETE pending row (per Louis Q5 — clean over audit-trail)
-        await sb.from('pending_users').delete().eq('id', pu.id);
+        // v59 [Louis M11a-LouisC fix #2] - log DELETE errors instead of silently swallowing
+        const { error: delErr } = await sb.from('pending_users').delete().eq('id', pu.id);
+        if(delErr){
+          console.warn('Pending DELETE after approve failed (will be cleaned up by renderPendingUsers filter):', delErr.message);
+        }
         hideAuthSpinner();
         if(typeof showToast === 'function') showToast(`Approved ${pu.nickname} ✓`);
         // Refresh both cards
@@ -10432,26 +10480,33 @@ function _renderDevUsersPage(){
   const start = DEV_USERS_PAGE * DEV_USERS_PER_PAGE;
   const slice = _DEV_USERS_CACHE.slice(start, start + DEV_USERS_PER_PAGE);
 
-  let html = `<table style="width:100%;font-size:12px;border-collapse:collapse">
-    <tr style="border-bottom:1px solid var(--g200)">
-      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Name</th>
-      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Email</th>
-      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">Role</th>
-      <th style="text-align:left;padding:6px 8px;color:var(--g500);font-weight:600">TZ</th>
-      <th style="padding:6px 8px"></th>
-    </tr>`;
-  html += slice.map(u => `<tr style="border-bottom:1px solid var(--g100)${u.suspended?';opacity:.5':''}">
-    <td style="padding:7px 8px;font-weight:600;color:var(--navy)">${sanitize(u.name)}</td>
-    <td style="padding:7px 8px;color:var(--g500)">${sanitize(u.email||'—')}</td>
-    <td style="padding:7px 8px"><span style="background:${u.role==='developer'?'var(--navy)':u.role==='admin'?'var(--reneeLt)':'var(--tealLt)'};color:${u.role==='developer'?'#fff':u.role==='admin'?'var(--renee)':'var(--teal)'};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${u.role}</span></td>
-    <td style="padding:7px 8px;color:var(--g500)">${u.timezone}</td>
-    <td style="padding:7px 8px;display:flex;gap:4px;flex-wrap:wrap">
-      <button type="button" class="btn btn-outline btn-xs" onclick="devResetUserPassword('${u.id}','${sanitize(u.name)}','${sanitize(u.email||'')}')" title="Reset password">🔑</button>
-      <button type="button" class="btn btn-danger btn-xs" onclick="devSuspendUser('${u.id}','${sanitize(u.name)}',${!u.suspended})">${u.suspended?'Unsuspend':'Suspend'}</button>
-      <button type="button" class="btn btn-outline btn-xs" onclick="devDeleteUser('${u.id}','${sanitize(u.name)}')">Delete</button>
-    </td>
-  </tr>`).join('');
-  html += `</table>`;
+  // v59 [Louis M11a-LouisC fix #4] - Card layout instead of table. Avatar + name + email + badge below.
+  // TZ column removed (was squished on mobile). Action buttons in compact group on the right.
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  html += slice.map(u => {
+    const ini = sanitize((u.name||'?').trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2));
+    const roleColor = u.role==='developer' ? 'var(--navy)' : u.role==='admin' ? 'var(--reneeLt)' : u.role==='manager' ? 'var(--amberLt)' : 'var(--tealLt)';
+    const roleText  = u.role==='developer' ? '#fff'        : u.role==='admin' ? 'var(--renee)'   : u.role==='manager' ? '#7B4F00'      : 'var(--teal)';
+    const avBg      = u.role==='developer' ? 'var(--navy)' : u.role==='admin' ? 'var(--renee)'   : u.role==='manager' ? 'var(--amber)' : 'var(--teal)';
+    const rowOpacity = u.suspended ? ';opacity:.55' : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--g50);border:1px solid var(--g100);border-radius:8px${rowOpacity}">
+      <div style="width:38px;height:38px;border-radius:50%;background:${avBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${ini}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitize(u.name||'—')}</div>
+        <div style="font-size:11px;color:var(--g500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">${sanitize(u.email||'—')}</div>
+        <div style="margin-top:4px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+          <span style="background:${roleColor};color:${roleText};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${u.role}</span>
+          ${u.suspended ? '<span style="background:var(--redLt);color:var(--red);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🔴 SUSPENDED</span>' : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button type="button" class="btn btn-outline btn-xs" style="padding:5px 8px" onclick="devResetUserPassword('${u.id}','${sanitize(u.name||'')}','${sanitize(u.email||'')}')" title="Reset password">🔑</button>
+        <button type="button" class="btn btn-xs ${u.suspended?'btn-primary':'btn-outline'}" style="padding:5px 9px;font-size:10.5px" onclick="devSuspendUser('${u.id}','${sanitize(u.name||'')}',${!u.suspended})">${u.suspended?'Unsuspend':'Suspend'}</button>
+        <button type="button" class="btn btn-xs" style="padding:5px 9px;font-size:10.5px;background:#fef2f2;color:var(--red);border:1px solid var(--red)" onclick="devDeleteUser('${u.id}','${sanitize(u.name||'')}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  html += '</div>';
   if(totalPages > 1){
     html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--g600)">
       <button type="button" class="btn btn-outline btn-xs" ${DEV_USERS_PAGE===0?'disabled':''} onclick="devUsersPage(-1)">← Prev</button>
@@ -11308,7 +11363,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M11a-LouisC · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M11a-LouisC-hotfix · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -11434,7 +11489,7 @@ window.addEventListener('resize',()=>{
               <button type="button" class="btn btn-danger btn-sm" onclick="executeForceLogout()">Force logout</button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M11a-LouisC</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M11a-LouisC-hotfix</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
