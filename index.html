@@ -1461,6 +1461,9 @@ tr:hover td{background:var(--g50)}
 .qopen-time-row{display:flex;align-items:center;gap:10px}
 .qopen-time-row .fc{flex:1}
 .qopen-time-sep{font-size:13px;color:var(--g400);font-weight:600;flex-shrink:0}
+.qopen-hm-lbl{width:38px;font-size:12px;color:var(--g500);flex-shrink:0}
+.qopen-time-row .qopen-min-sel{flex:0 0 84px}
+.qopen-hm-row + .qopen-hm-row{margin-top:8px}
 /* v59 [issue 4]: Days picker — was flex with fixed 40px width + wrap, which forced Sun onto a 2nd
    row at narrow modal widths. Now flex:1 per day with smaller height so all 7 fit on a single row
    regardless of modal width. */
@@ -8993,10 +8996,9 @@ function bsheetTraining(){
 // ═══════════════════════════════════════════════
 let _qoSelectedDays = new Set();
 let _qoSlotType = 'zoom15';
-// v59 [Louis M12a]: custom time range is now two dropdowns whose options follow the slot-type grid
-// (15-min Zoom -> :00 :15 :30 :45 · 20-min Meet -> :00 :20 :40). Stops off-grid input (e.g. 10:35).
-const QO_DAY_START = 9*60;    // 9:00am — earliest admin opens slots
-const QO_DAY_END   = 22*60;   // 10:00pm cap (matches Full Day preset + Add Modal)
+// v59 [Louis M13]: custom range = hour dropdown + minute dropdown per field. Minute options follow
+// the slot-type grid (Zoom :00/:15/:30/:45 · Meet :00/:20/:40); the 10pm hour caps minutes to :00.
+const QO_DAY_START_H = 9, QO_DAY_END_H = 22;   // 9am .. 10pm (inclusive end cap)
 const QOPEN_PRESETS = {
   morning:   { start:540,  end:720  },   // 9am–12pm
   afternoon: { start:720,  end:1080 },   // 12pm–6pm
@@ -9004,49 +9006,28 @@ const QOPEN_PRESETS = {
   fullday:   { start:540,  end:1320 },   // 9am–10pm
 };
 function qoStep(){ return _qoSlotType==='zoom15' ? 15 : 20; }
-
-// Rebuild start + end dropdowns for the current slot-type grid, preserving selections where still valid.
-function qoBuildTimeOptions(){
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(!si||!ei) return;
-  const step=qoStep();
-  const prevStart = si.value!=='' ? parseInt(si.value,10) : null;
-  const prevEnd   = ei.value!=='' ? parseInt(ei.value,10) : null;
-  // snap an old value DOWN to the new grid; keep only if still inside the range
-  const snap=(v)=>{ if(v==null) return null; const m=QO_DAY_START + Math.floor((v-QO_DAY_START)/step)*step; return (m>=QO_DAY_START && m<=QO_DAY_END) ? m : null; };
-  const startSel=snap(prevStart);
-  let sHtml='<option value="">Start…</option>';
-  for(let m=QO_DAY_START; m<=QO_DAY_END-step; m+=step){
-    sHtml+=`<option value="${m}"${m===startSel?' selected':''}>${mytTimeStr(m)}</option>`;
-  }
-  si.innerHTML=sHtml;
-  if(startSel==null) si.value='';
-  qoBuildEndOptions(snap(prevEnd));
+function qoMinsFor(h){ if(h>=QO_DAY_END_H) return [0]; return _qoSlotType==='zoom15' ? [0,15,30,45] : [0,20,40]; }
+// snap a minute DOWN to the nearest valid mark for this hour+type (Louis M13 Q: option a)
+function _qoSnapMin(h,cur){ const a=qoMinsFor(h); for(let x=a.length-1;x>=0;x--){ if(a[x]<=cur) return a[x]; } return a[0]; }
+function _qoHourOpts(){ let h=''; for(let x=QO_DAY_START_H;x<=QO_DAY_END_H;x++) h+=`<option value="${x}">${mytTimeStr(x*60)}</option>`; return h; }
+function _qoMinOpts(h,want){
+  const a=qoMinsFor(h), v=_qoSnapMin(h, want==null?0:want);
+  return a.map(m=>`<option value="${m}"${m===v?' selected':''}>:${m<10?'0'+m:m}</option>`).join('');
 }
-// End options must be strictly after the chosen start. Keep desiredEnd selected if it is a valid mark.
-function qoBuildEndOptions(desiredEnd){
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(!si||!ei) return;
-  const step=qoStep();
-  const start = si.value!=='' ? parseInt(si.value,10) : null;
-  const lo = (start!=null ? start+step : QO_DAY_START+step);
-  let eHtml='<option value="">End…</option>', keep=null;
-  for(let m=lo; m<=QO_DAY_END; m+=step){
-    const sel=(desiredEnd===m); if(sel) keep=m;
-    eHtml+=`<option value="${m}"${sel?' selected':''}>${mytTimeStr(m)}</option>`;
-  }
-  ei.innerHTML=eHtml;
-  if(keep==null) ei.value='';
+// Rebuild one side's minute dropdown for its current hour + slot type, keeping the value if still valid.
+function _qoRebuildMin(side){
+  const hs=$id('qopen-'+side+'-h'), ms=$id('qopen-'+side+'-m');
+  if(!hs||!ms) return;
+  const h=parseInt(hs.value,10);
+  const want=ms.value!=='' ? parseInt(ms.value,10) : 0;
+  ms.innerHTML=_qoMinOpts(h, want);
 }
-function onQOpenStartChange(){
-  const ei=$id('qopen-end');
-  const prevEnd = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
-  qoBuildEndOptions(prevEnd);
-  updateQOpenSummary();
-}
+function onQOpenHourChange(side){ _qoRebuildMin(side); updateQOpenSummary(); }
+function _qoStartMin(){ const h=$id('qopen-start-h'), m=$id('qopen-start-m'); if(!h||!m||h.value===''||m.value==='') return null; return parseInt(h.value,10)*60+parseInt(m.value,10); }
+function _qoEndMin(){ const h=$id('qopen-end-h'), m=$id('qopen-end-m'); if(!h||!m||h.value===''||m.value==='') return null; return parseInt(h.value,10)*60+parseInt(m.value,10); }
 
 // v59 [issue 4]: openQuickOpen accepts optional preselectDayIdx — pre-selects that day when opened
-// from the panel footer for a specific day. Toolbar call (no arg) keeps the empty selection.
+// from the panel footer for a specific day. Toolbar call (no arg) keeps the empty day selection.
 function openQuickOpen(preselectDayIdx){
   _qoSelectedDays = new Set();
   _qoSlotType = 'zoom15';
@@ -9055,9 +9036,11 @@ function openQuickOpen(preselectDayIdx){
   const zt=$id('qt-zoom'), pt=$id('qt-private');
   if(zt) zt.className='qopen-type on-zoom';
   if(pt) pt.className='qopen-type';
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(si) si.value=''; if(ei) ei.value='';
-  qoBuildTimeOptions();
+  // time dropdowns: fill hours, default Start 9:00am → End 10:00am
+  const sh=$id('qopen-start-h'), eh=$id('qopen-end-h');
+  if(sh){ sh.innerHTML=_qoHourOpts(); sh.value=String(QO_DAY_START_H); }
+  if(eh){ eh.innerHTML=_qoHourOpts(); eh.value=String(QO_DAY_START_H+1); }
+  _qoRebuildMin('start'); _qoRebuildMin('end');
   if(typeof preselectDayIdx === 'number' && preselectDayIdx >= 0 && preselectDayIdx < 7){
     _qoSelectedDays.add(preselectDayIdx);
     const el=$id('qd-'+preselectDayIdx); if(el) el.classList.add('on');
@@ -9069,12 +9052,14 @@ function closeQuickOpen(){
   const ov=$id('qopen-overlay'); if(ov) ov.classList.remove('on');
 }
 function applyPreset(name){
-  const p=QOPEN_PRESETS[name]; if(!p) return;
+  const p=QOPEN_PRESETS[name]; if(!p) return;   // p.start / p.end in minutes
   ['morning','afternoon','evening','fullday'].forEach(k=>{ const el=$id('qp-'+k); if(el) el.classList.toggle('on',k===name); });
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(si) si.value=String(p.start);
-  if(ei) ei.value=String(p.end);
-  qoBuildTimeOptions();   // rebuilds for current grid + re-selects the (grid-valid) preset values
+  const sh=$id('qopen-start-h'), sm=$id('qopen-start-m'), eh=$id('qopen-end-h'), em=$id('qopen-end-m');
+  const sH=Math.floor(p.start/60), sM=p.start%60, eH=Math.floor(p.end/60), eM=p.end%60;
+  if(sh){ if(sh.options.length===0) sh.innerHTML=_qoHourOpts(); sh.value=String(sH); }
+  if(eh){ if(eh.options.length===0) eh.innerHTML=_qoHourOpts(); eh.value=String(eH); }
+  if(sm) sm.innerHTML=_qoMinOpts(sH, sM);
+  if(em) em.innerHTML=_qoMinOpts(eH, eM);
   updateQOpenSummary();
 }
 function toggleQDay(idx){
@@ -9089,13 +9074,11 @@ function setQType(type){
   const zt=$id('qt-zoom'), pt=$id('qt-private');
   if(zt) zt.className='qopen-type'+(type==='zoom15'?' on-zoom':'');
   if(pt) pt.className='qopen-type'+(type==='private'?' on-private':'');
-  qoBuildTimeOptions();   // rebuild dropdowns for the new grid (snaps current selections)
+  _qoRebuildMin('start'); _qoRebuildMin('end');   // minutes depend on slot type; snap to new grid
   updateQOpenSummary();
 }
 function updateQOpenSummary(){
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  const sMin = si && si.value!=='' ? parseInt(si.value,10) : null;
-  const eMin = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
+  const sMin=_qoStartMin(), eMin=_qoEndMin();
   const sum=$id('qopen-summary'); if(!sum) return;
   const days=[..._qoSelectedDays].sort((a,b)=>a-b);
   const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -9110,9 +9093,7 @@ function updateQOpenSummary(){
   sum.textContent=`Will open ${slots} ${typeLabel} slots × ${days.length} day${days.length>1?'s':''} (${dayStr}) · ${mytTimeStr(sMin)}–${mytTimeStr(eMin)} MYT`;
 }
 async function confirmQuickOpen(){
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  const sMin = si && si.value!=='' ? parseInt(si.value,10) : null;
-  const eMin = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
+  const sMin=_qoStartMin(), eMin=_qoEndMin();
   if(sMin==null||eMin==null){ alert('Please pick a start and end time.'); return; }
   if(eMin<=sMin){ alert('End time must be after start time.'); return; }
   if(!_qoSelectedDays.size){ alert('Please select at least one day.'); return; }
@@ -11407,7 +11388,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M12 · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M13 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -11533,7 +11514,7 @@ window.addEventListener('resize',()=>{
               <button type="button" class="btn btn-danger btn-sm" onclick="executeForceLogout()">Force logout</button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M12</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M13</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
@@ -11717,10 +11698,15 @@ window.addEventListener('resize',()=>{
       <!-- Custom time range -->
       <div>
         <div class="qopen-sec-lbl">Custom time range (MYT)</div>
-        <div class="qopen-time-row">
-          <select class="fc" id="qopen-start" aria-label="Start time" onchange="onQOpenStartChange()"></select>
-          <span class="qopen-time-sep">to</span>
-          <select class="fc" id="qopen-end" aria-label="End time" onchange="updateQOpenSummary()"></select>
+        <div class="qopen-time-row qopen-hm-row">
+          <span class="qopen-hm-lbl">Start</span>
+          <select class="fc" id="qopen-start-h" aria-label="Start hour" onchange="onQOpenHourChange('start')"></select>
+          <select class="fc qopen-min-sel" id="qopen-start-m" aria-label="Start minutes" onchange="updateQOpenSummary()"></select>
+        </div>
+        <div class="qopen-time-row qopen-hm-row">
+          <span class="qopen-hm-lbl">End</span>
+          <select class="fc" id="qopen-end-h" aria-label="End hour" onchange="onQOpenHourChange('end')"></select>
+          <select class="fc qopen-min-sel" id="qopen-end-m" aria-label="End minutes" onchange="updateQOpenSummary()"></select>
         </div>
       </div>
       <!-- Day picker -->
