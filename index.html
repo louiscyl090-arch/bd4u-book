@@ -8993,38 +8993,74 @@ function bsheetTraining(){
 // ═══════════════════════════════════════════════
 let _qoSelectedDays = new Set();
 let _qoSlotType = 'zoom15';
-// v59 [issue 4]: Morning + Full Day start changed from 8am → 9am per Louis spec. The earliest
-// admin opens slots for is 9am, so 8am was meaningless and just created an unused slot.
+// v59 [Louis M12a]: custom time range is now two dropdowns whose options follow the slot-type grid
+// (15-min Zoom -> :00 :15 :30 :45 · 20-min Meet -> :00 :20 :40). Stops off-grid input (e.g. 10:35).
+const QO_DAY_START = 9*60;    // 9:00am — earliest admin opens slots
+const QO_DAY_END   = 22*60;   // 10:00pm cap (matches Full Day preset + Add Modal)
 const QOPEN_PRESETS = {
-  morning:   { start:'9am',  end:'12pm' },
-  afternoon: { start:'12pm', end:'6pm'  },
-  evening:   { start:'6pm',  end:'10pm' },
-  fullday:   { start:'9am',  end:'10pm' },
+  morning:   { start:540,  end:720  },   // 9am–12pm
+  afternoon: { start:720,  end:1080 },   // 12pm–6pm
+  evening:   { start:1080, end:1320 },   // 6pm–10pm
+  fullday:   { start:540,  end:1320 },   // 9am–10pm
 };
+function qoStep(){ return _qoSlotType==='zoom15' ? 15 : 20; }
 
-// v59 [issue 4]: openQuickOpen now accepts optional preselectDayIdx — when called from the panel
-// footer (admin opened the panel for a specific day), pre-select that day in the picker. User can
-// still tap other days to include them. Toolbar call (no arg) keeps the original empty selection.
+// Rebuild start + end dropdowns for the current slot-type grid, preserving selections where still valid.
+function qoBuildTimeOptions(){
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  if(!si||!ei) return;
+  const step=qoStep();
+  const prevStart = si.value!=='' ? parseInt(si.value,10) : null;
+  const prevEnd   = ei.value!=='' ? parseInt(ei.value,10) : null;
+  // snap an old value DOWN to the new grid; keep only if still inside the range
+  const snap=(v)=>{ if(v==null) return null; const m=QO_DAY_START + Math.floor((v-QO_DAY_START)/step)*step; return (m>=QO_DAY_START && m<=QO_DAY_END) ? m : null; };
+  const startSel=snap(prevStart);
+  let sHtml='<option value="">Start…</option>';
+  for(let m=QO_DAY_START; m<=QO_DAY_END-step; m+=step){
+    sHtml+=`<option value="${m}"${m===startSel?' selected':''}>${mytTimeStr(m)}</option>`;
+  }
+  si.innerHTML=sHtml;
+  if(startSel==null) si.value='';
+  qoBuildEndOptions(snap(prevEnd));
+}
+// End options must be strictly after the chosen start. Keep desiredEnd selected if it is a valid mark.
+function qoBuildEndOptions(desiredEnd){
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  if(!si||!ei) return;
+  const step=qoStep();
+  const start = si.value!=='' ? parseInt(si.value,10) : null;
+  const lo = (start!=null ? start+step : QO_DAY_START+step);
+  let eHtml='<option value="">End…</option>', keep=null;
+  for(let m=lo; m<=QO_DAY_END; m+=step){
+    const sel=(desiredEnd===m); if(sel) keep=m;
+    eHtml+=`<option value="${m}"${sel?' selected':''}>${mytTimeStr(m)}</option>`;
+  }
+  ei.innerHTML=eHtml;
+  if(keep==null) ei.value='';
+}
+function onQOpenStartChange(){
+  const ei=$id('qopen-end');
+  const prevEnd = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
+  qoBuildEndOptions(prevEnd);
+  updateQOpenSummary();
+}
+
+// v59 [issue 4]: openQuickOpen accepts optional preselectDayIdx — pre-selects that day when opened
+// from the panel footer for a specific day. Toolbar call (no arg) keeps the empty selection.
 function openQuickOpen(preselectDayIdx){
   _qoSelectedDays = new Set();
   _qoSlotType = 'zoom15';
-  // Reset UI
-  ['morning','afternoon','evening','fullday'].forEach(p=>{
-    const el=$id('qp-'+p); if(el) el.classList.remove('on');
-  });
-  [0,1,2,3,4,5,6].forEach(i=>{
-    const el=$id('qd-'+i); if(el) el.classList.remove('on');
-  });
-  const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(si) si.value=''; if(ei) ei.value='';
+  ['morning','afternoon','evening','fullday'].forEach(p=>{ const el=$id('qp-'+p); if(el) el.classList.remove('on'); });
+  [0,1,2,3,4,5,6].forEach(idx=>{ const el=$id('qd-'+idx); if(el) el.classList.remove('on'); });
   const zt=$id('qt-zoom'), pt=$id('qt-private');
   if(zt) zt.className='qopen-type on-zoom';
   if(pt) pt.className='qopen-type';
-  // v59 [issue 4]: apply preselect after the reset
+  const si=$id('qopen-start'), ei=$id('qopen-end');
+  if(si) si.value=''; if(ei) ei.value='';
+  qoBuildTimeOptions();
   if(typeof preselectDayIdx === 'number' && preselectDayIdx >= 0 && preselectDayIdx < 7){
     _qoSelectedDays.add(preselectDayIdx);
-    const el = $id('qd-' + preselectDayIdx);
-    if(el) el.classList.add('on');
+    const el=$id('qd-'+preselectDayIdx); if(el) el.classList.add('on');
   }
   updateQOpenSummary();
   const ov=$id('qopen-overlay'); if(ov) ov.classList.add('on');
@@ -9034,12 +9070,11 @@ function closeQuickOpen(){
 }
 function applyPreset(name){
   const p=QOPEN_PRESETS[name]; if(!p) return;
-  // Clear other presets
-  ['morning','afternoon','evening','fullday'].forEach(k=>{
-    const el=$id('qp-'+k); if(el) el.classList.toggle('on',k===name);
-  });
+  ['morning','afternoon','evening','fullday'].forEach(k=>{ const el=$id('qp-'+k); if(el) el.classList.toggle('on',k===name); });
   const si=$id('qopen-start'), ei=$id('qopen-end');
-  if(si) si.value=p.start; if(ei) ei.value=p.end;
+  if(si) si.value=String(p.start);
+  if(ei) ei.value=String(p.end);
+  qoBuildTimeOptions();   // rebuilds for current grid + re-selects the (grid-valid) preset values
   updateQOpenSummary();
 }
 function toggleQDay(idx){
@@ -9054,39 +9089,37 @@ function setQType(type){
   const zt=$id('qt-zoom'), pt=$id('qt-private');
   if(zt) zt.className='qopen-type'+(type==='zoom15'?' on-zoom':'');
   if(pt) pt.className='qopen-type'+(type==='private'?' on-private':'');
+  qoBuildTimeOptions();   // rebuild dropdowns for the new grid (snaps current selections)
   updateQOpenSummary();
 }
 function updateQOpenSummary(){
   const si=$id('qopen-start'), ei=$id('qopen-end');
-  const start=(si?.value||'').trim(), end=(ei?.value||'').trim();
+  const sMin = si && si.value!=='' ? parseInt(si.value,10) : null;
+  const eMin = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
   const sum=$id('qopen-summary'); if(!sum) return;
-  const sp=parseT(start), ep=parseT(end);
-  const days=[..._qoSelectedDays].sort();
+  const days=[..._qoSelectedDays].sort((a,b)=>a-b);
   const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  if(!sp||!ep||!days.length){
-    sum.textContent='Select a preset or enter a time range and pick days to continue.'; return;
+  if(sMin==null||eMin==null||!days.length){
+    sum.textContent='Select a preset or pick a time range and days to continue.'; return;
   }
-  const sMin=sp.h*60+sp.min, eMin=ep.h*60+ep.min;
   if(eMin<=sMin){ sum.textContent='⚠ End time must be after start time.'; return; }
-  const dur=_qoSlotType==='zoom15'?15:20;
+  const dur=qoStep();
   const slots=Math.floor((eMin-sMin)/dur);
   const typeLabel=_qoSlotType==='zoom15'?'15-min Zoom':'20-min Private';
-  const dayStr=days.map(i=>dayNames[i]).join(', ');
-  sum.textContent=`Will open ${slots} ${typeLabel} slots × ${days.length} day${days.length>1?'s':''} (${dayStr}) · ${start}–${end} MYT`;
+  const dayStr=days.map(idx=>dayNames[idx]).join(', ');
+  sum.textContent=`Will open ${slots} ${typeLabel} slots × ${days.length} day${days.length>1?'s':''} (${dayStr}) · ${mytTimeStr(sMin)}–${mytTimeStr(eMin)} MYT`;
 }
 async function confirmQuickOpen(){
   const si=$id('qopen-start'), ei=$id('qopen-end');
-  const start=(si?.value||'').trim(), end=(ei?.value||'').trim();
-  const sp=parseT(start), ep=parseT(end);
-  if(!sp||!ep){ alert('Please enter valid start and end times (e.g. 10am, 6pm)'); return; }
-  const sMin=sp.h*60+sp.min, eMin=ep.h*60+ep.min;
+  const sMin = si && si.value!=='' ? parseInt(si.value,10) : null;
+  const eMin = ei && ei.value!=='' ? parseInt(ei.value,10) : null;
+  if(sMin==null||eMin==null){ alert('Please pick a start and end time.'); return; }
   if(eMin<=sMin){ alert('End time must be after start time.'); return; }
   if(!_qoSelectedDays.size){ alert('Please select at least one day.'); return; }
-  const dur=_qoSlotType==='zoom15'?15:20;
+  const dur=qoStep();
   const slots=[];
   _qoSelectedDays.forEach(di=>{
     for(let m=sMin;m<eMin;m+=dur){
-      // Skip if already a slot here
       const exists=SCHEDULE.some(s=>s.dayIdx===di&&s.startMyt===m&&s.type===_qoSlotType&&s.status==='av');
       if(!exists){
         slots.push({
@@ -9098,7 +9131,7 @@ async function confirmQuickOpen(){
       }
     }
   });
-  if(!slots.length){ alert('No new slots to open — all selected hours already have slots.'); return; }
+  if(!slots.length){ alert('No new slots to open — all selected times already have slots.'); return; }
   closeQuickOpen();
   await adminInsertAndReload(slots);
   renderCalendar();
@@ -9424,6 +9457,7 @@ function openTeamSheet(id, name, email, suspended, role){
       <button type="button" class="team-sheet-btn promote" onclick="closeTeamSheet(); settingsPromoteDemote('${id}','manager','${nameEsc}')">⭐ Promote to Manager</button>
       <button type="button" class="team-sheet-btn" onclick="closeTeamSheet(); settingsToggleSuspend('${id}', ${!suspended}, 'downline')">${suspended ? '✅ Unsuspend' : '⏸ Suspend'}</button>
       <button type="button" class="team-sheet-btn danger" onclick="closeTeamSheet(); openDeleteUserModal('${id}','${nameEsc}','${emailEsc}','${role||'downline'}')">🗑 Delete user</button>
+      <button type="button" class="team-sheet-btn" style="justify-content:center;color:var(--g500);margin-top:2px" onclick="closeTeamSheet()">Cancel</button>
     </div>
   `;
   const ov = document.getElementById('team-sheet-overlay');
@@ -10726,60 +10760,70 @@ async function devResetFutureWeeks(){
   }
 }
 
-// v59 [Louis M10a] - Generate test data. Populates the CURRENT week with a sample mix of
-// AV Zoom/Meet slots, 1 training session, 1 event. For dev/demo use only.
+// v59 [Louis M12c] - Generate test data across 3 weeks (last / current / next).
+// Correct durations: 15-min Zoom = 4 slots/hour (:00 :15 :30 :45), 20-min Meet = 3 slots/hour
+// (:00 :20 :40). Plus a training session + event (this week) and a few real bookings on an
+// existing downline account. Clear with Reset Calendar.
 async function devGenerateTestData(){
-  if(!WEEK_DAYS || WEEK_DAYS.length < 7){
-    alert('Calendar week not loaded — open Calendar first.');
-    return;
-  }
-  if(!confirm(`Generate sample slots for the current week (${WEEK_DAYS[0].iso} to ${WEEK_DAYS[6].iso})?\n\nWill add ~40 available slots, 1 training session, 1 event.`)) return;
+  const weeks = [buildWeekDays(-1), buildWeekDays(0), buildWeekDays(1)];
+  if(weeks.some(w=>!w || w.length<7)){ alert('Calendar week not loaded — open Calendar first.'); return; }
+  if(!confirm(`Generate sample data for 3 weeks?\n\n• ${weeks[0][0].iso} → ${weeks[2][6].iso}\n• 15-min Zoom + 20-min Meet slots, weekdays 9am–5pm\n• 1 training session + 1 event (this week)\n• a few test bookings on a downline account\n\nUse Reset Calendar to clear afterwards.`)) return;
   showAuthSpinner('Generating test data…');
   try {
     const rows = [];
-    // Weekdays Mon-Fri (indices 0-4) — open every hour 9am-5pm with mix of zoom + meet
-    for(let dayIdx = 0; dayIdx <= 4; dayIdx++){
-      const iso = WEEK_DAYS[dayIdx].iso;
-      for(let h = 9; h < 17; h++){
-        // Alternate zoom and meet by hour
-        const isZoom = (h % 2 === 0);
-        rows.push({
-          day_date: iso,
-          start_myt: h * 60,
-          end_myt: (h+1) * 60,
-          type: isZoom ? 'zoom15' : 'private',
-          status: 'av',
-          cancelled: false
-        });
+    // ── Available slots: 3 weeks × Mon–Fri × 9am–5pm, alternating Zoom / Meet by hour ──
+    weeks.forEach((week,wi)=>{
+      for(let d=0; d<=4; d++){           // Mon–Fri
+        const iso = week[d].iso;
+        for(let h=9; h<17; h++){
+          // keep this-week training (Wed 10–12) + event (Fri 2–4) cells clear of av slots
+          if(wi===1 && d===2 && (h===10||h===11)) continue;
+          if(wi===1 && d===4 && (h===14||h===15)) continue;
+          if(h % 2 === 0){
+            [0,15,30,45].forEach(min=>{
+              rows.push({ day_date:iso, start_myt:h*60+min, end_myt:h*60+min+15, type:'zoom15', status:'av', cancelled:false });
+            });
+          } else {
+            [0,20,40].forEach(min=>{
+              rows.push({ day_date:iso, start_myt:h*60+min, end_myt:h*60+min+20, type:'private', status:'av', label:'Private Meeting', cancelled:false });
+            });
+          }
+        }
       }
+    });
+    // ── Training session + Event (this week) ──
+    const cur = weeks[1];
+    rows.push({ day_date:cur[2].iso, start_myt:10*60, end_myt:12*60, type:'private', status:'booked', label:'Training Session (test data)', cancelled:false });
+    rows.push({ day_date:cur[4].iso, start_myt:14*60, end_myt:16*60, type:'event',   status:'booked', label:'Demo Event (test data)',     cancelled:false });
+
+    // ── A few real bookings on existing downline account(s), placed at 5pm/6pm (no av overlap) ──
+    let bookingNote='';
+    const { data: dls } = await sb.from('users').select('id,name').eq('role','downline').limit(2);
+    if(dls && dls.length){
+      const { data: pres } = await sb.from('users').select('id').in('role',['admin','manager']).limit(1);
+      const presId = (pres && pres.length) ? pres[0].id : null;
+      const A = dls[0].id, B = (dls[1] ? dls[1].id : dls[0].id);
+      weeks.forEach(week=>{
+        // Mon 5:00pm — Zoom, presenter assigned (Confirmed)
+        rows.push({ day_date:week[0].iso, start_myt:17*60, end_myt:17*60+15, type:'zoom15',  status:'booked', user_id:A, presenter_id:presId, prospect:'Alice (test)', cancelled:false });
+        // Wed 5:00pm — Zoom, no presenter (Pending)
+        rows.push({ day_date:week[2].iso, start_myt:17*60, end_myt:17*60+15, type:'zoom15',  status:'booked', user_id:B, presenter_id:null,   prospect:'Bob (test)',   cancelled:false });
+        // Thu 6:00pm — Meet, presenter assigned (Confirmed)
+        rows.push({ day_date:week[3].iso, start_myt:18*60, end_myt:18*60+20, type:'private', status:'booked', user_id:A, presenter_id:presId, cancelled:false });
+      });
+      bookingNote = ` + ${weeks.length*3} bookings on ${dls.map(d=>d.name).join(', ')}`;
+    } else {
+      bookingNote = ' (no downline account found — skipped test bookings)';
     }
-    // 1 training session — Wed 10am-12pm
-    rows.push({
-      day_date: WEEK_DAYS[2].iso,
-      start_myt: 10*60,
-      end_myt: 12*60,
-      type: 'private',
-      status: 'booked',
-      label: 'Training Session (test data)',
-      cancelled: false
-    });
-    // 1 event — Fri 2pm-4pm
-    rows.push({
-      day_date: WEEK_DAYS[4].iso,
-      start_myt: 14*60,
-      end_myt: 16*60,
-      type: 'event',
-      status: 'booked',
-      label: 'Demo Event (test data)',
-      cancelled: false
-    });
-    const { error } = await sb.from('schedule').insert(rows);
+
+    // ── Chunked insert (avoid an oversized single payload) ──
+    const CHUNK=100;
+    for(let k=0;k<rows.length;k+=CHUNK){
+      const { error } = await sb.from('schedule').insert(rows.slice(k,k+CHUNK));
+      if(error){ hideAuthSpinner(); alert('Error: ' + error.message); return; }
+    }
     hideAuthSpinner();
-    if(error){
-      alert('Error: ' + error.message);
-      return;
-    }
-    alert(`✅ Generated ${rows.length} test slots for this week.`);
+    alert(`✅ Generated ${rows.length} test rows across 3 weeks${bookingNote}.`);
     await reloadWeekSchedule();
     devLoadSlotCount();
   } catch(e){
@@ -11363,7 +11407,7 @@ window.addEventListener('resize',()=>{
         <div class="ph" style="background:var(--navy);color:#fff;border-radius:var(--rLg);padding:16px 20px;margin-bottom:20px">
           <div>
             <div class="ph-t" style="color:#fff">🛠 Developer Console</div>
-            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M11a-LouisC-hotfix · Full system access · Louis only</div>
+            <div class="ph-s" style="color:rgba(255,255,255,.6)">BD4U Book v59 M12 · Full system access · Louis only</div>
           </div>
           <div id="dev-supabase-status" style="font-size:11px;color:rgba(255,255,255,.5)">Checking DB…</div>
         </div>
@@ -11489,7 +11533,7 @@ window.addEventListener('resize',()=>{
               <button type="button" class="btn btn-danger btn-sm" onclick="executeForceLogout()">Force logout</button>
             </div>
             <div class="settings-row">
-              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M11a-LouisC-hotfix</div></div>
+              <div><div class="settings-row-lbl">App version</div><div class="settings-row-sub">BD4U Book v59 M12</div></div>
             </div>
             <div class="settings-row">
               <div><div class="settings-row-lbl">Supabase project</div><div class="settings-row-sub">qwfpfoebbwqmsmoqiyet · Singapore</div></div>
@@ -11636,6 +11680,14 @@ window.addEventListener('resize',()=>{
       <button type="button" class="qopen-close" onclick="closeQuickOpen()">✕</button>
     </div>
     <div class="qopen-body">
+      <!-- Slot type -->
+      <div>
+        <div class="qopen-sec-lbl">Slot type</div>
+        <div class="qopen-types">
+          <button type="button" class="qopen-type on-zoom" id="qt-zoom" onclick="setQType('zoom15')">🔵 15-min Zoom</button>
+          <button type="button" class="qopen-type" id="qt-private" onclick="setQType('private')">🟣 20-min Private</button>
+        </div>
+      </div>
       <!-- Presets -->
       <div>
         <div class="qopen-sec-lbl">Quick presets</div>
@@ -11666,9 +11718,9 @@ window.addEventListener('resize',()=>{
       <div>
         <div class="qopen-sec-lbl">Custom time range (MYT)</div>
         <div class="qopen-time-row">
-          <input type="text" class="fc" id="qopen-start" aria-label="Start time" placeholder="e.g. 10am" oninput="updateQOpenSummary()">
+          <select class="fc" id="qopen-start" aria-label="Start time" onchange="onQOpenStartChange()"></select>
           <span class="qopen-time-sep">to</span>
-          <input type="text" class="fc" id="qopen-end" aria-label="End time" placeholder="e.g. 6pm" oninput="updateQOpenSummary()">
+          <select class="fc" id="qopen-end" aria-label="End time" onchange="updateQOpenSummary()"></select>
         </div>
       </div>
       <!-- Day picker -->
@@ -11684,16 +11736,8 @@ window.addEventListener('resize',()=>{
           <button type="button" class="qopen-day" id="qd-6" onclick="toggleQDay(6)">Sun</button>
         </div>
       </div>
-      <!-- Slot type -->
-      <div>
-        <div class="qopen-sec-lbl">Slot type</div>
-        <div class="qopen-types">
-          <button type="button" class="qopen-type on-zoom" id="qt-zoom" onclick="setQType('zoom15')">🔵 15-min Zoom</button>
-          <button type="button" class="qopen-type" id="qt-private" onclick="setQType('private')">🟣 20-min Private</button>
-        </div>
-      </div>
       <!-- Summary -->
-      <div class="qopen-summary" id="qopen-summary">Select a preset or enter a time range and pick days to continue.</div>
+      <div class="qopen-summary" id="qopen-summary">Select a preset or pick a time range and days to continue.</div>
     </div>
     <div class="qopen-foot">
       <button type="button" class="btn btn-outline btn-sm" onclick="closeQuickOpen()">Cancel</button>
